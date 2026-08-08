@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
 import { Inter, Inter_Tight } from "next/font/google";
+import NextTopLoader from "nextjs-toploader";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { clerkAppearance } from "@/lib/clerk-appearance";
@@ -32,6 +33,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 			className={`${inter.variable} ${interTight.variable} h-full antialiased`}
 		>
 			<body className="flex min-h-full flex-col font-sans">
+				<NextTopLoader
+					color="#025bff"
+					height={2}
+					showSpinner={false}
+					shadow={false}
+				/>
 				<ThemeProvider
 					attribute="class"
 					defaultTheme="system"
