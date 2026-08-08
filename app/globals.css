@@ -241,4 +241,63 @@
 	.animate-wave-dot {
 		animation: wave-dot 1.2s ease-in-out infinite;
 	}
+
+	.profile-editor-content {
+		color: var(--foreground);
+		font-size: 0.95rem;
+		line-height: 1.65;
+	}
+
+	.profile-editor-content > * + * {
+		margin-top: 0.75rem;
+	}
+
+	.profile-editor-content h2 {
+		font-family: var(--font-display), sans-serif;
+		font-size: 1.35rem;
+		font-weight: 600;
+		letter-spacing: -0.02em;
+		line-height: 1.3;
+		margin-top: 1.5rem;
+	}
+
+	.profile-editor-content h3 {
+		font-family: var(--font-display), sans-serif;
+		font-size: 1.1rem;
+		font-weight: 600;
+		letter-spacing: -0.015em;
+		line-height: 1.35;
+		margin-top: 1.25rem;
+	}
+
+	.profile-editor-content ul,
+	.profile-editor-content ol {
+		padding-left: 1.25rem;
+	}
+
+	.profile-editor-content ul {
+		list-style: disc;
+	}
+
+	.profile-editor-content ol {
+		list-style: decimal;
+	}
+
+	.profile-editor-content li + li {
+		margin-top: 0.25rem;
+	}
+
+	.profile-editor-content a {
+		color: var(--color-brand, #025bff);
+		text-decoration: underline;
+		text-underline-offset: 2px;
+	}
+
+	.profile-editor-content p.is-editor-empty:first-child::before {
+		color: var(--muted-foreground);
+		content: attr(data-placeholder);
+		float: left;
+		height: 0;
+		pointer-events: none;
+	}
 }

@@ -59,7 +59,7 @@ type SidebarUserMenuProps = {
 
 export function SidebarUserMenu({ user, compact = false }: SidebarUserMenuProps) {
 	const { signOut, openUserProfile } = useClerk();
-	const { isMobile, state } = useSidebar();
+	const { isMobile, state, setOpenMobile } = useSidebar();
 	const { setTheme } = useTheme();
 	const collapsed = state === "collapsed";
 
@@ -91,7 +91,12 @@ export function SidebarUserMenu({ user, compact = false }: SidebarUserMenuProps)
 					Manage account
 				</DropdownMenuItem>
 				<DropdownMenuItem
-					render={<Link href="/settings" />}
+					render={
+						<Link
+							href="/settings"
+							onClick={() => setOpenMobile(false)}
+						/>
+					}
 					className="gap-2"
 				>
 					<Settings2 className="size-4" />

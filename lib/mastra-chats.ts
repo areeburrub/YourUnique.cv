@@ -5,6 +5,11 @@ import { cache } from "react";
 
 import type { ChatThreadListItem } from "@/lib/chats";
 import { hydrateMessageFileParts } from "@/lib/chat-files";
+import {
+	isProfileEditThread,
+	legacyProfileEditThreadId,
+	listProfileChatThreads,
+} from "@/lib/profile-chat";
 import { mastra } from "@/mastra";
 
 async function getResumeMemory() {
@@ -52,6 +57,9 @@ export async function ensureChatThreadForUser(input: {
 		if (existing.resourceId !== input.userId) {
 			return null;
 		}
+		if (isProfileEditThread(existing)) {
+			return null;
+		}
 		return existing;
 	}
 
@@ -62,9 +70,17 @@ export async function ensureChatThreadForUser(input: {
 	});
 }
 
+async function countHiddenProfileThreads(userId: string) {
+	const memory = await getResumeMemory();
+	const legacy = await memory.getThreadById({
+		threadId: legacyProfileEditThreadId(userId),
+	});
+	return legacy && legacy.resourceId === userId ? 1 : 0;
+}
+
 export async function listChatThreads(
 	userId: string,
-	options?: { limit?: number; page?: number },
+	options?: { limit?: number; page?: number; kind?: "resume" | "profile" },
 ): Promise<{
 	threads: ChatThreadListItem[];
 	page: number;
@@ -72,18 +88,29 @@ export async function listChatThreads(
 	total: number;
 	hasMore: boolean;
 }> {
+	if (options?.kind === "profile") {
+		return listProfileChatThreads(userId, {
+			limit: options.limit,
+			page: options.page,
+		});
+	}
+
 	const memory = await getResumeMemory();
 	const page = options?.page ?? 0;
 	const perPage = options?.limit ?? 100;
-	const result = await memory.listThreads({
-		filter: { resourceId: userId },
-		orderBy: { field: "updatedAt", direction: "DESC" },
-		page,
-		perPage,
-	});
+	const [result, hiddenProfileCount] = await Promise.all([
+		memory.listThreads({
+			filter: { resourceId: userId },
+			orderBy: { field: "updatedAt", direction: "DESC" },
+			page,
+			perPage,
+		}),
+		countHiddenProfileThreads(userId),
+	]);
 
-	return {
-		threads: result.threads.map((thread) => {
+	const threads = result.threads
+		.filter((thread) => !isProfileEditThread(thread))
+		.map((thread) => {
 			const metadataPreview =
 				typeof thread.metadata?.preview === "string"
 					? thread.metadata.preview
@@ -95,10 +122,13 @@ export async function listChatThreads(
 				preview: previewFromText(metadataPreview),
 				updatedAt: thread.updatedAt.toISOString(),
 			};
-		}),
+		});
+
+	return {
+		threads,
 		page: result.page,
 		perPage: typeof result.perPage === "number" ? result.perPage : perPage,
-		total: result.total,
+		total: Math.max(0, result.total - hiddenProfileCount),
 		hasMore: result.hasMore,
 	};
 }
@@ -110,7 +140,7 @@ export async function renameChatThreadForUser(
 ) {
 	const memory = await getResumeMemory();
 	const thread = await memory.getThreadById({ threadId });
-	if (!thread || thread.resourceId !== userId) {
+	if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
 		return null;
 	}
 
@@ -124,7 +154,7 @@ export async function renameChatThreadForUser(
 export async function deleteChatThreadForUser(threadId: string, userId: string) {
 	const memory = await getResumeMemory();
 	const thread = await memory.getThreadById({ threadId });
-	if (!thread || thread.resourceId !== userId) {
+	if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
 		return false;
 	}
 
@@ -136,7 +166,7 @@ export const getChatThreadForUser = cache(
 	async (threadId: string, userId: string) => {
 		const memory = await getResumeMemory();
 		const thread = await memory.getThreadById({ threadId });
-		if (!thread || thread.resourceId !== userId) {
+		if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
 			return null;
 		}
 		return thread;

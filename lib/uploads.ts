@@ -9,12 +9,28 @@ export const ALLOWED_UPLOAD_MEDIA_TYPES = new Set([
 	"application/pdf",
 	"application/msword",
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
+	"text/plain",
+	"text/markdown",
+]);
+
+export const ONBOARDING_UPLOAD_MEDIA_TYPES = new Set([
+	"image/jpeg",
+	"image/png",
+	"image/gif",
+	"image/webp",
+	"application/pdf",
+	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
 	"text/plain",
 	"text/markdown",
 ]);
 
 export const UPLOAD_ACCEPT =
-	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,text/plain,.txt,text/markdown,.md";
+	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,text/plain,.txt,text/markdown,.md";
+
+export const ONBOARDING_UPLOAD_ACCEPT =
+	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,text/plain,.txt,text/markdown,.md";
 
 const EXTENSION_MEDIA_TYPES: Record<string, string> = {
 	".jpg": "image/jpeg",
@@ -26,6 +42,8 @@ const EXTENSION_MEDIA_TYPES: Record<string, string> = {
 	".doc": "application/msword",
 	".docx":
 		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+	".pptx":
+		"application/vnd.openxmlformats-officedocument.presentationml.presentation",
 	".txt": "text/plain",
 	".md": "text/markdown",
 	".markdown": "text/markdown",
@@ -46,6 +64,10 @@ export function mediaTypeFromFilename(filename: string) {
 
 export function isAllowedUploadMediaType(mediaType: string) {
 	return ALLOWED_UPLOAD_MEDIA_TYPES.has(mediaType);
+}
+
+export function isAllowedOnboardingUploadMediaType(mediaType: string) {
+	return ONBOARDING_UPLOAD_MEDIA_TYPES.has(mediaType);
 }
 
 export function resolveUploadMediaType(input: {

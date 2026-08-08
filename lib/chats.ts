@@ -11,3 +11,7 @@ export const CHATS_PAGE_SIZE = 20;
 export function getChatThreadHref(id: string) {
 	return `/chats/${id}`;
 }
+
+export function getProfileChatThreadHref(id: string) {
+	return `/profile/${id}`;
+}

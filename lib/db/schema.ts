@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
 	index,
 	integer,
+	jsonb,
 	pgTable,
 	text,
 	timestamp,
@@ -43,13 +44,42 @@ export const userFiles = pgTable(
 	],
 );
 
-export const usersRelations = relations(users, ({ many }) => ({
+export const userContexts = pgTable("user_contexts", {
+	userId: text("user_id")
+		.primaryKey()
+		.references(() => users.id, { onDelete: "cascade" }),
+	profile: text("profile").notNull(),
+	style: text("style").notNull(),
+	sourceFileIds: jsonb("source_file_ids")
+		.$type<string[]>()
+		.notNull()
+		.default([]),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
+export const usersRelations = relations(users, ({ many, one }) => ({
 	files: many(userFiles),
+	context: one(userContexts, {
+		fields: [users.id],
+		references: [userContexts.userId],
+	}),
 }));
 
 export const userFilesRelations = relations(userFiles, ({ one }) => ({
 	user: one(users, {
 		fields: [userFiles.userId],
+		references: [users.id],
+	}),
+}));
+
+export const userContextsRelations = relations(userContexts, ({ one }) => ({
+	user: one(users, {
+		fields: [userContexts.userId],
 		references: [users.id],
 	}),
 }));

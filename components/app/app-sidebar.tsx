@@ -12,6 +12,7 @@ import {
 	Trash2,
 	UserRound,
 } from "lucide-react";
+import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -57,6 +58,7 @@ import { useSoftNav, useSoftPathname } from "@/components/app/soft-nav";
 import {
 	type ChatThreadListItem,
 	getChatThreadHref,
+	getProfileChatThreadHref,
 } from "@/lib/chats";
 import {
 	deleteChatThreadRequest,
@@ -66,6 +68,13 @@ import {
 	renameThreadInCache,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
+import {
+	deleteProfileChatThreadRequest,
+	removeProfileThreadFromCache,
+	renameProfileChatThreadRequest,
+	renameProfileThreadInCache,
+	useProfileChatThreadsInfinite,
+} from "@/lib/profile-chats-query";
 
 const primaryNav = [
 	{ title: "New chat", href: "/new-chat", icon: Plus, exact: true },
@@ -145,33 +154,56 @@ function groupThreadsByDate(threads: ChatThreadListItem[]): ThreadDateGroup[] {
 function ThreadLink({
 	thread,
 	pathname,
+	href,
+	mode,
 }: {
 	thread: ChatThreadListItem;
 	pathname: string;
+	href: string;
+	mode: "resume" | "profile";
 }) {
-	const href = getChatThreadHref(thread.id);
 	const isActive = pathname === href;
 	const queryClient = useQueryClient();
+	const router = useRouter();
 	const { openNewChat } = useSoftNav();
+	const { setOpenMobile } = useSidebar();
 	const [renameOpen, setRenameOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
 	const [titleInput, setTitleInput] = useState(thread.title);
 
 	const renameMutation = useMutation({
-		mutationFn: (title: string) => renameChatThreadRequest(thread.id, title),
+		mutationFn: (title: string) =>
+			mode === "profile"
+				? renameProfileChatThreadRequest(thread.id, title)
+				: renameChatThreadRequest(thread.id, title),
 		onSuccess: (updated) => {
-			renameThreadInCache(queryClient, thread.id, updated.title);
+			if (mode === "profile") {
+				renameProfileThreadInCache(queryClient, thread.id, updated.title);
+			} else {
+				renameThreadInCache(queryClient, thread.id, updated.title);
+			}
 			setRenameOpen(false);
 		},
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: () => deleteChatThreadRequest(thread.id),
+		mutationFn: () =>
+			mode === "profile"
+				? deleteProfileChatThreadRequest(thread.id)
+				: deleteChatThreadRequest(thread.id),
 		onSuccess: () => {
-			removeThreadFromCache(queryClient, thread.id);
+			if (mode === "profile") {
+				removeProfileThreadFromCache(queryClient, thread.id);
+			} else {
+				removeThreadFromCache(queryClient, thread.id);
+			}
 			setDeleteOpen(false);
 			if (isActive) {
-				openNewChat();
+				if (mode === "profile") {
+					router.push("/profile");
+				} else {
+					openNewChat();
+				}
 			}
 		},
 	});
@@ -195,7 +227,13 @@ function ThreadLink({
 	return (
 		<SidebarMenuItem>
 			<SidebarMenuButton
-				render={<Link href={href} prefetch={false} />}
+				render={
+					<Link
+						href={href}
+						prefetch={false}
+						onClick={() => setOpenMobile(false)}
+					/>
+				}
 				isActive={isActive}
 				tooltip={thread.title}
 				className="text-muted-foreground"
@@ -302,22 +340,42 @@ export function AppSidebar({
 }: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
-	const { state } = useSidebar();
+	const { state, setOpenMobile } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
 	const loadMoreRef = useRef<HTMLDivElement | null>(null);
+	const onProfile = pathname === "/profile" || pathname.startsWith("/profile/");
 
-	const {
-		data,
-		fetchNextPage,
-		hasNextPage,
-		isFetchingNextPage,
-	} = useChatThreadsInfinite({
+	const handleOpenNewChat = () => {
+		setOpenMobile(false);
+		openNewChat();
+	};
+
+	const resumeQuery = useChatThreadsInfinite({
 		initialThreads,
 		initialHasMore,
 	});
 
+	const profileQuery = useProfileChatThreadsInfinite({
+		enabled: onProfile,
+	});
+
+	const data = onProfile ? profileQuery.data : resumeQuery.data;
+	const fetchNextPage = onProfile
+		? profileQuery.fetchNextPage
+		: resumeQuery.fetchNextPage;
+	const hasNextPage = onProfile
+		? profileQuery.hasNextPage
+		: resumeQuery.hasNextPage;
+	const isFetchingNextPage = onProfile
+		? profileQuery.isFetchingNextPage
+		: resumeQuery.isFetchingNextPage;
+
 	const threads = flatChatThreads(data);
+	const recentsMode = onProfile ? "profile" : "resume";
+	const threadHref = onProfile
+		? getProfileChatThreadHref
+		: getChatThreadHref;
 
 	useEffect(() => {
 		const stored = window.localStorage.getItem(GROUP_BY_KEY);
@@ -375,7 +433,7 @@ export function AppSidebar({
 					<div className="flex h-full w-full items-center gap-1 px-3">
 						<button
 							type="button"
-							onClick={openNewChat}
+							onClick={handleOpenNewChat}
 							className="flex min-w-0 flex-1 items-center overflow-hidden rounded-control px-1 text-left"
 						>
 							<span className="truncate font-display text-[18px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
@@ -404,9 +462,16 @@ export function AppSidebar({
 									<SidebarMenuButton
 										render={
 											item.href === "/new-chat" ? (
-												<button type="button" onClick={openNewChat} />
+												<button
+													type="button"
+													onClick={handleOpenNewChat}
+												/>
 											) : (
-												<Link href={item.href} prefetch={false} />
+												<Link
+													href={item.href}
+													prefetch={false}
+													onClick={() => setOpenMobile(false)}
+												/>
 											)
 										}
 										isActive={isActivePath(
@@ -469,7 +534,9 @@ export function AppSidebar({
 					</div>
 					<SidebarGroupContent>
 						{threads.length === 0 ? (
-							<p className="px-2 text-[12px] text-muted-soft">No chats yet</p>
+							<p className="px-2 text-[12px] text-muted-soft">
+								{onProfile ? "No profile chats yet" : "No chats yet"}
+							</p>
 						) : groupBy === "date" ? (
 							<div className="flex flex-col gap-2">
 								{dateGroups.map((group) => (
@@ -483,6 +550,8 @@ export function AppSidebar({
 													key={thread.id}
 													thread={thread}
 													pathname={pathname}
+													href={threadHref(thread.id)}
+													mode={recentsMode}
 												/>
 											))}
 										</SidebarMenu>
@@ -496,6 +565,8 @@ export function AppSidebar({
 										key={thread.id}
 										thread={thread}
 										pathname={pathname}
+										href={threadHref(thread.id)}
+										mode={recentsMode}
 									/>
 								))}
 							</SidebarMenu>
