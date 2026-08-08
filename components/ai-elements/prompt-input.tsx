@@ -487,7 +487,7 @@ export const PromptInputActionAddScreenshot = ({
 
 export interface PromptInputMessage {
   text: string;
-  files: FileUIPart[];
+  files: Array<FileUIPart & { id?: string }>;
 }
 
 export type PromptInputProps = Omit<
@@ -567,13 +567,34 @@ export const PromptInput = ({
         .map((s) => s.trim())
         .filter(Boolean);
 
+      const fileName = f.name.toLowerCase();
+      const dot = fileName.lastIndexOf(".");
+      const extension =
+        dot > 0 && dot < fileName.length - 1 ? fileName.slice(dot) : "";
+
       return patterns.some((pattern) => {
-        if (pattern.endsWith("/*")) {
-          // e.g: image/* -> image/
-          const prefix = pattern.slice(0, -1);
-          return f.type.startsWith(prefix);
+        const normalized = pattern.toLowerCase();
+        if (normalized.endsWith("/*")) {
+          const prefix = normalized.slice(0, -1);
+          return f.type.toLowerCase().startsWith(prefix);
         }
-        return f.type === pattern;
+        if (normalized.startsWith(".")) {
+          return extension === normalized;
+        }
+        if (f.type && f.type.toLowerCase() === normalized) {
+          return true;
+        }
+        // Desktop drops often use empty or octet-stream MIME; fall back to extension.
+        if (
+          (!f.type || f.type === "application/octet-stream") &&
+          extension &&
+          patterns.some(
+            (candidate) => candidate.toLowerCase() === extension
+          )
+        ) {
+          return true;
+        }
+        return false;
       });
     },
     [accept]
@@ -770,15 +791,27 @@ export const PromptInput = ({
       return;
     }
 
+    const hasFiles = (e: DragEvent) =>
+      Boolean(
+        e.dataTransfer?.types?.includes("Files") ||
+          (e.dataTransfer?.items &&
+            [...e.dataTransfer.items].some((item) => item.kind === "file"))
+      );
+
     const onDragOver = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes("Files")) {
-        e.preventDefault();
+      if (!hasFiles(e)) {
+        return;
+      }
+      e.preventDefault();
+      if (e.dataTransfer) {
+        e.dataTransfer.dropEffect = "copy";
       }
     };
     const onDrop = (e: DragEvent) => {
-      if (e.dataTransfer?.types?.includes("Files")) {
-        e.preventDefault();
+      if (!hasFiles(e)) {
+        return;
       }
+      e.preventDefault();
       if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
         add(e.dataTransfer.files);
       }
@@ -864,22 +897,15 @@ export const PromptInput = ({
       }
 
       try {
-        // Convert blob URLs to data URLs asynchronously
-        const convertedFiles: FileUIPart[] = await Promise.all(
-          files.map(async ({ id: _id, ...item }) => {
-            if (item.url?.startsWith("blob:")) {
-              const dataUrl = await convertBlobUrlToDataUrl(item.url);
-              // If conversion failed, keep the original blob URL
-              return {
-                ...item,
-                url: dataUrl ?? item.url,
-              };
-            }
-            return item;
-          })
+        // Keep local attachment ids and blob URLs — chat uploads on attach
+        // and maps these to server URLs before send.
+        const result = onSubmit(
+          {
+            files: files.map(({ id, ...item }) => ({ ...item, id })),
+            text,
+          },
+          event
         );
-
-        const result = onSubmit({ files: convertedFiles, text }, event);
 
         // Handle both sync and async onSubmit
         if (result instanceof Promise) {

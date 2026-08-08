@@ -6,6 +6,7 @@ import {
 	type SidebarUser,
 } from "@/components/app/sidebar-user-menu";
 import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
+import { QueryProvider } from "@/components/providers/query-provider";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import type { ChatThreadListItem } from "@/lib/chats";
@@ -13,6 +14,7 @@ import type { ChatThreadListItem } from "@/lib/chats";
 type AppShellProps = {
 	user: SidebarUser;
 	recentThreads: ChatThreadListItem[];
+	recentHasMore?: boolean;
 	children: React.ReactNode;
 };
 
@@ -30,30 +32,41 @@ function MobileBrand() {
 	);
 }
 
-export function AppShell({ user, recentThreads, children }: AppShellProps) {
+export function AppShell({
+	user,
+	recentThreads,
+	recentHasMore = false,
+	children,
+}: AppShellProps) {
 	return (
-		<SoftNavProvider>
-			<TooltipProvider>
-				<SidebarProvider className="h-svh overflow-hidden">
-					<AppSidebar user={user} recentThreads={recentThreads} />
-					<SidebarInset className="min-h-0 overflow-hidden">
-						<div className="flex h-14 shrink-0 items-center border-b border-border px-3 md:hidden">
-							<div className="flex w-10 shrink-0 items-center justify-start">
-								<SidebarTrigger className="text-muted-foreground" />
+		<QueryProvider>
+			<SoftNavProvider>
+				<TooltipProvider>
+					<SidebarProvider className="h-svh overflow-hidden">
+						<AppSidebar
+							user={user}
+							initialThreads={recentThreads}
+							initialHasMore={recentHasMore}
+						/>
+						<SidebarInset className="min-h-0 overflow-hidden">
+							<div className="flex h-14 shrink-0 items-center border-b border-border px-3 md:hidden">
+								<div className="flex w-10 shrink-0 items-center justify-start">
+									<SidebarTrigger className="text-muted-foreground" />
+								</div>
+								<div className="flex min-w-0 flex-1 items-center justify-center">
+									<MobileBrand />
+								</div>
+								<div className="flex w-10 shrink-0 items-center justify-end">
+									<SidebarUserMenu user={user} compact />
+								</div>
 							</div>
-							<div className="flex min-w-0 flex-1 items-center justify-center">
-								<MobileBrand />
+							<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+								{children}
 							</div>
-							<div className="flex w-10 shrink-0 items-center justify-end">
-								<SidebarUserMenu user={user} compact />
-							</div>
-						</div>
-						<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-							{children}
-						</div>
-					</SidebarInset>
-				</SidebarProvider>
-			</TooltipProvider>
-		</SoftNavProvider>
+						</SidebarInset>
+					</SidebarProvider>
+				</TooltipProvider>
+			</SoftNavProvider>
+		</QueryProvider>
 	);
 }

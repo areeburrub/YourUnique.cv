@@ -2,6 +2,7 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { cache } from "react";
 
 import { AppShell } from "@/components/app/app-shell";
+import { CHATS_PAGE_SIZE } from "@/lib/chats";
 import { listChatThreads } from "@/lib/mastra-chats";
 
 const getCachedUser = cache(async () => currentUser());
@@ -23,9 +24,9 @@ export default async function AppLayout({
 		(email.includes("@") ? email.slice(0, email.indexOf("@")) : "") ||
 		"Account";
 
-	const recentThreads = userId
-		? await listChatThreads(userId, { limit: 4 })
-		: [];
+	const recentResult = userId
+		? await listChatThreads(userId, { limit: CHATS_PAGE_SIZE, page: 0 })
+		: null;
 
 	return (
 		<AppShell
@@ -34,7 +35,8 @@ export default async function AppLayout({
 				email,
 				imageUrl: user?.imageUrl,
 			}}
-			recentThreads={recentThreads}
+			recentThreads={recentResult?.threads ?? []}
+			recentHasMore={recentResult?.hasMore ?? false}
 		>
 			{children}
 		</AppShell>

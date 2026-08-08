@@ -1,10 +1,101 @@
 import type { FileUIPart, UIMessage } from "ai";
 
-import { getUserFileForUser } from "@/lib/db/files";
+import {
+	getUserFileForUser,
+	getUserFilesByIds,
+	getUserFilesByKeys,
+} from "@/lib/db/files";
 import { getR2Object, getR2SignedGetUrl } from "@/lib/r2";
-import { parseFileIdFromAppUrl } from "@/lib/uploads";
+import { fileAppUrl, parseFileIdFromAppUrl } from "@/lib/uploads";
 
 type MessagePart = UIMessage["parts"][number];
+
+function r2ObjectKeyFromUrl(url: string) {
+	try {
+		const parsed = new URL(url);
+		let path = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+		const bucket = process.env.R2_BUCKET_NAME;
+		if (bucket && path.startsWith(`${bucket}/`)) {
+			path = path.slice(bucket.length + 1);
+		}
+		if (path.startsWith("users/")) {
+			return path;
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+export async function hydrateMessageFileParts(
+	messages: UIMessage[],
+	userId: string,
+): Promise<UIMessage[]> {
+	const fileIds = new Set<string>();
+	const keys = new Set<string>();
+
+	for (const message of messages) {
+		for (const part of message.parts) {
+			if (
+				part.type !== "file" ||
+				!("url" in part) ||
+				typeof part.url !== "string"
+			) {
+				continue;
+			}
+			const fileId = parseFileIdFromAppUrl(part.url);
+			if (fileId) {
+				fileIds.add(fileId);
+				continue;
+			}
+			const key = r2ObjectKeyFromUrl(part.url);
+			if (key) {
+				keys.add(key);
+			}
+		}
+	}
+
+	const [byId, byKey] = await Promise.all([
+		getUserFilesByIds([...fileIds], userId),
+		getUserFilesByKeys([...keys], userId),
+	]);
+
+	const filesById = new Map(byId.map((file) => [file.id, file]));
+	const filesByKey = new Map(byKey.map((file) => [file.key, file]));
+
+	return messages.map((message) => ({
+		...message,
+		parts: message.parts.map((part) => {
+			if (
+				part.type !== "file" ||
+				!("url" in part) ||
+				typeof part.url !== "string"
+			) {
+				return part;
+			}
+
+			const fileId = parseFileIdFromAppUrl(part.url);
+			const key = fileId ? null : r2ObjectKeyFromUrl(part.url);
+			const file = fileId
+				? filesById.get(fileId)
+				: key
+					? filesByKey.get(key)
+					: undefined;
+
+			if (!file) {
+				return part;
+			}
+
+			return {
+				...part,
+				type: "file" as const,
+				url: fileAppUrl(file.id),
+				filename: part.filename || file.filename,
+				mediaType: part.mediaType || file.contentType,
+			} satisfies FileUIPart;
+		}),
+	}));
+}
 
 async function filePartToModelParts(
 	part: FileUIPart,

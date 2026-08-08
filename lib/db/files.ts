@@ -1,37 +1,26 @@
 import { and, eq, inArray, isNull } from "drizzle-orm";
-import { nanoid } from "nanoid";
 
 import { db } from "@/lib/db";
 import { userFiles } from "@/lib/db/schema";
-import { putR2Object } from "@/lib/r2";
-import { fileAppUrl, sanitizeFilename } from "@/lib/uploads";
+import { fileAppUrl } from "@/lib/uploads";
 
-export async function createUserFile(input: {
+export async function insertUserFileRow(input: {
+	id: string;
 	userId: string;
 	threadId?: string | null;
+	key: string;
 	filename: string;
 	contentType: string;
 	size: number;
-	body: Buffer;
 }) {
-	const id = nanoid();
-	const filename = sanitizeFilename(input.filename);
-	const key = `users/${input.userId}/${id}-${filename}`;
-
-	await putR2Object({
-		key,
-		body: input.body,
-		contentType: input.contentType,
-	});
-
 	const [row] = await db
 		.insert(userFiles)
 		.values({
-			id,
+			id: input.id,
 			userId: input.userId,
 			threadId: input.threadId ?? null,
-			key,
-			filename,
+			key: input.key,
+			filename: input.filename,
 			contentType: input.contentType,
 			size: input.size,
 		})
@@ -46,6 +35,26 @@ export async function createUserFile(input: {
 export async function getUserFileForUser(fileId: string, userId: string) {
 	return db.query.userFiles.findFirst({
 		where: and(eq(userFiles.id, fileId), eq(userFiles.userId, userId)),
+	});
+}
+
+export async function getUserFilesByIds(fileIds: string[], userId: string) {
+	if (fileIds.length === 0) {
+		return [];
+	}
+
+	return db.query.userFiles.findMany({
+		where: and(eq(userFiles.userId, userId), inArray(userFiles.id, fileIds)),
+	});
+}
+
+export async function getUserFilesByKeys(keys: string[], userId: string) {
+	if (keys.length === 0) {
+		return [];
+	}
+
+	return db.query.userFiles.findMany({
+		where: and(eq(userFiles.userId, userId), inArray(userFiles.key, keys)),
 	});
 }
 

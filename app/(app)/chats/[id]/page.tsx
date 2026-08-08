@@ -23,7 +23,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 		notFound();
 	}
 
-	const initialMessages = await listChatMessages(thread.id);
+	const initialMessages = await listChatMessages(thread.id, userId);
 
 	return <ChatView threadId={thread.id} initialMessages={initialMessages} />;
 }

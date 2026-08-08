@@ -4,6 +4,7 @@ import { nanoid } from "nanoid";
 import { cache } from "react";
 
 import type { ChatThreadListItem } from "@/lib/chats";
+import { hydrateMessageFileParts } from "@/lib/chat-files";
 import { mastra } from "@/mastra";
 
 async function getResumeMemory() {
@@ -63,30 +64,72 @@ export async function ensureChatThreadForUser(input: {
 
 export async function listChatThreads(
 	userId: string,
-	options?: { limit?: number },
-): Promise<ChatThreadListItem[]> {
+	options?: { limit?: number; page?: number },
+): Promise<{
+	threads: ChatThreadListItem[];
+	page: number;
+	perPage: number;
+	total: number;
+	hasMore: boolean;
+}> {
 	const memory = await getResumeMemory();
-	const limit = options?.limit ?? 100;
-	const { threads } = await memory.listThreads({
+	const page = options?.page ?? 0;
+	const perPage = options?.limit ?? 100;
+	const result = await memory.listThreads({
 		filter: { resourceId: userId },
 		orderBy: { field: "updatedAt", direction: "DESC" },
-		page: 0,
-		perPage: limit,
+		page,
+		perPage,
 	});
 
-	return threads.map((thread) => {
-		const metadataPreview =
-			typeof thread.metadata?.preview === "string"
-				? thread.metadata.preview
-				: "";
+	return {
+		threads: result.threads.map((thread) => {
+			const metadataPreview =
+				typeof thread.metadata?.preview === "string"
+					? thread.metadata.preview
+					: "";
 
-		return {
-			id: thread.id,
-			title: thread.title?.trim() || "New chat",
-			preview: previewFromText(metadataPreview),
-			updatedAt: thread.updatedAt.toISOString(),
-		};
+			return {
+				id: thread.id,
+				title: thread.title?.trim() || "New chat",
+				preview: previewFromText(metadataPreview),
+				updatedAt: thread.updatedAt.toISOString(),
+			};
+		}),
+		page: result.page,
+		perPage: typeof result.perPage === "number" ? result.perPage : perPage,
+		total: result.total,
+		hasMore: result.hasMore,
+	};
+}
+
+export async function renameChatThreadForUser(
+	threadId: string,
+	userId: string,
+	title: string,
+) {
+	const memory = await getResumeMemory();
+	const thread = await memory.getThreadById({ threadId });
+	if (!thread || thread.resourceId !== userId) {
+		return null;
+	}
+
+	return memory.updateThread({
+		id: threadId,
+		title,
+		metadata: thread.metadata ?? {},
 	});
+}
+
+export async function deleteChatThreadForUser(threadId: string, userId: string) {
+	const memory = await getResumeMemory();
+	const thread = await memory.getThreadById({ threadId });
+	if (!thread || thread.resourceId !== userId) {
+		return false;
+	}
+
+	await memory.deleteThread(threadId);
+	return true;
 }
 
 export const getChatThreadForUser = cache(
@@ -100,7 +143,10 @@ export const getChatThreadForUser = cache(
 	},
 );
 
-export async function listChatMessages(threadId: string): Promise<UIMessage[]> {
+export async function listChatMessages(
+	threadId: string,
+	userId: string,
+): Promise<UIMessage[]> {
 	const memory = await getResumeMemory();
 	const { messages } = await memory.recall({
 		threadId,
@@ -108,5 +154,8 @@ export async function listChatMessages(threadId: string): Promise<UIMessage[]> {
 		orderBy: { field: "createdAt", direction: "ASC" },
 	});
 
-	return toAISdkMessages(messages, { version: "v6" }) as UIMessage[];
+	const uiMessages = toAISdkMessages(messages, {
+		version: "v6",
+	}) as UIMessage[];
+	return hydrateMessageFileParts(uiMessages, userId);
 }

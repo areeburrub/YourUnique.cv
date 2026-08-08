@@ -1,5 +1,6 @@
 import {
 	GetObjectCommand,
+	HeadObjectCommand,
 	PutObjectCommand,
 	S3Client,
 } from "@aws-sdk/client-s3";
@@ -60,12 +61,37 @@ export async function getR2Object(key: string) {
 	);
 }
 
+export async function headR2Object(key: string) {
+	return getR2Client().send(
+		new HeadObjectCommand({
+			Bucket: getR2Bucket(),
+			Key: key,
+		}),
+	);
+}
+
 export async function getR2SignedGetUrl(key: string, expiresIn = 3600) {
 	return getSignedUrl(
 		getR2Client(),
 		new GetObjectCommand({
 			Bucket: getR2Bucket(),
 			Key: key,
+		}),
+		{ expiresIn },
+	);
+}
+
+export async function getR2SignedPutUrl(
+	key: string,
+	contentType: string,
+	expiresIn = 600,
+) {
+	return getSignedUrl(
+		getR2Client(),
+		new PutObjectCommand({
+			Bucket: getR2Bucket(),
+			Key: key,
+			ContentType: contentType,
 		}),
 		{ expiresIn },
 	);

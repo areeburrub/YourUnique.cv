@@ -6,6 +6,8 @@ export type ChatThreadListItem = {
 	messageCount?: number;
 };
 
+export const CHATS_PAGE_SIZE = 20;
+
 export function getChatThreadHref(id: string) {
 	return `/chats/${id}`;
 }

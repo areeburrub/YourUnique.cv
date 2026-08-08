@@ -4,23 +4,38 @@ import Link from "next/link";
 import {
 	FileText,
 	MessageSquare,
+	MoreHorizontal,
+	Pencil,
 	Plus,
 	Search,
 	SlidersHorizontal,
+	Trash2,
 	UserRound,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
+import {
+	Dialog,
+	DialogClose,
+	DialogContent,
+	DialogFooter,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuGroup,
+	DropdownMenuItem,
 	DropdownMenuLabel,
 	DropdownMenuRadioGroup,
 	DropdownMenuRadioItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
 import {
 	Sidebar,
 	SidebarContent,
@@ -30,6 +45,7 @@ import {
 	SidebarGroupLabel,
 	SidebarHeader,
 	SidebarMenu,
+	SidebarMenuAction,
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarRail,
@@ -42,10 +58,18 @@ import {
 	type ChatThreadListItem,
 	getChatThreadHref,
 } from "@/lib/chats";
+import {
+	deleteChatThreadRequest,
+	flatChatThreads,
+	removeThreadFromCache,
+	renameChatThreadRequest,
+	renameThreadInCache,
+	useChatThreadsInfinite,
+} from "@/lib/chats-query";
 
 const primaryNav = [
 	{ title: "New chat", href: "/new-chat", icon: Plus, exact: true },
-	{ title: "Chats", href: "/chats", icon: MessageSquare },
+	{ title: "Chats", href: "/chats", icon: MessageSquare, exact: true },
 	{ title: "Profile", href: "/profile", icon: UserRound },
 	{ title: "Resumes", href: "/resumes", icon: FileText },
 ] as const;
@@ -126,32 +150,174 @@ function ThreadLink({
 	pathname: string;
 }) {
 	const href = getChatThreadHref(thread.id);
+	const isActive = pathname === href;
+	const queryClient = useQueryClient();
+	const { openNewChat } = useSoftNav();
+	const [renameOpen, setRenameOpen] = useState(false);
+	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [titleInput, setTitleInput] = useState(thread.title);
+
+	const renameMutation = useMutation({
+		mutationFn: (title: string) => renameChatThreadRequest(thread.id, title),
+		onSuccess: (updated) => {
+			renameThreadInCache(queryClient, thread.id, updated.title);
+			setRenameOpen(false);
+		},
+	});
+
+	const deleteMutation = useMutation({
+		mutationFn: () => deleteChatThreadRequest(thread.id),
+		onSuccess: () => {
+			removeThreadFromCache(queryClient, thread.id);
+			setDeleteOpen(false);
+			if (isActive) {
+				openNewChat();
+			}
+		},
+	});
+
+	const handleRenameOpenChange = (open: boolean) => {
+		if (open) {
+			setTitleInput(thread.title);
+		}
+		setRenameOpen(open);
+	};
+
+	const handleRenameSubmit = () => {
+		const title = titleInput.trim();
+		if (!title || title === thread.title) {
+			setRenameOpen(false);
+			return;
+		}
+		renameMutation.mutate(title);
+	};
 
 	return (
 		<SidebarMenuItem>
 			<SidebarMenuButton
 				render={<Link href={href} prefetch={false} />}
-				isActive={pathname === href}
+				isActive={isActive}
 				tooltip={thread.title}
 				className="text-muted-foreground"
 			>
 				<span className="truncate">{thread.title}</span>
 			</SidebarMenuButton>
+			<DropdownMenu>
+				<DropdownMenuTrigger
+					render={
+						<SidebarMenuAction
+							showOnHover
+							aria-label="Chat options"
+							className="top-1/2 right-1 size-6 w-6 -translate-y-1/2 cursor-pointer hover:bg-sidebar-border hover:text-sidebar-foreground peer-data-[size=default]/menu-button:top-1/2"
+						/>
+					}
+				>
+					<MoreHorizontal />
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="start" side="right" className="min-w-40">
+					<DropdownMenuGroup>
+						<DropdownMenuItem onClick={() => handleRenameOpenChange(true)}>
+							<Pencil />
+							Rename
+						</DropdownMenuItem>
+						<DropdownMenuSeparator />
+						<DropdownMenuItem
+							variant="destructive"
+							onClick={() => setDeleteOpen(true)}
+						>
+							<Trash2 />
+							Delete
+						</DropdownMenuItem>
+					</DropdownMenuGroup>
+				</DropdownMenuContent>
+			</DropdownMenu>
+
+			<Dialog open={renameOpen} onOpenChange={handleRenameOpenChange}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Rename chat</DialogTitle>
+					</DialogHeader>
+					<Input
+						value={titleInput}
+						onChange={(event) => setTitleInput(event.target.value)}
+						onKeyDown={(event) => {
+							if (event.key === "Enter") {
+								event.preventDefault();
+								handleRenameSubmit();
+							}
+						}}
+						autoFocus
+					/>
+					<DialogFooter>
+						<DialogClose render={<Button variant="outline" />}>
+							Cancel
+						</DialogClose>
+						<Button
+							onClick={handleRenameSubmit}
+							disabled={renameMutation.isPending}
+						>
+							Save
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+				<DialogContent>
+					<DialogHeader>
+						<DialogTitle>Delete chat</DialogTitle>
+					</DialogHeader>
+					<p className="text-sm text-muted-foreground">
+						This will permanently delete &ldquo;{thread.title}&rdquo;. This
+						action cannot be undone.
+					</p>
+					<DialogFooter>
+						<DialogClose render={<Button variant="outline" />}>
+							Cancel
+						</DialogClose>
+						<Button
+							variant="destructive"
+							onClick={() => deleteMutation.mutate()}
+							disabled={deleteMutation.isPending}
+						>
+							Delete
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
 		</SidebarMenuItem>
 	);
 }
 
 type AppSidebarProps = {
 	user: SidebarUser;
-	recentThreads: ChatThreadListItem[];
+	initialThreads: ChatThreadListItem[];
+	initialHasMore?: boolean;
 };
 
-export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
+export function AppSidebar({
+	user,
+	initialThreads,
+	initialHasMore = false,
+}: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
 	const { state } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
+	const loadMoreRef = useRef<HTMLDivElement | null>(null);
+
+	const {
+		data,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+	} = useChatThreadsInfinite({
+		initialThreads,
+		initialHasMore,
+	});
+
+	const threads = flatChatThreads(data);
 
 	useEffect(() => {
 		const stored = window.localStorage.getItem(GROUP_BY_KEY);
@@ -160,8 +326,35 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 		}
 	}, []);
 
-	const dateGroups =
-		groupBy === "date" ? groupThreadsByDate(recentThreads) : [];
+	useEffect(() => {
+		const node = loadMoreRef.current;
+		if (!node || !hasNextPage || collapsed) {
+			return;
+		}
+
+		const observer = new IntersectionObserver(
+			(entries) => {
+				if (
+					entries.some((entry) => entry.isIntersecting) &&
+					!isFetchingNextPage
+				) {
+					void fetchNextPage();
+				}
+			},
+			{ root: node.closest('[data-sidebar="content"]'), rootMargin: "120px" },
+		);
+
+		observer.observe(node);
+		return () => observer.disconnect();
+	}, [
+		collapsed,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+		threads.length,
+	]);
+
+	const dateGroups = groupBy === "date" ? groupThreadsByDate(threads) : [];
 
 	const handleGroupByChange = (value: string) => {
 		if (value !== "none" && value !== "date") {
@@ -205,7 +398,7 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 			<SidebarContent className="gap-1 pb-3">
 				<SidebarGroup>
 					<SidebarGroupContent>
-						<SidebarMenu>
+						<SidebarMenu className="gap-0.5">
 							{primaryNav.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton
@@ -275,7 +468,7 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 						</DropdownMenu>
 					</div>
 					<SidebarGroupContent>
-						{recentThreads.length === 0 ? (
+						{threads.length === 0 ? (
 							<p className="px-2 text-[12px] text-muted-soft">No chats yet</p>
 						) : groupBy === "date" ? (
 							<div className="flex flex-col gap-2">
@@ -284,7 +477,7 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 										<p className="px-2 py-1 text-[11px] font-medium tracking-[-0.1px] text-muted-soft">
 											{group.label}
 										</p>
-										<SidebarMenu>
+										<SidebarMenu className="gap-0.5">
 											{group.threads.map((thread) => (
 												<ThreadLink
 													key={thread.id}
@@ -297,8 +490,8 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 								))}
 							</div>
 						) : (
-							<SidebarMenu>
-								{recentThreads.map((thread) => (
+							<SidebarMenu className="gap-0.5">
+								{threads.map((thread) => (
 									<ThreadLink
 										key={thread.id}
 										thread={thread}
@@ -307,6 +500,15 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 								))}
 							</SidebarMenu>
 						)}
+						{hasNextPage ? (
+							<div
+								ref={loadMoreRef}
+								className="px-2 py-2 text-[11px] text-muted-soft"
+								aria-hidden={!isFetchingNextPage}
+							>
+								{isFetchingNextPage ? "Loading…" : null}
+							</div>
+						) : null}
 					</SidebarGroupContent>
 				</SidebarGroup>
 			</SidebarContent>
