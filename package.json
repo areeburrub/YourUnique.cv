@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 6700",
-    "build": "next build",
-    "start": "next start",
+    "build": "drizzle-kit migrate && next build",
+    "start": "drizzle-kit migrate && next start",
     "lint": "eslint",
     "mastra:dev": "mastra dev --dir mastra",
     "mastra:build": "mastra build --dir mastra",

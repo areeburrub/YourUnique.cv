@@ -19,7 +19,7 @@ export function Hero() {
 								YourUnique.cv
 							</p>
 							<h1 className="font-display animate-fade-rise delay-1 mt-3.5 max-w-[421px] text-[40px] leading-[48px] font-semibold tracking-[-1.2px] text-foreground sm:text-[56px] sm:leading-[64px] sm:tracking-[-1.68px]">
-								The resume for this job, not every job
+								Every job is different so why same CV
 							</h1>
 							<p className="animate-fade-rise delay-2 mt-5 max-w-[350px] text-base leading-6 text-muted-foreground">
 								You have more sides than one CV can hold. Chat with
@@ -33,23 +33,6 @@ export function Hero() {
 								</SlideButton>
 							</div>
 							<div className="animate-fade-rise delay-4 mt-7 flex flex-wrap items-center gap-3">
-								<div
-									className="flex items-center gap-0.5 text-[#f4942e]"
-									aria-label="5 out of 5 stars"
-								>
-									{Array.from({ length: 5 }).map((_, index) => (
-										<svg
-											key={index}
-											width="16"
-											height="16"
-											viewBox="0 0 20 20"
-											fill="currentColor"
-											aria-hidden="true"
-										>
-											<path d="M10 1.5l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.9l-4.94 2.61.94-5.5-4-3.9 5.53-.8L10 1.5z" />
-										</svg>
-									))}
-								</div>
 								<div className="flex items-center">
 									{avatars.map((avatar, index) => (
 										<span
