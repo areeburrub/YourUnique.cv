@@ -3,7 +3,7 @@ export type ChatThreadListItem = {
 	title: string;
 	preview: string;
 	updatedAt: string;
-	messageCount: number;
+	messageCount?: number;
 };
 
 export function getChatThreadHref(id: string) {

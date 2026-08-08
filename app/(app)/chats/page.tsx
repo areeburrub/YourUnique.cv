@@ -174,10 +174,14 @@ export default async function ChatsPage({ searchParams }: ChatsPageProps) {
 													{thread.preview}
 												</p>
 											) : null}
-											<p className="mt-1 text-[12px] text-muted-soft">
-												{thread.messageCount}{" "}
-												{thread.messageCount === 1 ? "message" : "messages"}
-											</p>
+											{typeof thread.messageCount === "number" ? (
+												<p className="mt-1 text-[12px] text-muted-soft">
+													{thread.messageCount}{" "}
+													{thread.messageCount === 1
+														? "message"
+														: "messages"}
+												</p>
+											) : null}
 										</div>
 									</Link>
 								</li>

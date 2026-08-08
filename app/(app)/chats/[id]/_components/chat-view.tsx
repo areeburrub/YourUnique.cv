@@ -159,7 +159,7 @@ function MessageFilePart({
 }
 
 export function ChatView({
-	threadId,
+	threadId: threadIdProp,
 	initialMessages = [],
 }: ChatViewProps) {
 	const router = useRouter();
@@ -171,27 +171,40 @@ export function ChatView({
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
 	const hydratedPending = useRef(false);
 	const dragDepth = useRef(0);
+	const threadIdRef = useRef(threadIdProp);
+	const chatSessionId = useRef(threadIdProp ?? `new-${crypto.randomUUID()}`);
 
-	const persistMessages = useEffectEvent(() => {
-		if (!threadId) {
+	useEffect(() => {
+		if (!threadIdProp) {
 			return;
 		}
+		threadIdRef.current = threadIdProp;
+		chatSessionId.current = threadIdProp;
+	}, [threadIdProp]);
+
+	const persistSidebar = useEffectEvent(() => {
 		router.refresh();
 	});
 
 	const { messages, sendMessage, status, stop, error } = useChat({
-		id: threadId,
+		id: chatSessionId.current,
 		messages: initialMessages,
 		transport: new DefaultChatTransport({
 			api: "/api/chat",
-			prepareSendMessagesRequest: ({ messages: nextMessages, body, id, trigger, messageId }) => ({
+			prepareSendMessagesRequest: ({
+				messages: nextMessages,
+				body,
+				id,
+				trigger,
+				messageId,
+			}) => ({
 				body: {
 					...body,
 					id,
 					trigger,
 					messageId,
 					messages: nextMessages,
-					threadId,
+					threadId: threadIdRef.current,
 				},
 			}),
 		}),
@@ -199,10 +212,13 @@ export function ChatView({
 			if (isAbort || isError) {
 				return;
 			}
-			persistMessages();
-			window.setTimeout(() => {
-				router.refresh();
-			}, 2500);
+			const href = threadIdRef.current
+				? getChatThreadHref(threadIdRef.current)
+				: null;
+			if (href && window.location.pathname !== href) {
+				router.replace(href);
+			}
+			persistSidebar();
 		},
 	});
 
@@ -252,6 +268,7 @@ export function ChatView({
 	}, []);
 
 	useEffect(() => {
+		const threadId = threadIdRef.current;
 		if (!threadId || hydratedPending.current || status !== "ready") {
 			return;
 		}
@@ -276,16 +293,14 @@ export function ChatView({
 		} catch {
 			void sendMessage({ text: pending });
 		}
-	}, [threadId, status, sendMessage]);
+	}, [threadIdProp, status, sendMessage]);
 
 	const startThread = async (messageText: string, files: FileUIPart[]) => {
 		setCreating(true);
 		setUploadError(null);
 		try {
 			const uploaded =
-				files.length > 0
-					? await uploadChatFiles({ files })
-					: [];
+				files.length > 0 ? await uploadChatFiles({ files }) : [];
 			const fileParts = toFileUIParts(uploaded);
 
 			const response = await fetch("/api/chats", {
@@ -300,13 +315,15 @@ export function ChatView({
 				throw new Error("Failed to create chat");
 			}
 			const data = (await response.json()) as { id: string };
-			const payload: PendingPayload = {
+			threadIdRef.current = data.id;
+			const href = getChatThreadHref(data.id);
+			window.history.replaceState(window.history.state, "", href);
+
+			setCreating(false);
+			await sendMessage({
 				text: messageText,
 				files: fileParts,
-			};
-			sessionStorage.setItem(pendingKey(data.id), JSON.stringify(payload));
-			router.push(getChatThreadHref(data.id));
-			router.refresh();
+			});
 		} catch (err) {
 			setCreating(false);
 			setUploadError(
@@ -318,7 +335,12 @@ export function ChatView({
 	const handleSubmit = async (message: PromptInputMessage) => {
 		const trimmed = message.text.trim();
 		const files = message.files ?? [];
-		if ((!trimmed && files.length === 0) || creating || uploading || status !== "ready") {
+		if (
+			(!trimmed && files.length === 0) ||
+			creating ||
+			uploading ||
+			status !== "ready"
+		) {
 			return;
 		}
 
@@ -326,10 +348,12 @@ export function ChatView({
 		setUploadError(null);
 		setAttachmentCount(0);
 
-		if (!threadId) {
+		if (!threadIdRef.current) {
 			await startThread(trimmed, files);
 			return;
 		}
+
+		const threadId = threadIdRef.current;
 
 		try {
 			let uploaded: Awaited<ReturnType<typeof uploadChatFiles>> = [];
@@ -357,7 +381,7 @@ export function ChatView({
 		if (creating || uploading || status !== "ready") {
 			return;
 		}
-		if (!threadId) {
+		if (!threadIdRef.current) {
 			void startThread(suggestion, []);
 			return;
 		}

@@ -81,26 +81,32 @@ async function filePartToModelParts(
 	];
 }
 
+function needsFileResolution(part: MessagePart): part is FileUIPart {
+	return part.type === "file" && Boolean(parseFileIdFromAppUrl(part.url));
+}
+
 export async function prepareMessagesForModel(
 	messages: UIMessage[],
 	userId: string,
 ): Promise<UIMessage[]> {
 	return Promise.all(
 		messages.map(async (message) => {
-			const parts: MessagePart[] = [];
-
-			for (const part of message.parts) {
-				if (part.type !== "file") {
-					parts.push(part);
-					continue;
-				}
-
-				parts.push(...(await filePartToModelParts(part, userId)));
+			if (!message.parts.some((part) => needsFileResolution(part))) {
+				return message;
 			}
+
+			const resolvedParts = await Promise.all(
+				message.parts.map(async (part) => {
+					if (!needsFileResolution(part)) {
+						return [part] as MessagePart[];
+					}
+					return filePartToModelParts(part, userId);
+				}),
+			);
 
 			return {
 				...message,
-				parts,
+				parts: resolvedParts.flat(),
 			};
 		}),
 	);

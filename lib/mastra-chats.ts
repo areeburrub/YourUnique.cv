@@ -23,17 +23,6 @@ function previewFromText(text: string) {
 	return cleaned.length > 160 ? `${cleaned.slice(0, 160).trimEnd()}…` : cleaned;
 }
 
-function textFromUiMessage(message: UIMessage) {
-	return message.parts
-		.filter(
-			(part): part is { type: "text"; text: string } =>
-				part.type === "text" && typeof part.text === "string",
-		)
-		.map((part) => part.text)
-		.join("\n")
-		.trim();
-}
-
 export async function createChatThread(input: {
 	userId: string;
 	preview?: string;
@@ -73,36 +62,19 @@ export async function listChatThreads(
 		perPage: limit,
 	});
 
-	return Promise.all(
-		threads.map(async (thread) => {
-			const recalled = await memory.recall({
-				threadId: thread.id,
-				resourceId: userId,
-				page: 0,
-				perPage: 1,
-				orderBy: { field: "createdAt", direction: "DESC" },
-			});
-			const latest = recalled.messages[0];
-			const uiLatest = latest
-				? toAISdkMessages([latest], { version: "v6" })[0]
-				: undefined;
-			const previewFromMessage = uiLatest
-				? textFromUiMessage(uiLatest as UIMessage)
+	return threads.map((thread) => {
+		const metadataPreview =
+			typeof thread.metadata?.preview === "string"
+				? thread.metadata.preview
 				: "";
-			const metadataPreview =
-				typeof thread.metadata?.preview === "string"
-					? thread.metadata.preview
-					: "";
 
-			return {
-				id: thread.id,
-				title: thread.title?.trim() || "New chat",
-				preview: previewFromText(previewFromMessage || metadataPreview),
-				updatedAt: thread.updatedAt.toISOString(),
-				messageCount: recalled.total,
-			};
-		}),
-	);
+		return {
+			id: thread.id,
+			title: thread.title?.trim() || "New chat",
+			preview: previewFromText(metadataPreview),
+			updatedAt: thread.updatedAt.toISOString(),
+		};
+	});
 }
 
 export const getChatThreadForUser = cache(
