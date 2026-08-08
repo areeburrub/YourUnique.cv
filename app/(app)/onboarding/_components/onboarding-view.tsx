@@ -13,12 +13,17 @@ import {
 	XCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { MessageResponse } from "@/components/ai-elements/message";
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import type { UploadedFile } from "@/lib/client-uploads";
+import {
+	PROFILE_MARKER,
+	STYLE_MARKER,
+} from "@/lib/onboarding/markers";
 import { uploadOnboardingFile } from "@/lib/onboarding/upload";
 import {
 	MAX_UPLOAD_BYTES,
@@ -52,21 +57,9 @@ const STEP_META: Record<
 		label: "Preparing files",
 		description: "Checking ownership and getting documents ready",
 	},
-	"classify-files": {
-		label: "Identifying documents",
-		description: "Figuring out resumes vs letters and other docs",
-	},
-	"extract-profile": {
-		label: "Building your profile",
-		description: "Extracting career facts from all uploaded documents",
-	},
-	"extract-style": {
-		label: "Extracting writing style",
-		description: "Learning voice and formatting from resume material",
-	},
-	"combine-results": {
-		label: "Finalizing",
-		description: "Saving your profile and style context",
+	"extract-context": {
+		label: "Building your context",
+		description: "Extracting profile and writing style from your documents",
 	},
 };
 
@@ -122,13 +115,9 @@ function extractWorkflowResult(messages: Array<{ parts: unknown[] }>) {
 			}
 
 			const workflow = part.data;
-			const combined = readResultOutput(
-				workflow.steps["combine-results"]?.output,
+			const result = readResultOutput(
+				workflow.steps["extract-context"]?.output,
 			);
-			const legacy = readResultOutput(
-				workflow.steps["extract-style"]?.output,
-			);
-			const result = combined ?? legacy;
 
 			if (workflow.status === "success" && result) {
 				return {
@@ -159,6 +148,73 @@ function extractWorkflowResult(messages: Array<{ parts: unknown[] }>) {
 	}
 
 	return null;
+}
+
+function extractStreamingText(
+	messages: Array<{ role?: string; parts: unknown[] }>,
+) {
+	let text = "";
+
+	for (const message of messages) {
+		if (message.role !== "assistant") {
+			continue;
+		}
+
+		for (const part of message.parts) {
+			const value = part as { type?: string; text?: string };
+			if (value.type === "text" && typeof value.text === "string") {
+				text += value.text;
+			}
+		}
+	}
+
+	return text;
+}
+
+function splitStreamingPreview(text: string) {
+	const profileStart = text.indexOf(PROFILE_MARKER);
+	const styleStart = text.indexOf(STYLE_MARKER);
+
+	if (profileStart === -1) {
+		return {
+			profile: text.trim(),
+			style: "",
+			active: "profile" as const,
+		};
+	}
+
+	if (styleStart === -1 || styleStart < profileStart) {
+		return {
+			profile: text.slice(profileStart + PROFILE_MARKER.length).trim(),
+			style: "",
+			active: "profile" as const,
+		};
+	}
+
+	return {
+		profile: text
+			.slice(profileStart + PROFILE_MARKER.length, styleStart)
+			.trim(),
+		style: text.slice(styleStart + STYLE_MARKER.length).trim(),
+		active: "style" as const,
+	};
+}
+
+function buildAmbientMarkdown(preview: {
+	profile: string;
+	style: string;
+}) {
+	const sections: string[] = [];
+
+	if (preview.profile) {
+		sections.push(`### Profile\n\n${preview.profile}`);
+	}
+
+	if (preview.style) {
+		sections.push(`### Style\n\n${preview.style}`);
+	}
+
+	return sections.join("\n\n");
 }
 
 function fireConfetti() {
@@ -296,6 +352,28 @@ export function OnboardingView() {
 		() => extractWorkflowResult(messages),
 		[messages],
 	);
+
+	const streamingText = useMemo(
+		() => extractStreamingText(messages),
+		[messages],
+	);
+	const streamingPreview = useMemo(
+		() => splitStreamingPreview(streamingText),
+		[streamingText],
+	);
+	const ambientMarkdown = useMemo(
+		() => buildAmbientMarkdown(streamingPreview),
+		[streamingPreview],
+	);
+	const ambientScrollRef = useRef<HTMLDivElement>(null);
+
+	useEffect(() => {
+		if (step !== "analyzing" || !ambientScrollRef.current) {
+			return;
+		}
+		ambientScrollRef.current.scrollTop =
+			ambientScrollRef.current.scrollHeight;
+	}, [ambientMarkdown, step]);
 
 	const readyCount = files.filter((file) => file.uploaded && !file.error)
 		.length;
@@ -541,73 +619,137 @@ export function OnboardingView() {
 					) : null}
 
 					{step === "analyzing" ? (
-						<section className="mt-8 rounded-2xl border border-border bg-card p-6">
-							<div className="flex items-center gap-3">
-								{allStepsDone ? (
-									<CheckCircle2 className="size-5 text-brand" />
-								) : (
-									<LoaderCircle className="size-5 animate-spin text-brand" />
-								)}
-								<div>
-									<p className="text-sm font-medium text-foreground">
-										{allStepsDone
-											? "Finishing up"
-											: "Analyzing your documents"}
-									</p>
-									<p className="text-sm text-muted-foreground">
-										{allStepsDone
-											? "Saving your context…"
-											: "This usually takes a minute. Stay on this page."}
-									</p>
-								</div>
-							</div>
-
-							<ul className="mt-6 space-y-3">
-								{Object.keys(STEP_META).map((stepId) => {
-									const meta = STEP_META[stepId];
-									const stepState = workflowSteps[stepId];
-									return (
-										<li
-											key={stepId}
-											className="flex items-start gap-3 rounded-xl border border-border px-3 py-3"
-										>
-											<StepIcon
-												status={
-													allStepsDone
-														? "success"
-														: stepState?.status
-												}
-											/>
-											<div>
-												<p className="text-sm font-medium text-foreground">
-													{meta.label}
-												</p>
-												<p className="text-sm text-muted-foreground">
-													{meta.description}
-												</p>
-											</div>
-										</li>
-									);
-								})}
-							</ul>
-
-							{error ? (
-								<div className="mt-6 flex justify-end">
-									<Button
-										type="button"
-										variant="outline"
-										onClick={() => {
-											completingRef.current = false;
-											setFinishing(false);
-											setStep("upload");
-											setMessages([]);
-											setError(null);
+						<section className="relative mt-8 overflow-hidden rounded-2xl border border-border bg-card">
+							{ambientMarkdown ? (
+								<div
+									aria-hidden="true"
+									className="pointer-events-none absolute inset-0 overflow-hidden"
+								>
+									<div
+										ref={ambientScrollRef}
+										className="h-full overflow-hidden px-7 pt-24 pb-12 opacity-25 select-none sm:px-9"
+										style={{
+											maskImage:
+												"linear-gradient(to bottom, transparent 0%, black 22%, black 68%, transparent 100%)",
+											WebkitMaskImage:
+												"linear-gradient(to bottom, transparent 0%, black 22%, black 68%, transparent 100%)",
 										}}
 									>
-										Back to upload
-									</Button>
+										<MessageResponse
+											className="max-w-none text-[13px] leading-6 text-muted-foreground [&_h1]:font-display [&_h1]:text-base [&_h1]:font-semibold [&_h1]:tracking-[-0.02em] [&_h1]:text-foreground/50 [&_h2]:font-display [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:tracking-[-0.02em] [&_h2]:text-foreground/50 [&_h3]:font-display [&_h3]:text-sm [&_h3]:font-semibold [&_h3]:tracking-[-0.02em] [&_h3]:text-foreground/50 [&_li]:my-0.5 [&_p]:my-2 [&_strong]:font-medium [&_strong]:text-foreground/45"
+											isAnimating={
+												status === "streaming" &&
+												!allStepsDone
+											}
+										>
+											{ambientMarkdown}
+										</MessageResponse>
+									</div>
+									<div className="absolute inset-0 bg-gradient-to-b from-card via-card/70 to-card" />
 								</div>
 							) : null}
+
+							<div className="relative z-10 p-6">
+								<div className="flex items-center gap-3">
+									{allStepsDone ? (
+										<CheckCircle2 className="size-5 text-brand" />
+									) : (
+										<LoaderCircle className="size-5 animate-spin text-brand" />
+									)}
+									<div>
+										<p className="text-sm font-medium text-foreground">
+											{allStepsDone
+												? "Finishing up"
+												: "Analyzing your documents"}
+										</p>
+										<p className="text-sm text-muted-foreground">
+											{allStepsDone
+												? "Saving your context…"
+												: ambientMarkdown
+													? streamingPreview.active ===
+														"style"
+														? "Learning how you write…"
+														: "Pulling details from your documents…"
+													: "Getting your files ready…"}
+										</p>
+									</div>
+								</div>
+
+								{!allStepsDone ? (
+									<p className="mt-3 text-xs text-muted-foreground/80">
+										<span
+											className={cn(
+												"transition-colors",
+												streamingPreview.profile
+													? "text-brand"
+													: "text-muted-foreground/60",
+											)}
+										>
+											Profile
+										</span>
+										<span className="mx-2 text-border">
+											·
+										</span>
+										<span
+											className={cn(
+												"transition-colors",
+												streamingPreview.style
+													? "text-brand"
+													: "text-muted-foreground/60",
+											)}
+										>
+											Style
+										</span>
+									</p>
+								) : null}
+
+								<ul className="mt-6 space-y-3">
+									{Object.keys(STEP_META).map((stepId) => {
+										const meta = STEP_META[stepId];
+										const stepState = workflowSteps[stepId];
+										return (
+											<li
+												key={stepId}
+												className="flex items-start gap-3 rounded-xl border border-border/70 bg-card/85 px-3 py-3 backdrop-blur-sm"
+											>
+												<StepIcon
+													status={
+														allStepsDone
+															? "success"
+															: stepState?.status
+													}
+												/>
+												<div>
+													<p className="text-sm font-medium text-foreground">
+														{meta.label}
+													</p>
+													<p className="text-sm text-muted-foreground">
+														{meta.description}
+													</p>
+												</div>
+											</li>
+										);
+									})}
+								</ul>
+
+								{error ? (
+									<div className="mt-6 flex justify-end">
+										<Button
+											type="button"
+											variant="outline"
+											onClick={() => {
+												completingRef.current = false;
+												setFinishing(false);
+												setStep("upload");
+												setMessages([]);
+												setError(null);
+											}}
+										>
+											Back to upload
+										</Button>
+									</div>
+								) : null}
+							</div>
 						</section>
 					) : null}
 

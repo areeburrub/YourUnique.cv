@@ -2,18 +2,12 @@ import { createStep, createWorkflow } from "@mastra/core/workflows";
 import { z } from "zod";
 
 import { getUserFilesByIds } from "@/lib/db/files";
-import { getR2Object, getR2SignedGetUrl } from "@/lib/r2";
-import { classifyDocsAgent } from "@/mastra/agents/onboarding/classify-docs-agent";
-import { profileExtractAgent } from "@/mastra/agents/onboarding/profile-extract-agent";
-import { styleExtractAgent } from "@/mastra/agents/onboarding/style-extract-agent";
-
-const docKindSchema = z.enum([
-	"resume",
-	"experience_letter",
-	"offer_letter",
-	"cover_letter",
-	"other",
-]);
+import {
+	PROFILE_MARKER,
+	STYLE_MARKER,
+} from "@/lib/onboarding/markers";
+import { getR2Object } from "@/lib/r2";
+import { contextExtractAgent } from "@/mastra/agents/onboarding/context-extract-agent";
 
 const workflowInputSchema = z.object({
 	userId: z.string().min(1),
@@ -24,7 +18,7 @@ const preparedFileSchema = z.object({
 	fileId: z.string(),
 	filename: z.string(),
 	contentType: z.string(),
-	signedUrl: z.string().nullable(),
+	dataUrl: z.string().nullable(),
 	textContent: z.string().nullable(),
 });
 
@@ -34,26 +28,6 @@ const preparedSchema = z.object({
 	allFiles: z.array(preparedFileSchema),
 });
 
-const classifiedFileSchema = preparedFileSchema.extend({
-	kind: docKindSchema,
-});
-
-const classifiedSchema = z.object({
-	userId: z.string(),
-	sourceFileIds: z.array(z.string()),
-	allFiles: z.array(classifiedFileSchema),
-	resumeFiles: z.array(classifiedFileSchema),
-});
-
-const profileResultSchema = z.object({
-	profile: z.string(),
-	sourceFileIds: z.array(z.string()),
-});
-
-const styleResultSchema = z.object({
-	style: z.string(),
-});
-
 const outputSchema = z.object({
 	profile: z.string(),
 	style: z.string(),
@@ -61,7 +35,6 @@ const outputSchema = z.object({
 });
 
 type PreparedFile = z.infer<typeof preparedFileSchema>;
-type ClassifiedFile = z.infer<typeof classifiedFileSchema>;
 
 const DOCX_TYPE =
 	"application/vnd.openxmlformats-officedocument.wordprocessingml.document";
@@ -79,6 +52,19 @@ function isFilePartMediaType(contentType: string) {
 
 function isTextMediaType(contentType: string) {
 	return contentType === "text/plain" || contentType === "text/markdown";
+}
+
+async function readR2Bytes(key: string) {
+	const object = await getR2Object(key);
+	const body = object.Body;
+	if (!body) {
+		return null;
+	}
+	return Buffer.from(await body.transformToByteArray());
+}
+
+function toDataUrl(contentType: string, bytes: Buffer) {
+	return `data:${contentType};base64,${bytes.toString("base64")}`;
 }
 
 async function buildModelContent(
@@ -109,10 +95,10 @@ async function buildModelContent(
 			continue;
 		}
 
-		if (file.signedUrl && isFilePartMediaType(file.contentType)) {
+		if (file.dataUrl && isFilePartMediaType(file.contentType)) {
 			content.push({
 				type: "file",
-				data: file.signedUrl,
+				data: file.dataUrl,
 				mediaType: file.contentType,
 				filename: file.filename,
 			});
@@ -136,22 +122,21 @@ const prepareFiles = createStep({
 		const prepared: PreparedFile[] = [];
 
 		for (const row of rows) {
-			let signedUrl: string | null = null;
+			const bytes = await readR2Bytes(row.key);
+			if (!bytes) {
+				continue;
+			}
+
+			let dataUrl: string | null = null;
 			let textContent: string | null = null;
 
 			if (isTextMediaType(row.contentType)) {
-				const object = await getR2Object(row.key);
-				const body = object.Body;
-				if (!body) {
-					continue;
-				}
-				const bytes = await body.transformToByteArray();
-				const text = Buffer.from(bytes).toString("utf8").trim();
+				const text = bytes.toString("utf8").trim();
 				textContent = text
 					? `Contents of "${row.filename}":\n\n${text}`
 					: `Attached empty text file: ${row.filename}`;
 			} else if (isFilePartMediaType(row.contentType)) {
-				signedUrl = await getR2SignedGetUrl(row.key, 3600);
+				dataUrl = toDataUrl(row.contentType, bytes);
 			} else {
 				continue;
 			}
@@ -160,7 +145,7 @@ const prepareFiles = createStep({
 				fileId: row.id,
 				filename: row.filename,
 				contentType: row.contentType,
-				signedUrl,
+				dataUrl,
 				textContent,
 			});
 		}
@@ -177,162 +162,54 @@ const prepareFiles = createStep({
 	},
 });
 
-const classifyFiles = createStep({
-	id: "classify-files",
+function parseContextOutput(text: string) {
+	const profileStart = text.indexOf(PROFILE_MARKER);
+	const styleStart = text.indexOf(STYLE_MARKER);
+
+	if (profileStart === -1 || styleStart === -1 || styleStart < profileStart) {
+		return null;
+	}
+
+	const profile = text
+		.slice(profileStart + PROFILE_MARKER.length, styleStart)
+		.trim();
+	const style = text.slice(styleStart + STYLE_MARKER.length).trim();
+
+	if (!profile || !style) {
+		return null;
+	}
+
+	return { profile, style };
+}
+
+const extractContext = createStep({
+	id: "extract-context",
 	inputSchema: preparedSchema,
-	outputSchema: classifiedSchema,
-	execute: async ({ inputData }) => {
-		const content = await buildModelContent(
-			inputData.allFiles,
-			`Classify each attached career document. Return one kind per fileId.
-Allowed kinds: resume, experience_letter, offer_letter, cover_letter, other.
-File ids: ${inputData.allFiles.map((file) => file.fileId).join(", ")}`,
-		);
-
-		const result = await classifyDocsAgent.generate(
-			[
-				{
-					role: "user",
-					content,
-				},
-			],
-			{
-				structuredOutput: {
-					schema: z.object({
-						classifications: z
-							.array(
-								z.object({
-									fileId: z.string(),
-									kind: docKindSchema,
-								}),
-							)
-							.min(1),
-					}),
-				},
-			},
-		);
-
-		const byId = new Map(
-			(result.object?.classifications ?? []).map((item) => [
-				item.fileId,
-				item.kind,
-			]),
-		);
-
-		const allFiles: ClassifiedFile[] = inputData.allFiles.map((file) => ({
-			...file,
-			kind: byId.get(file.fileId) ?? "other",
-		}));
-
-		return {
-			userId: inputData.userId,
-			sourceFileIds: inputData.sourceFileIds,
-			allFiles,
-			resumeFiles: allFiles.filter((file) => file.kind === "resume"),
-		};
-	},
-});
-
-const extractProfile = createStep({
-	id: "extract-profile",
-	inputSchema: classifiedSchema,
-	outputSchema: profileResultSchema,
-	execute: async ({ inputData }) => {
-		const content = await buildModelContent(
-			inputData.allFiles,
-			"Analyze all attached career documents and produce a complete Profile markdown document. Use every useful signal across the files.",
-		);
-
-		const result = await profileExtractAgent.generate(
-			[
-				{
-					role: "user",
-					content,
-				},
-			],
-			{
-				structuredOutput: {
-					schema: z.object({
-						profile: z.string().min(1),
-					}),
-				},
-			},
-		);
-
-		const profile = result.object?.profile?.trim();
-		if (!profile) {
-			throw new Error("Failed to extract profile from documents");
-		}
-
-		return {
-			profile,
-			sourceFileIds: inputData.sourceFileIds,
-		};
-	},
-});
-
-const extractStyle = createStep({
-	id: "extract-style",
-	inputSchema: classifiedSchema,
-	outputSchema: styleResultSchema,
-	execute: async ({ inputData }) => {
-		const styleSource =
-			inputData.resumeFiles.length > 0
-				? inputData.resumeFiles
-				: inputData.allFiles;
-
-		const prompt =
-			inputData.resumeFiles.length > 0
-				? "Analyze the attached resume document(s) and produce a Style guide markdown that captures the writer's voice and formatting habits."
-				: "No resume was identified. Infer a lightweight Style guide markdown from the attached career documents.";
-
-		const content = await buildModelContent(styleSource, prompt);
-
-		const result = await styleExtractAgent.generate(
-			[
-				{
-					role: "user",
-					content,
-				},
-			],
-			{
-				structuredOutput: {
-					schema: z.object({
-						style: z.string().min(1),
-					}),
-				},
-			},
-		);
-
-		const style = result.object?.style?.trim();
-		if (!style) {
-			throw new Error("Failed to extract style guide from documents");
-		}
-
-		return { style };
-	},
-});
-
-const combineResults = createStep({
-	id: "combine-results",
-	inputSchema: z.object({
-		"extract-profile": profileResultSchema,
-		"extract-style": styleResultSchema,
-	}),
 	outputSchema: outputSchema,
-	execute: async ({ inputData }) => {
-		const profile = inputData["extract-profile"].profile.trim();
-		const style = inputData["extract-style"].style.trim();
-		const sourceFileIds = inputData["extract-profile"].sourceFileIds;
+	execute: async ({ inputData, writer }) => {
+		const content = await buildModelContent(
+			inputData.allFiles,
+			`Analyze all ${inputData.allFiles.length} attached career documents. Use every file. Produce both a Profile markdown document and a Style guide markdown document using the required markers.`,
+		);
 
-		if (!profile || !style) {
-			throw new Error("Failed to combine profile and style results");
+		const response = await contextExtractAgent.stream([
+			{
+				role: "user",
+				content,
+			},
+		]);
+
+		await response.fullStream.pipeTo(writer);
+
+		const parsed = parseContextOutput(await response.text);
+		if (!parsed) {
+			throw new Error("Failed to extract profile and style from documents");
 		}
 
 		return {
-			profile,
-			style,
-			sourceFileIds,
+			profile: parsed.profile,
+			style: parsed.style,
+			sourceFileIds: inputData.sourceFileIds,
 		};
 	},
 });
@@ -343,8 +220,6 @@ export const onboardingContextWorkflow = createWorkflow({
 	outputSchema: outputSchema,
 })
 	.then(prepareFiles)
-	.then(classifyFiles)
-	.parallel([extractProfile, extractStyle])
-	.then(combineResults);
+	.then(extractContext);
 
 onboardingContextWorkflow.commit();
