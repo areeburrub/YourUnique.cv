@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: yourunique-cv-postgres
+    restart: unless-stopped
+    ports:
+      - "5436:5432"
+    environment:
+      POSTGRES_USER: yourunique
+      POSTGRES_PASSWORD: yourunique
+      POSTGRES_DB: yourunique_cv
+    volumes:
+      - yourunique_cv_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yourunique -d yourunique_cv"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  yourunique_cv_pgdata:

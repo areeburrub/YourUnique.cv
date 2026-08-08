@@ -1,0 +1,1 @@
+ALTER TABLE "chat_threads" ADD COLUMN "named_at" timestamp with time zone;

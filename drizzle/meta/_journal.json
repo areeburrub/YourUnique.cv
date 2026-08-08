@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1786167406772,
+      "tag": "0000_elite_proemial_gods",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786169430977,
+      "tag": "0001_workable_shotgun",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786170490158,
+      "tag": "0002_tan_silver_samurai",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1786170522851,
+      "tag": "0003_high_ultimates",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786171265210,
+      "tag": "0004_clear_bullseye",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+import { Agent } from "@mastra/core/agent";
+import { Memory } from "@mastra/memory";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
+
+const openrouter = createOpenRouter({
+	apiKey: process.env.OPENROUTER_API_KEY,
+});
+
+export const resumeAgent = new Agent({
+	id: "resume-agent",
+	name: "Resume Agent",
+	instructions: `You are the YourUnique.cv resume assistant.
+
+Help users tailor resumes to job descriptions, strengthen bullets, and draft cover letters.
+Be concise and practical. When the user pastes a job description, map their experience to the role and suggest stronger, specific bullets.
+When the user attaches a resume PDF or image, read it carefully (layout, sections, and wording) before giving advice.
+Ask for missing context (role target, years of experience, or profile details) only when needed.`,
+	model: openrouter("openai/gpt-4o-mini", {
+		plugins: [
+			{
+				id: "file-parser",
+				pdf: {
+					engine: "native",
+				},
+			},
+		],
+	}),
+	memory: new Memory({
+		options: {
+			lastMessages: 40,
+			generateTitle: {
+				model: "openrouter/openai/gpt-4o-mini",
+				instructions:
+					"Write a short chat title (3–8 words) for a resume-tailoring conversation. Prefer company, role, or task. No quotes or punctuation fluff.",
+			},
+		},
+	}),
+});
