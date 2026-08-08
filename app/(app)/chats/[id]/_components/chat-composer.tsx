@@ -29,7 +29,6 @@ type ChatComposerProps = {
 	onAttachmentCountChange: (count: number) => void;
 	onStop: () => void;
 	status: ChatStatus;
-	creating: boolean;
 	uploading: boolean;
 	busy: boolean;
 	canSubmit: boolean;
@@ -120,7 +119,6 @@ export function ChatComposer({
 	onAttachmentCountChange,
 	onStop,
 	status,
-	creating,
 	uploading,
 	busy,
 	canSubmit,
@@ -153,7 +151,7 @@ export function ChatComposer({
 							}
 							placeholder="Paste a job description, drop a resume, or ask anything…"
 							className="min-h-18"
-							disabled={creating || uploading}
+							disabled={uploading}
 						/>
 					</PromptInputBody>
 					<PromptInputFooter>
@@ -161,12 +159,10 @@ export function ChatComposer({
 							<AttachFilesButton disabled={busy} />
 						</PromptInputTools>
 						<PromptInputSubmit
-							status={creating || uploading ? "submitted" : status}
+							status={uploading ? "submitted" : status}
 							onStop={onStop}
 							disabled={
-								status === "ready" && !creating && !uploading
-									? !canSubmit
-									: creating || uploading
+								status === "ready" && !uploading ? !canSubmit : uploading
 							}
 						/>
 					</PromptInputFooter>

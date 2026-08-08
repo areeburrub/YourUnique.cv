@@ -1,8 +1,10 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { cache } from "react";
 
 import { AppShell } from "@/components/app/app-shell";
 import { listChatThreads } from "@/lib/mastra-chats";
-import { ensureUserSynced } from "@/lib/db/users";
+
+const getCachedUser = cache(async () => currentUser());
 
 export default async function AppLayout({
 	children,
@@ -11,7 +13,7 @@ export default async function AppLayout({
 }) {
 	const { userId } = await auth();
 	await auth.protect();
-	const user = await currentUser();
+	const user = await getCachedUser();
 
 	const email = user?.primaryEmailAddress?.emailAddress ?? "";
 	const name =
@@ -20,16 +22,6 @@ export default async function AppLayout({
 		user?.username?.trim() ||
 		(email.includes("@") ? email.slice(0, email.indexOf("@")) : "") ||
 		"Account";
-
-	if (user && email) {
-		await ensureUserSynced({
-			id: user.id,
-			email,
-			firstName: user.firstName,
-			lastName: user.lastName,
-			imageUrl: user.imageUrl,
-		});
-	}
 
 	const recentThreads = userId
 		? await listChatThreads(userId, { limit: 4 })

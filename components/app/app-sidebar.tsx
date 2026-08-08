@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
 	FileText,
 	MessageSquare,
@@ -38,6 +37,7 @@ import {
 	useSidebar,
 } from "@/components/ui/sidebar";
 import { SidebarUserMenu, type SidebarUser } from "@/components/app/sidebar-user-menu";
+import { useSoftNav, useSoftPathname } from "@/components/app/soft-nav";
 import {
 	type ChatThreadListItem,
 	getChatThreadHref,
@@ -130,7 +130,7 @@ function ThreadLink({
 	return (
 		<SidebarMenuItem>
 			<SidebarMenuButton
-				render={<Link href={href} />}
+				render={<Link href={href} prefetch={false} />}
 				isActive={pathname === href}
 				tooltip={thread.title}
 				className="text-muted-foreground"
@@ -147,7 +147,8 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
-	const pathname = usePathname();
+	const pathname = useSoftPathname();
+	const { openNewChat } = useSoftNav();
 	const { state } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
@@ -179,14 +180,15 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 					</div>
 				) : (
 					<div className="flex h-full w-full items-center gap-1 px-3">
-						<Link
-							href="/new-chat"
-							className="flex min-w-0 flex-1 items-center overflow-hidden rounded-control px-1"
+						<button
+							type="button"
+							onClick={openNewChat}
+							className="flex min-w-0 flex-1 items-center overflow-hidden rounded-control px-1 text-left"
 						>
 							<span className="truncate font-display text-[18px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
 								YourUnique.cv
 							</span>
-						</Link>
+						</button>
 						<Button
 							variant="ghost"
 							size="icon-sm"
@@ -207,7 +209,13 @@ export function AppSidebar({ user, recentThreads }: AppSidebarProps) {
 							{primaryNav.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton
-										render={<Link href={item.href} />}
+										render={
+											item.href === "/new-chat" ? (
+												<button type="button" onClick={openNewChat} />
+											) : (
+												<Link href={item.href} prefetch={false} />
+											)
+										}
 										isActive={isActivePath(
 											pathname,
 											item.href,

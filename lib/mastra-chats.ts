@@ -25,13 +25,14 @@ function previewFromText(text: string) {
 
 export async function createChatThread(input: {
 	userId: string;
+	threadId?: string;
 	preview?: string;
 }) {
 	const memory = await getResumeMemory();
 	const preview = input.preview?.trim() || "";
 
 	return memory.createThread({
-		threadId: nanoid(),
+		threadId: input.threadId ?? nanoid(),
 		resourceId: input.userId,
 		title: "",
 		metadata: preview ? { preview } : {},
@@ -39,13 +40,24 @@ export async function createChatThread(input: {
 	});
 }
 
-export async function createChatThreadFromMessage(input: {
+export async function ensureChatThreadForUser(input: {
 	userId: string;
-	messageText: string;
+	threadId: string;
+	preview?: string;
 }) {
+	const memory = await getResumeMemory();
+	const existing = await memory.getThreadById({ threadId: input.threadId });
+	if (existing) {
+		if (existing.resourceId !== input.userId) {
+			return null;
+		}
+		return existing;
+	}
+
 	return createChatThread({
 		userId: input.userId,
-		preview: previewFromText(input.messageText),
+		threadId: input.threadId,
+		preview: input.preview,
 	});
 }
 

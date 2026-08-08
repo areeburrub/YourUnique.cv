@@ -27,7 +27,7 @@ Ask for missing context (role target, years of experience, or profile details) o
 	}),
 	memory: new Memory({
 		options: {
-			lastMessages: 40,
+			lastMessages: 20,
 			generateTitle: {
 				model: "openrouter/openai/gpt-4o-mini",
 				instructions:

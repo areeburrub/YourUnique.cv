@@ -11,8 +11,8 @@ import {
 	type UIMessage,
 } from "ai";
 import { FileText, MessageSquare, Upload } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import { nanoid } from "nanoid";
+import { useEffect, useRef, useState } from "react";
 
 import {
 	Conversation,
@@ -33,7 +33,7 @@ import {
 	ToolInput,
 	ToolOutput,
 } from "@/components/ai-elements/tool";
-import { Spinner } from "@/components/ui/spinner";
+import { useSoftNav } from "@/components/app/soft-nav";
 import { toFileUIParts, uploadChatFiles } from "@/lib/client-uploads";
 import { getChatThreadHref } from "@/lib/chats";
 
@@ -45,16 +45,9 @@ const suggestions = [
 	"Draft a cover letter for this role",
 ] as const;
 
-const pendingKey = (threadId: string) => `yourunique:pending-chat:${threadId}`;
-
 const toolTitles: Record<string, string> = {
 	"name-chat": "Naming chat",
 	nameChatTool: "Naming chat",
-};
-
-type PendingPayload = {
-	text: string;
-	files: FileUIPart[];
 };
 
 type ChatViewProps = {
@@ -78,20 +71,31 @@ function titleForTool(name: string) {
 	);
 }
 
+const dotWaveDelays = [0, 100, 200, 100, 200, 300, 200, 300, 400] as const;
+
+function ThinkingDots() {
+	return (
+		<span
+			className="grid grid-cols-3 gap-[2px]"
+			role="status"
+			aria-label="Thinking"
+		>
+			{dotWaveDelays.map((delayMs, index) => (
+				<span
+					key={index}
+					className="size-1 animate-wave-dot rounded-full bg-brand"
+					style={{ animationDelay: `${delayMs}ms` }}
+				/>
+			))}
+		</span>
+	);
+}
+
 function ChatThinking({ label = "Thinking" }: { label?: string }) {
 	return (
-		<div
-			className="flex items-center gap-2 text-muted-foreground"
-			role="status"
-			aria-live="polite"
-		>
-			<Spinner className="size-3.5" />
-			<span className="text-sm">
-				{label}
-				<span className="inline-flex w-4 justify-start">
-					<span className="animate-pulse">…</span>
-				</span>
-			</span>
+		<div className="flex items-center gap-2.5 text-muted-foreground">
+			<ThinkingDots />
+			<span className="text-sm">{label}</span>
 		</div>
 	);
 }
@@ -162,17 +166,19 @@ export function ChatView({
 	threadId: threadIdProp,
 	initialMessages = [],
 }: ChatViewProps) {
-	const router = useRouter();
+	const { softReplace } = useSoftNav();
 	const [text, setText] = useState("");
-	const [creating, setCreating] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [attachmentCount, setAttachmentCount] = useState(0);
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
-	const hydratedPending = useRef(false);
 	const dragDepth = useRef(0);
 	const threadIdRef = useRef(threadIdProp);
-	const chatSessionId = useRef(threadIdProp ?? `new-${crypto.randomUUID()}`);
+	const chatSessionId = useRef(threadIdProp ?? "new-chat");
+	// A thread only truly exists server-side once /api/chat has been asked
+	// to create it. Uploads before that must omit threadId or /api/uploads
+	// will 404 looking it up.
+	const threadExistsRef = useRef(Boolean(threadIdProp));
 
 	useEffect(() => {
 		if (!threadIdProp) {
@@ -180,11 +186,8 @@ export function ChatView({
 		}
 		threadIdRef.current = threadIdProp;
 		chatSessionId.current = threadIdProp;
+		threadExistsRef.current = true;
 	}, [threadIdProp]);
-
-	const persistSidebar = useEffectEvent(() => {
-		router.refresh();
-	});
 
 	const { messages, sendMessage, status, stop, error } = useChat({
 		id: chatSessionId.current,
@@ -208,18 +211,6 @@ export function ChatView({
 				},
 			}),
 		}),
-		onFinish: ({ isAbort, isError }) => {
-			if (isAbort || isError) {
-				return;
-			}
-			const href = threadIdRef.current
-				? getChatThreadHref(threadIdRef.current)
-				: null;
-			if (href && window.location.pathname !== href) {
-				router.replace(href);
-			}
-			persistSidebar();
-		},
 	});
 
 	useEffect(() => {
@@ -267,77 +258,58 @@ export function ChatView({
 		};
 	}, []);
 
-	useEffect(() => {
-		const threadId = threadIdRef.current;
-		if (!threadId || hydratedPending.current || status !== "ready") {
-			return;
-		}
-		const key = pendingKey(threadId);
-		const pending = sessionStorage.getItem(key);
-		if (!pending) {
-			return;
-		}
-		hydratedPending.current = true;
-		sessionStorage.removeItem(key);
+	const submitMessage = async (messageText: string, files: FileUIPart[]) => {
+		setUploadError(null);
 
-		try {
-			const payload = JSON.parse(pending) as PendingPayload | string;
-			if (typeof payload === "string") {
-				void sendMessage({ text: payload });
+		// Assign the thread id and move the URL over synchronously, *before*
+		// any network call. This is what makes the transition to /chats/[id]
+		// feel instant instead of waiting on a create-chat round trip.
+		if (!threadIdRef.current) {
+			const newThreadId = nanoid();
+			threadIdRef.current = newThreadId;
+			softReplace(getChatThreadHref(newThreadId));
+		}
+
+		let fileParts: FileUIPart[] = [];
+		if (files.length > 0) {
+			setUploading(true);
+			try {
+				const uploaded = await uploadChatFiles({
+					files,
+					threadId: threadExistsRef.current
+						? threadIdRef.current
+						: undefined,
+				});
+				fileParts = toFileUIParts(uploaded);
+			} catch (err) {
+				setUploading(false);
+				setUploadError(
+					err instanceof Error ? err.message : "Failed to upload files",
+				);
 				return;
 			}
-			void sendMessage({
-				text: payload.text,
-				files: payload.files,
-			});
-		} catch {
-			void sendMessage({ text: pending });
+			setUploading(false);
 		}
-	}, [threadIdProp, status, sendMessage]);
 
-	const startThread = async (messageText: string, files: FileUIPart[]) => {
-		setCreating(true);
-		setUploadError(null);
+		// sendMessage synchronously adds the optimistic user bubble before it
+		// awaits the network response, so calling it as early as possible
+		// (right here, with nothing else pending) is what keeps the UI feeling
+		// instant. The API route creates the thread server-side if needed.
+		threadExistsRef.current = true;
 		try {
-			const uploaded =
-				files.length > 0 ? await uploadChatFiles({ files }) : [];
-			const fileParts = toFileUIParts(uploaded);
-
-			const response = await fetch("/api/chats", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					message: messageText,
-					fileIds: uploaded.map((file) => file.id),
-				}),
-			});
-			if (!response.ok) {
-				throw new Error("Failed to create chat");
-			}
-			const data = (await response.json()) as { id: string };
-			threadIdRef.current = data.id;
-			const href = getChatThreadHref(data.id);
-			window.history.replaceState(window.history.state, "", href);
-
-			setCreating(false);
-			await sendMessage({
-				text: messageText,
-				files: fileParts,
-			});
+			await sendMessage({ text: messageText, files: fileParts });
 		} catch (err) {
-			setCreating(false);
 			setUploadError(
-				err instanceof Error ? err.message : "Failed to start chat",
+				err instanceof Error ? err.message : "Something went wrong",
 			);
 		}
 	};
 
-	const handleSubmit = async (message: PromptInputMessage) => {
+	const handleSubmit = (message: PromptInputMessage) => {
 		const trimmed = message.text.trim();
 		const files = message.files ?? [];
 		if (
 			(!trimmed && files.length === 0) ||
-			creating ||
 			uploading ||
 			status !== "ready"
 		) {
@@ -347,48 +319,17 @@ export function ChatView({
 		setText("");
 		setUploadError(null);
 		setAttachmentCount(0);
-
-		if (!threadIdRef.current) {
-			await startThread(trimmed, files);
-			return;
-		}
-
-		const threadId = threadIdRef.current;
-
-		try {
-			let uploaded: Awaited<ReturnType<typeof uploadChatFiles>> = [];
-			if (files.length > 0) {
-				setUploading(true);
-				try {
-					uploaded = await uploadChatFiles({ files, threadId });
-				} finally {
-					setUploading(false);
-				}
-			}
-			await sendMessage({
-				text: trimmed,
-				files: toFileUIParts(uploaded),
-			});
-		} catch (err) {
-			setUploading(false);
-			setUploadError(
-				err instanceof Error ? err.message : "Failed to upload files",
-			);
-		}
+		void submitMessage(trimmed, files);
 	};
 
 	const handleSuggestion = (suggestion: string) => {
-		if (creating || uploading || status !== "ready") {
+		if (uploading || status !== "ready") {
 			return;
 		}
-		if (!threadIdRef.current) {
-			void startThread(suggestion, []);
-			return;
-		}
-		void sendMessage({ text: suggestion });
+		void submitMessage(suggestion, []);
 	};
 
-	const busy = creating || uploading || status !== "ready";
+	const busy = uploading || status !== "ready";
 	const canSubmit = Boolean(text.trim()) || attachmentCount > 0;
 	const lastMessage = messages.at(-1);
 	const lastHasAssistantText =
@@ -405,16 +346,11 @@ export function ChatView({
 		lastMessage.parts.some((part) => isChatToolPart(part));
 	const showThinking =
 		!lastHasAssistantText &&
-		(creating ||
-			uploading ||
+		(uploading ||
 			status === "submitted" ||
 			(status === "streaming" && !lastHasTools));
 
-	const thinkingLabel = creating
-		? "Starting chat"
-		: uploading
-			? "Uploading files"
-			: "Thinking";
+	const thinkingLabel = uploading ? "Uploading files" : "Thinking";
 
 	return (
 		<div className="relative flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -528,7 +464,6 @@ export function ChatView({
 				onAttachmentCountChange={setAttachmentCount}
 				onStop={stop}
 				status={status}
-				creating={creating}
 				uploading={uploading}
 				busy={busy}
 				canSubmit={canSubmit}
