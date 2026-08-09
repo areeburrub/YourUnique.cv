@@ -11,28 +11,25 @@ import {
 import type { ReactNode } from "react";
 
 import { MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { ResumePdfCard } from "@/components/chat/resume-pdf-card";
 import {
+	agentDataPartsFromMessage,
+	collectAssistantActivitySteps,
+	isInternalToolName,
+	resumeOutputsFromAgentData,
+	runningActivityStatusLabel,
 	runningToolStatusLabel,
 	ToolActivity,
 } from "@/components/chat/tool-activity";
 import { fileTypeLabel } from "@/lib/file-type";
 import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
 
+export { isInternalToolName };
+
 export function isChatToolPart(
 	part: unknown,
 ): part is ToolUIPart | DynamicToolUIPart {
 	return isToolUIPart(part as never);
-}
-
-export function isInternalToolName(name: string) {
-	return (
-		name.startsWith("agent-") ||
-		name.endsWith("Agent") ||
-		name === "onboardingAgent" ||
-		name === "resumeAgent" ||
-		name === "profileEditAgent" ||
-		name === "appAgent"
-	);
 }
 
 export function isVisibleChatToolPart(
@@ -45,8 +42,18 @@ export function isVisibleChatToolPart(
 }
 
 export function getAssistantToolStatusLabel(message: UIMessage) {
+	const activitySteps = collectAssistantActivitySteps(message);
+	const fromSteps = runningActivityStatusLabel(activitySteps);
+	if (fromSteps) {
+		return fromSteps;
+	}
+
 	const toolParts = message.parts.filter(isChatToolPart);
 	return runningToolStatusLabel(toolParts);
+}
+
+export function assistantHasVisibleActivity(message: UIMessage) {
+	return collectAssistantActivitySteps(message).length > 0;
 }
 
 const dotWaveDelays = [0, 100, 200, 100, 200, 300, 200, 300, 400] as const;
@@ -218,27 +225,147 @@ function assistantHasText(message: UIMessage) {
 	);
 }
 
-export function renderAssistantParts(
-	message: UIMessage,
-	options?: {
-		toolLabel?: string;
-		toolBadge?: string;
-	},
-): ReactNode[] {
+function resumeCardFromOutput(output: unknown) {
+	if (!output || typeof output !== "object") {
+		return null;
+	}
+	const record = output as Record<string, unknown>;
+	const previewUrl =
+		typeof record.previewUrl === "string"
+			? record.previewUrl
+			: typeof record.downloadUrl === "string"
+				? record.downloadUrl.replace(/\?download=1$/, "")
+				: null;
+	const downloadUrl =
+		typeof record.downloadUrl === "string"
+			? record.downloadUrl
+			: previewUrl
+				? `${previewUrl}${previewUrl.includes("?") ? "&" : "?"}download=1`
+				: null;
+	const resumeName =
+		typeof record.name === "string" && record.name.trim()
+			? record.name
+			: "Resume";
+	const ready =
+		record.compileStatus === "ready" ||
+		record.ok === true ||
+		Boolean(previewUrl);
+
+	if (!ready || !previewUrl || !downloadUrl) {
+		return null;
+	}
+
+	return {
+		name: resumeName,
+		previewUrl,
+		downloadUrl,
+	};
+}
+
+function resumeCardFromToolPart(part: ToolUIPart | DynamicToolUIPart) {
+	const name = getToolName(part);
+	if (name !== "compile_resume" && name !== "get_resume_download") {
+		return null;
+	}
+	if (part.state !== "output-available") {
+		return null;
+	}
+	return resumeCardFromOutput(part.output);
+}
+
+function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
+	if (part.state !== "output-available" || !part.output || typeof part.output !== "object") {
+		return [] as Array<{
+			name: string;
+			previewUrl: string;
+			downloadUrl: string;
+		}>;
+	}
+	const output = part.output as {
+		subAgentToolResults?: Array<{
+			toolName?: string;
+			result?: unknown;
+			isError?: boolean;
+		}>;
+	};
+	if (!Array.isArray(output.subAgentToolResults)) {
+		return [];
+	}
+
+	const cards = [];
+	for (const result of output.subAgentToolResults) {
+		if (
+			result.isError ||
+			(result.toolName !== "compile_resume" &&
+				result.toolName !== "get_resume_download")
+		) {
+			continue;
+		}
+		const card = resumeCardFromOutput(result.result);
+		if (card) {
+			cards.push(card);
+		}
+	}
+	return cards;
+}
+
+export function renderAssistantParts(message: UIMessage): ReactNode[] {
 	const nodes: ReactNode[] = [];
-	const toolParts = message.parts.filter(isVisibleChatToolPart);
+	const activitySteps = collectAssistantActivitySteps(message);
 	const historical = assistantHasText(message);
 
-	if (toolParts.length > 0) {
+	if (activitySteps.length > 0) {
 		nodes.push(
 			<ToolActivity
 				key={`${message.id}-tools`}
-				parts={toolParts}
-				label={options?.toolLabel}
-				badge={options?.toolBadge}
+				steps={activitySteps}
 				startCollapsed={historical}
 			/>,
 		);
+	}
+
+	const seenResumeIds = new Set<string>();
+	const pushResumeCard = (
+		card: { name: string; previewUrl: string; downloadUrl: string } | null,
+		key: string,
+	) => {
+		if (!card || seenResumeIds.has(card.previewUrl)) {
+			return;
+		}
+		seenResumeIds.add(card.previewUrl);
+		nodes.push(
+			<ResumePdfCard
+				key={key}
+				name={card.name}
+				previewUrl={card.previewUrl}
+				downloadUrl={card.downloadUrl}
+			/>,
+		);
+	};
+
+	for (const [index, part] of message.parts.entries()) {
+		if (!isChatToolPart(part)) {
+			continue;
+		}
+		pushResumeCard(
+			resumeCardFromToolPart(part),
+			`${message.id}-resume-${index}`,
+		);
+		for (const [cardIndex, card] of resumeCardsFromAgentToolOutput(
+			part,
+		).entries()) {
+			pushResumeCard(card, `${message.id}-nested-resume-${index}-${cardIndex}`);
+		}
+	}
+
+	for (const [index, part] of agentDataPartsFromMessage(message).entries()) {
+		const outputs = resumeOutputsFromAgentData(part.data);
+		for (const [outputIndex, output] of outputs.entries()) {
+			pushResumeCard(
+				resumeCardFromOutput(output),
+				`${message.id}-agent-resume-${index}-${outputIndex}`,
+			);
+		}
 	}
 
 	message.parts.forEach((part, index) => {

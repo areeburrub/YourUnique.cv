@@ -3,6 +3,7 @@ import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
+import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
 import { getUserContext } from "@/lib/db/contexts";
 import { attachFilesToThread } from "@/lib/db/files";
@@ -121,5 +122,7 @@ export async function POST(req: Request) {
 		version: "v6",
 	});
 
-	return createUIMessageStreamResponse({ stream });
+	return createUIMessageStreamResponse({
+		stream: stream.pipeThrough(createChatActivityTransform()),
+	});
 }

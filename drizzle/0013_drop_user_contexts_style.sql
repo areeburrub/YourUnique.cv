@@ -1,0 +1,1 @@
+ALTER TABLE "user_contexts" DROP COLUMN "style";

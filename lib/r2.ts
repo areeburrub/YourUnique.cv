@@ -1,4 +1,5 @@
 import {
+	DeleteObjectCommand,
 	GetObjectCommand,
 	HeadObjectCommand,
 	PutObjectCommand,
@@ -48,6 +49,15 @@ export async function putR2Object(input: {
 			Key: input.key,
 			Body: input.body,
 			ContentType: input.contentType,
+		}),
+	);
+}
+
+export async function deleteR2Object(key: string) {
+	await getR2Client().send(
+		new DeleteObjectCommand({
+			Bucket: getR2Bucket(),
+			Key: key,
 		}),
 	);
 }

@@ -15,7 +15,7 @@ export const profileEditAgent = new Agent({
 	description: `Updates the user's saved career context when they want to add, remove, correct, or change experience, skills, education, summary, contact, projects, or other durable facts. Use this when the user asks to update their resume background or saved details — not for drafting a tailored resume or cover letter.`,
 	instructions: `You help the user update their saved career context so future resumes stay accurate.
 
-Speak as the product assistant. Never mention agents, tools, routing, Profile documents, Style guides, or other internal systems.
+Speak as the product assistant. Never mention agents, tools, routing, Profile documents, or other internal systems.
 
 Internally you edit a durable markdown career document (contact, summary, experience, education, skills, projects, etc.).
 
@@ -28,7 +28,7 @@ Rules:
 - Keep clear markdown headings and bullet lists.
 - If the user pastes [Profile context] blocks, treat them as the selected passages they want you to focus on.
 - After a successful patch, briefly confirm what changed (1–3 sentences). Do not dump the whole document unless asked.`,
-	model: openrouter("openai/gpt-5.6-luna"),
+	model: openrouter("anthropic/claude-haiku-4.5"),
 	tools: {
 		get_profile: getProfileTool,
 		patch_profile: patchProfileTool,

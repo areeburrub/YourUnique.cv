@@ -1,9 +1,11 @@
 "use client";
 
+import type { AgentDataPart } from "@mastra/ai-sdk";
 import {
 	getToolName,
 	type DynamicToolUIPart,
 	type ToolUIPart,
+	type UIMessage,
 } from "ai";
 import { Check, ChevronDown, LoaderCircle, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -13,43 +15,23 @@ import {
 	CollapsibleContent,
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+	isChatActivityPart,
+	isInternalToolName,
+	toolStepLabel,
+	type ChatActivityStep,
+} from "@/lib/chat-activity";
 import { cn } from "@/lib/utils";
 
-const toolTitles: Record<string, string> = {
-	"name-chat": "Naming chat",
-	nameChatTool: "Naming chat",
-	save_onboarding_context: "Saving your profile",
-	"agent-onboardingAgent": "Knowing you better",
-	"agent-resumeAgent": "Resume help",
-	"agent-profileEditAgent": "Updating your profile",
-	onboardingAgent: "Knowing you better",
-	resumeAgent: "Resume help",
-	profileEditAgent: "Updating your profile",
-	patch_profile: "Updating your profile",
-	update_profile: "Updating your profile",
-	get_profile: "Reading your profile",
+export type ActivityStepState = ChatActivityStep["state"];
+export type ActivityStep = {
+	id: string;
+	name: string;
+	state: ActivityStepState;
+	label?: string;
 };
 
-export function toolStepLabel(name: string) {
-	if (toolTitles[name]) {
-		return toolTitles[name];
-	}
-
-	const agentMatch = name.match(/^(?:agent-)?(.+?)(?:Agent)?$/);
-	const agentKey = agentMatch?.[1];
-	if (agentKey && toolTitles[`${agentKey}Agent`]) {
-		return toolTitles[`${agentKey}Agent`];
-	}
-	if (agentKey && toolTitles[agentKey]) {
-		return toolTitles[agentKey];
-	}
-
-	return name
-		.replace(/^agent-/, "")
-		.replace(/([a-z])([A-Z])/g, "$1 $2")
-		.replace(/[-_]/g, " ")
-		.replace(/\b\w/g, (char) => char.toUpperCase());
-}
+export { isInternalToolName, toolStepLabel };
 
 export function isToolRunning(state: ToolUIPart["state"]) {
 	return (
@@ -63,8 +45,268 @@ function isToolFailed(state: ToolUIPart["state"]) {
 	return state === "output-error" || state === "output-denied";
 }
 
-function isToolDone(state: ToolUIPart["state"]) {
-	return state === "output-available";
+function activityStateFromToolPart(
+	state: ToolUIPart["state"],
+): ActivityStepState {
+	if (isToolFailed(state)) {
+		return "failed";
+	}
+	if (isToolRunning(state)) {
+		return "running";
+	}
+	return "done";
+}
+
+function pushUniqueStep(steps: ActivityStep[], step: ActivityStep) {
+	const existing = steps.find((item) => item.id === step.id);
+	if (!existing) {
+		steps.push(step);
+		return;
+	}
+	existing.name = step.name || existing.name;
+	existing.label = step.label || existing.label;
+	if (step.state === "failed") {
+		existing.state = "failed";
+		return;
+	}
+	if (existing.state === "failed") {
+		return;
+	}
+	if (step.state === "done" || existing.state === "running") {
+		existing.state = step.state;
+	}
+}
+
+type LooseToolRef = {
+	toolCallId?: string;
+	toolName?: string;
+	result?: unknown;
+	isError?: boolean;
+	payload?: {
+		toolCallId?: string;
+		toolName?: string;
+		result?: unknown;
+		isError?: boolean;
+	};
+};
+
+function refId(ref: LooseToolRef | undefined) {
+	return ref?.toolCallId || ref?.payload?.toolCallId;
+}
+
+function refName(ref: LooseToolRef | undefined) {
+	return ref?.toolName || ref?.payload?.toolName;
+}
+
+function refError(ref: LooseToolRef | undefined) {
+	return Boolean(ref?.isError ?? ref?.payload?.isError);
+}
+
+function refResult(ref: LooseToolRef | undefined) {
+	return ref?.result ?? ref?.payload?.result;
+}
+
+export function isAgentDataPart(part: unknown): part is AgentDataPart {
+	return (
+		typeof part === "object" &&
+		part !== null &&
+		"type" in part &&
+		(part as { type: unknown }).type === "data-tool-agent" &&
+		"data" in part
+	);
+}
+
+function collectStepsFromAgentSlice(
+	slice: {
+		toolCalls?: LooseToolRef[];
+		toolResults?: LooseToolRef[];
+		pendingToolCalls?: LooseToolRef[];
+	},
+	into: ActivityStep[],
+) {
+	for (const call of slice.toolCalls ?? []) {
+		const toolCallId = refId(call);
+		const toolName = refName(call);
+		if (!toolCallId || !toolName || isInternalToolName(toolName)) {
+			continue;
+		}
+		const result = (slice.toolResults ?? []).find(
+			(item) => refId(item) === toolCallId,
+		);
+		pushUniqueStep(into, {
+			id: toolCallId,
+			name: toolName,
+			state: result
+				? refError(result)
+					? "failed"
+					: "done"
+				: "running",
+		});
+	}
+
+	for (const pending of slice.pendingToolCalls ?? []) {
+		const toolCallId = refId(pending);
+		const toolName = refName(pending);
+		if (!toolCallId || !toolName || isInternalToolName(toolName)) {
+			continue;
+		}
+		pushUniqueStep(into, {
+			id: toolCallId,
+			name: toolName,
+			state: "running",
+		});
+	}
+
+	for (const result of slice.toolResults ?? []) {
+		const toolCallId = refId(result);
+		const toolName = refName(result);
+		if (!toolCallId || !toolName || isInternalToolName(toolName)) {
+			continue;
+		}
+		pushUniqueStep(into, {
+			id: toolCallId,
+			name: toolName,
+			state: refError(result) ? "failed" : "done",
+		});
+	}
+}
+
+export function activityStepsFromAgentData(data: unknown): ActivityStep[] {
+	const activity = data as {
+		steps?: Array<{
+			toolCalls?: LooseToolRef[];
+			toolResults?: LooseToolRef[];
+			pendingToolCalls?: LooseToolRef[];
+		}>;
+		toolCalls?: LooseToolRef[];
+		toolResults?: LooseToolRef[];
+		pendingToolCalls?: LooseToolRef[];
+	};
+	const steps: ActivityStep[] = [];
+	for (const completed of activity.steps ?? []) {
+		collectStepsFromAgentSlice(completed, steps);
+	}
+	collectStepsFromAgentSlice(activity, steps);
+	return steps;
+}
+
+export function agentDataPartsFromMessage(message: UIMessage) {
+	return message.parts.filter(isAgentDataPart);
+}
+
+function stepsFromSubAgentToolResults(
+	part: ToolUIPart | DynamicToolUIPart,
+): ActivityStep[] {
+	if (
+		part.state !== "output-available" ||
+		!part.output ||
+		typeof part.output !== "object"
+	) {
+		return [];
+	}
+	const output = part.output as {
+		subAgentToolResults?: Array<{
+			toolCallId?: string;
+			toolName?: string;
+			isError?: boolean;
+		}>;
+	};
+	if (!Array.isArray(output.subAgentToolResults)) {
+		return [];
+	}
+
+	return output.subAgentToolResults.flatMap((result, index) => {
+		if (!result.toolName || isInternalToolName(result.toolName)) {
+			return [];
+		}
+		return [
+			{
+				id: result.toolCallId || `${getToolName(part)}-nested-${index}`,
+				name: result.toolName,
+				state: (result.isError ? "failed" : "done") as ActivityStepState,
+			},
+		];
+	});
+}
+
+export function collectAssistantActivitySteps(message: UIMessage): ActivityStep[] {
+	const steps: ActivityStep[] = [];
+
+	for (const part of message.parts) {
+		if (!isChatActivityPart(part)) {
+			continue;
+		}
+		for (const step of part.data.steps ?? []) {
+			pushUniqueStep(steps, {
+				id: step.id,
+				name: step.name,
+				label: step.label,
+				state: step.state,
+			});
+		}
+	}
+
+	if (steps.length > 0) {
+		return steps;
+	}
+
+	const toolParts = message.parts.filter(
+		(part): part is ToolUIPart | DynamicToolUIPart =>
+			typeof part === "object" &&
+			part !== null &&
+			"type" in part &&
+			(String((part as { type: unknown }).type).startsWith("tool-") ||
+				(part as { type: unknown }).type === "dynamic-tool"),
+	);
+
+	for (const part of toolParts) {
+		const name = getToolName(part);
+		const nested = stepsFromSubAgentToolResults(part);
+		if (nested.length > 0) {
+			for (const step of nested) {
+				pushUniqueStep(steps, step);
+			}
+			continue;
+		}
+		if (isInternalToolName(name) && isToolRunning(part.state)) {
+			pushUniqueStep(steps, {
+				id: part.toolCallId || name,
+				name,
+				state: "running",
+			});
+			continue;
+		}
+		if (!isInternalToolName(name)) {
+			pushUniqueStep(steps, {
+				id: part.toolCallId || name,
+				name,
+				state: activityStateFromToolPart(part.state),
+			});
+		}
+	}
+
+	for (const part of agentDataPartsFromMessage(message)) {
+		for (const step of activityStepsFromAgentData(part.data)) {
+			pushUniqueStep(steps, step);
+		}
+	}
+
+	const leafSteps = steps.filter((step) => !isInternalToolName(step.name));
+	return leafSteps.length > 0 ? leafSteps : steps;
+}
+
+export function runningActivityStatusLabel(steps: ActivityStep[]) {
+	for (let i = steps.length - 1; i >= 0; i -= 1) {
+		const step = steps[i];
+		if (!step || step.state !== "running") {
+			continue;
+		}
+		const label = step.label || toolStepLabel(step.name);
+		return label.endsWith("…") || label.endsWith("...")
+			? label
+			: `${label}…`;
+	}
+	return null;
 }
 
 export function runningToolStatusLabel(
@@ -83,25 +325,49 @@ export function runningToolStatusLabel(
 	return null;
 }
 
+export function resumeOutputsFromAgentData(data: unknown) {
+	const activity = data as {
+		steps?: Array<{ toolResults?: LooseToolRef[] }>;
+		toolResults?: LooseToolRef[];
+	};
+	const outputs: unknown[] = [];
+	const collect = (slice: { toolResults?: LooseToolRef[] }) => {
+		for (const result of slice.toolResults ?? []) {
+			const name = refName(result);
+			if (name !== "compile_resume" && name !== "get_resume_download") {
+				continue;
+			}
+			if (refError(result)) {
+				continue;
+			}
+			outputs.push(refResult(result));
+		}
+	};
+
+	for (const completed of activity.steps ?? []) {
+		collect(completed);
+	}
+	collect(activity);
+	return outputs;
+}
+
 type ToolActivityProps = {
-	parts: Array<ToolUIPart | DynamicToolUIPart>;
+	steps: ActivityStep[];
 	label?: string;
-	badge?: string;
 	startCollapsed?: boolean;
 };
 
 export function ToolActivity({
-	parts,
-	label = "Used tools",
-	badge = "·",
+	steps,
+	label = "Working on it",
 	startCollapsed = false,
 }: ToolActivityProps) {
-	const allSettled = parts.every(
-		(part) => isToolDone(part.state) || isToolFailed(part.state),
-	);
-	const hasFailure = parts.some((part) => isToolFailed(part.state));
-	const anyRunning = parts.some((part) => isToolRunning(part.state));
-	const activeLabel = runningToolStatusLabel(parts);
+	const allSettled =
+		steps.length > 0 &&
+		steps.every((step) => step.state === "done" || step.state === "failed");
+	const hasFailure = steps.some((step) => step.state === "failed");
+	const anyRunning = steps.some((step) => step.state === "running");
+	const activeLabel = runningActivityStatusLabel(steps);
 	const [open, setOpen] = useState(() => !allSettled || !startCollapsed);
 
 	useEffect(() => {
@@ -109,12 +375,24 @@ export function ToolActivity({
 			setOpen(true);
 			return;
 		}
-		const timer = window.setTimeout(() => setOpen(false), 700);
+		if (!startCollapsed) {
+			return;
+		}
+		const timer = window.setTimeout(() => setOpen(false), 900);
 		return () => window.clearTimeout(timer);
-	}, [allSettled]);
+	}, [allSettled, startCollapsed]);
 
-	const showFooter = allSettled || anyRunning;
-	const triggerLabel = anyRunning && activeLabel ? activeLabel : label;
+	if (steps.length === 0) {
+		return null;
+	}
+
+	const triggerLabel = anyRunning
+		? activeLabel || label
+		: allSettled
+			? hasFailure
+				? "Some steps failed"
+				: `${steps.length} step${steps.length === 1 ? "" : "s"} completed`
+			: label;
 
 	return (
 		<Collapsible
@@ -122,7 +400,10 @@ export function ToolActivity({
 			onOpenChange={setOpen}
 			className="w-full max-w-full"
 		>
-			<CollapsibleTrigger className="flex items-center gap-1 text-[13px] leading-5 text-muted-foreground transition-colors hover:text-foreground">
+			<CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] leading-5 text-muted-foreground transition-colors hover:text-foreground">
+				{anyRunning ? (
+					<LoaderCircle className="size-3.5 animate-spin" />
+				) : null}
 				<span>{triggerLabel}</span>
 				<ChevronDown
 					className={cn(
@@ -133,17 +414,16 @@ export function ToolActivity({
 			</CollapsibleTrigger>
 			<CollapsibleContent className="overflow-hidden">
 				<ol className="mt-2 flex flex-col">
-					{parts.map((part, index) => {
-						const name = getToolName(part);
-						const running = isToolRunning(part.state);
-						const failed = isToolFailed(part.state);
-						const showLine =
-							index < parts.length - 1 || showFooter;
+					{steps.map((step, index) => {
+						const running = step.state === "running";
+						const failed = step.state === "failed";
+						const showLine = index < steps.length - 1;
+						const text = step.label || toolStepLabel(step.name);
 
 						return (
 							<li
-								key={`${name}-${index}`}
-								className="relative flex gap-2.5 pb-2.5"
+								key={step.id}
+								className="relative flex gap-2.5 pb-2.5 last:pb-0"
 							>
 								{showLine ? (
 									<span
@@ -153,10 +433,12 @@ export function ToolActivity({
 								) : null}
 								<span
 									className={cn(
-										"relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border bg-background text-[9px] font-semibold",
+										"relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border bg-background",
 										failed
 											? "border-destructive/40 text-destructive"
-											: "border-border text-muted-foreground",
+											: running
+												? "border-border text-muted-foreground"
+												: "border-border text-foreground",
 									)}
 								>
 									{running ? (
@@ -164,7 +446,10 @@ export function ToolActivity({
 									) : failed ? (
 										<XIcon className="size-2.5" />
 									) : (
-										badge
+										<Check
+											className="size-2.5"
+											strokeWidth={2.5}
+										/>
 									)}
 								</span>
 								<span
@@ -172,54 +457,17 @@ export function ToolActivity({
 										"min-w-0 pt-px text-[13px] leading-5",
 										failed
 											? "text-destructive"
-											: "text-muted-foreground",
+											: running
+												? "text-foreground"
+												: "text-muted-foreground",
 									)}
 								>
-									{toolStepLabel(name)}
+									{text}
+									{running ? "…" : ""}
 								</span>
 							</li>
 						);
 					})}
-					{allSettled ? (
-						<li className="relative flex gap-2.5">
-							<span
-								className={cn(
-									"relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border bg-background",
-									hasFailure
-										? "border-destructive/40 text-destructive"
-										: "border-border text-foreground",
-								)}
-							>
-								{hasFailure ? (
-									<XIcon className="size-2.5" />
-								) : (
-									<Check
-										className="size-2.5"
-										strokeWidth={2.5}
-									/>
-								)}
-							</span>
-							<span
-								className={cn(
-									"pt-px text-[13px] leading-5",
-									hasFailure
-										? "text-destructive"
-										: "text-foreground",
-								)}
-							>
-								{hasFailure ? "Failed" : "Done"}
-							</span>
-						</li>
-					) : anyRunning ? (
-						<li className="relative flex gap-2.5">
-							<span className="relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border border-border bg-background text-muted-foreground">
-								<LoaderCircle className="size-2.5 animate-spin" />
-							</span>
-							<span className="pt-px text-[13px] leading-5 text-muted-foreground">
-								Working…
-							</span>
-						</li>
-					) : null}
 				</ol>
 			</CollapsibleContent>
 		</Collapsible>

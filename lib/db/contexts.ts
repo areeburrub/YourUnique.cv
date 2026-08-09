@@ -12,7 +12,6 @@ export async function getUserContext(userId: string) {
 export async function upsertUserContext(input: {
 	userId: string;
 	profile: string;
-	style: string;
 	sourceFileIds: string[];
 }) {
 	const [row] = await db
@@ -20,14 +19,12 @@ export async function upsertUserContext(input: {
 		.values({
 			userId: input.userId,
 			profile: input.profile,
-			style: input.style,
 			sourceFileIds: input.sourceFileIds,
 		})
 		.onConflictDoUpdate({
 			target: userContexts.userId,
 			set: {
 				profile: input.profile,
-				style: input.style,
 				sourceFileIds: input.sourceFileIds,
 				updatedAt: new Date(),
 			},

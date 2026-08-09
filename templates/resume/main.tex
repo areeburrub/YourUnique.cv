@@ -1,0 +1,114 @@
+% !TEX root = main.tex
+% !TEX program = tectonic
+\documentclass[a4paper,10pt]{article}
+
+\usepackage{latexsym}
+\usepackage[empty]{fullpage}
+\usepackage{titlesec}
+\usepackage{marvosym}
+\usepackage[dvipsnames]{xcolor}
+\usepackage{verbatim}
+\usepackage{enumitem}
+\usepackage{fancyhdr}
+\usepackage[
+  colorlinks=true,
+  linkcolor=NavyBlue,
+  urlcolor=NavyBlue,
+  citecolor=NavyBlue
+]{hyperref}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\setlength{\footskip}{12pt}
+
+% Margins
+\addtolength{\oddsidemargin}{-0.5in}
+\addtolength{\evensidemargin}{-0.5in}
+\addtolength{\textwidth}{1.0in}
+\addtolength{\topmargin}{-0.55in}
+\addtolength{\textheight}{1.1in}
+
+\urlstyle{same}
+\raggedbottom
+\raggedright
+\setlength{\tabcolsep}{0in}
+\setlength{\parindent}{0pt}
+
+% Tight, even section spacing
+\titleformat{\section}{
+  \vspace{0pt}\scshape\raggedright\large
+}{}{0em}{}[\color{black}\titlerule\vspace{4pt}]
+\titlespacing{\section}{0pt}{4pt}{2pt}
+
+%-------------------------
+% Hierarchy:
+%   Company  = 12pt bold (flush left)
+%   Role     = 10pt bold, slightly indented
+%   Bullets  = small body text under role
+%-------------------------
+
+\newcommand{\resumeCompany}[1]{%
+  {\large\noindent #1\par}%
+  \vspace{1pt}%
+}
+
+% #1 Role, #2 Location, #3 Employment Type, #4 Date Range
+\newcommand{\resumeRole}[4]{%
+  \leftskip=0pt\rightskip=0pt\normalsize%
+  \noindent\textbf{#1}\hfill{\small #2}\par
+  \noindent{\small\textit{#3}}\hfill{\small\textit{#4}}\par
+  \vspace{1pt}%
+}
+
+% Education flush left (same as company), not inside a list
+\newcommand{\resumeEntry}[4]{%
+  \vspace{1pt}%
+  \noindent\begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
+    \textbf{#1} & {\small #2} \\
+    \textit{\small #3} & \textit{\small #4} \\
+  \end{tabular*}%
+}
+
+% Bullet with bold label + body
+\newcommand{\resumeItem}[2]{%
+  \item\small\textbf{#1:} #2%
+}
+
+% Single-arg bullet (no label)
+\newcommand{\resumeBullet}[1]{%
+  \item\small #1%
+}
+
+\newcommand{\resumeSkill}[2]{%
+  \item\small\textbf{#1:} #2%
+}
+
+\newcommand{\resumeListStart}{%
+  \begin{itemize}[leftmargin=0.15in, itemsep=1pt, parsep=0pt, topsep=1pt, partopsep=0pt]%
+}
+\newcommand{\resumeListEnd}{\end{itemize}\vspace{-2pt}}
+
+\newcommand{\resumeBulletStart}{%
+  \begin{itemize}[leftmargin=0.28in, itemsep=1.5pt, parsep=0pt, topsep=1pt, partopsep=0pt, label=\textbullet]%
+}
+% Space after a role's bullets before the next role
+\newcommand{\resumeBulletEnd}{\end{itemize}\vspace{0pt}}
+
+% Outer list: one filled-bullet item per role, holding the role header + its sub-bullets
+\newcommand{\resumeRoleListStart}{%
+  \begin{itemize}[leftmargin=0.15in, itemsep=5pt, parsep=0pt, topsep=2pt, partopsep=0pt, label=\textbullet]%
+}
+\newcommand{\resumeRoleListEnd}{\end{itemize}\vspace{0pt}}
+
+% Inner list: hollow-circle bullets for labeled achievements under a role
+\newcommand{\resumeSubBulletStart}{%
+  \begin{itemize}[leftmargin=0.2in, itemsep=1.5pt, parsep=0pt, topsep=2pt, partopsep=0pt, label=$\circ$]%
+}
+\newcommand{\resumeSubBulletEnd}{\end{itemize}\vspace{0pt}}
+
+\begin{document}
+\input{resume}
+\end{document}

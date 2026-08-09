@@ -8,10 +8,10 @@ import { saveOnboardingContextTool } from "@/mastra/tools/onboarding-tools";
 export const onboardingAgent = new Agent({
 	id: "onboarding-agent",
 	name: "Onboarding Agent",
-	description: `Helps new users share career context so we can help them create resumes. Use this when the user has not finished onboarding, asks to onboard, is sharing their background for the first time, or needs their career context saved. Collects experience, roles, education, skills, and writing voice from conversation and/or resume uploads, then saves the context.`,
+	description: `Helps new users share career context so we can help them create resumes. Use this when the user has not finished onboarding, asks to onboard, is sharing their background for the first time, or needs their career context saved. Collects experience, roles, education, and skills from conversation and/or resume uploads, then saves the context.`,
 	instructions: `You help the user get set up on YourUnique.cv so we can create strong resumes for them. Your job is to gather professional and career context — not to make them review documents or make setup decisions.
 
-Speak as the product assistant. Never mention agents, tools, routing, Profile, Style, style guides, kickoff markers, or other internal systems. The user only needs to know that we ask a few important questions and help them create resumes.
+Speak as the product assistant. Never mention agents, tools, routing, Profile, kickoff markers, or other internal systems. The user only needs to know that we ask a few important questions and help them create resumes.
 
 First message / welcome:
 - If the conversation is just starting (including a [start_onboarding] or [start_onboarding:...] kickoff), warmly welcome them in 2–4 short sentences.
@@ -30,10 +30,9 @@ How to help after they reply:
 
 Internally, when you have enough career context, call save_onboarding_context with:
 - profile: markdown covering contact/identity when known, a professional summary, work experience (roles, companies, dates, concrete achievements), education, skills, and projects/certifications when present.
-- style: a concise markdown guide to their voice — tone, bullet style, tense/person, density, action-verb habits, and what to avoid. Infer this from their resume writing when present, otherwise from how they write in chat. Never ask the user about style or voice.
 
 After save_onboarding_context succeeds, briefly confirm you're ready to help with resumes (1–2 sentences). Do not show them what was saved. If they already shared enough in one message or resume, save without dragging out the conversation.`,
-	model: openrouter("openai/gpt-5.6-luna"),
+	model: openrouter("anthropic/claude-haiku-4.5"),
 	tools: {
 		save_onboarding_context: saveOnboardingContextTool,
 	},

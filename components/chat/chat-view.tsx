@@ -26,14 +26,15 @@ import {
 	type AttachmentUploadState,
 } from "@/components/chat/chat-composer";
 import {
+	assistantHasVisibleActivity,
 	ChatThinking,
 	getAssistantToolStatusLabel,
 	isChatToolPart,
 	isHiddenUserMessage,
-	isVisibleChatToolPart,
 	renderAssistantParts,
 	UserMessage,
 } from "@/components/chat/chat-message-parts";
+import { agentDataPartsFromMessage } from "@/components/chat/tool-activity";
 import { UsageLimitDialog } from "@/components/chat/usage-limit-dialog";
 import { Button } from "@/components/ui/button";
 import { useUsageStatus } from "@/hooks/use-usage-status";
@@ -112,6 +113,28 @@ function isProfileUpdateTool(name: string) {
 	);
 }
 
+function profileFromToolOutput(
+	name: string,
+	output: unknown,
+): string | null | undefined {
+	if (!isProfileUpdateTool(name)) {
+		return undefined;
+	}
+	const record = output as
+		| { ok?: boolean; profile?: string }
+		| undefined;
+	if (
+		(name === "patch_profile" || name === "update_profile") &&
+		!record?.ok
+	) {
+		return undefined;
+	}
+	if (typeof record?.profile === "string") {
+		return record.profile;
+	}
+	return null;
+}
+
 function latestSuccessfulPatchKey(messages: UIMessage[]) {
 	for (let i = messages.length - 1; i >= 0; i -= 1) {
 		const message = messages[i];
@@ -123,26 +146,63 @@ function latestSuccessfulPatchKey(messages: UIMessage[]) {
 			if (!isChatToolPart(part)) {
 				continue;
 			}
-			const name = getToolName(part);
-			if (!isProfileUpdateTool(name)) {
-				continue;
-			}
 			if (part.state !== "output-available") {
 				continue;
 			}
-			const output = part.output as
-				| { ok?: boolean; profile?: string; applied?: number }
-				| undefined;
-			if (
-				(name === "patch_profile" || name === "update_profile") &&
-				!output?.ok
-			) {
+			const name = getToolName(part);
+			const profile = profileFromToolOutput(name, part.output);
+			if (profile === undefined) {
 				continue;
 			}
-			if (typeof output?.profile === "string") {
-				return { key: `${message.id}:${j}`, profile: output.profile };
+			return { key: `${message.id}:${j}`, profile };
+		}
+
+		for (const [agentIndex, agentPart] of agentDataPartsFromMessage(
+			message,
+		).entries()) {
+			const data = agentPart.data as {
+				toolResults?: Array<{
+					payload?: {
+						toolCallId?: string;
+						toolName?: string;
+						result?: unknown;
+						isError?: boolean;
+					};
+				}>;
+				steps?: Array<{
+					toolResults?: Array<{
+						payload?: {
+							toolCallId?: string;
+							toolName?: string;
+							result?: unknown;
+							isError?: boolean;
+						};
+					}>;
+				}>;
+			};
+			const results = [
+				...(data.steps ?? []).flatMap(
+					(step) => step.toolResults ?? [],
+				),
+				...(data.toolResults ?? []),
+			];
+			for (let r = results.length - 1; r >= 0; r -= 1) {
+				const result = results[r]?.payload;
+				if (!result?.toolName || result.isError) {
+					continue;
+				}
+				const profile = profileFromToolOutput(
+					result.toolName,
+					result.result,
+				);
+				if (profile === undefined) {
+					continue;
+				}
+				return {
+					key: `${message.id}:agent-${agentIndex}:${result.toolCallId || r}`,
+					profile,
+				};
 			}
-			return { key: `${message.id}:${j}`, profile: null };
 		}
 	}
 	return null;
@@ -598,16 +658,20 @@ export function ChatView({
 				typeof part.text === "string" &&
 				part.text.trim().length > 0,
 		);
-	const lastHasVisibleTools =
-		lastIsAssistant &&
-		lastMessage.parts.some((part) => isVisibleChatToolPart(part));
+	const lastHasVisibleActivity =
+		lastIsAssistant && lastMessage
+			? assistantHasVisibleActivity(lastMessage)
+			: false;
 	const runningToolLabel =
 		lastIsAssistant && lastMessage
 			? getAssistantToolStatusLabel(lastMessage)
 			: null;
 	const showThinking =
 		awaitingAutoStart ||
-		(!error && isBusy && !lastHasAssistantText && !lastHasVisibleTools);
+		(!error &&
+			isBusy &&
+			!lastHasAssistantText &&
+			!lastHasVisibleActivity);
 	const thinkingLabel =
 		runningToolLabel ||
 		(lastUserHadFiles ? "Reading your documents…" : "Thinking");

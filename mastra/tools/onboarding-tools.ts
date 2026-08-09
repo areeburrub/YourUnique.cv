@@ -26,19 +26,13 @@ function readSourceFileIds(
 export const saveOnboardingContextTool = createTool({
 	id: "save_onboarding_context",
 	description:
-		"Save the user's career Profile and Style guide once you have gathered enough information from their documents and answers. Call this to finish onboarding (or to rebuild their saved context).",
+		"Save the user's career Profile once you have gathered enough information from their documents and answers. Call this to finish onboarding (or to rebuild their saved context).",
 	inputSchema: z.object({
 		profile: z
 			.string()
 			.min(1)
 			.describe(
 				"Full profile markdown: contact/identity when known, professional summary, work experience (roles, companies, dates, achievements), education, skills, and projects/certifications when present.",
-			),
-		style: z
-			.string()
-			.min(1)
-			.describe(
-				"Style guide markdown: tone, bullet style, tense/person, density, action-verb habits, and what to avoid.",
 			),
 	}),
 	outputSchema: z.object({
@@ -51,7 +45,6 @@ export const saveOnboardingContextTool = createTool({
 		await upsertUserContext({
 			userId,
 			profile: input.profile,
-			style: input.style,
 			sourceFileIds,
 		});
 

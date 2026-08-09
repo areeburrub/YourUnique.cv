@@ -17,6 +17,18 @@ import { PLAN_IDS, PlanId } from "@/lib/plans";
 
 export const planIdEnum = pgEnum("plan_id", PLAN_IDS);
 
+export const COMPILE_STATUSES = [
+	"idle",
+	"queued",
+	"compiling",
+	"ready",
+	"failed",
+] as const;
+
+export type CompileStatus = (typeof COMPILE_STATUSES)[number];
+
+export const compileStatusEnum = pgEnum("compile_status", COMPILE_STATUSES);
+
 export const users = pgTable("users", {
 	id: text("id").primaryKey(),
 	email: text("email").notNull().unique(),
@@ -68,7 +80,6 @@ export const userContexts = pgTable("user_contexts", {
 		.primaryKey()
 		.references(() => users.id, { onDelete: "cascade" }),
 	profile: text("profile").notNull(),
-	style: text("style").notNull(),
 	role: text("role"),
 	sourceFileIds: jsonb("source_file_ids")
 		.$type<string[]>()
@@ -81,6 +92,36 @@ export const userContexts = pgTable("user_contexts", {
 		.defaultNow()
 		.notNull(),
 });
+
+export const resumes = pgTable(
+	"resumes",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		sourceTex: text("source_tex").notNull(),
+		jobDescription: text("job_description"),
+		pdfFileId: text("pdf_file_id").references(() => userFiles.id, {
+			onDelete: "set null",
+		}),
+		compileStatus: compileStatusEnum("compile_status")
+			.notNull()
+			.default("idle"),
+		compileError: text("compile_error"),
+		compiledAt: timestamp("compiled_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("resumes_user_id_updated_at_idx").on(table.userId, table.updatedAt),
+	],
+);
 
 export const usageDaily = pgTable(
 	"usage_daily",
@@ -149,23 +190,36 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 		fields: [users.id],
 		references: [userContexts.userId],
 	}),
+	resumes: many(resumes),
 	usageDaily: many(usageDaily),
 	creditGrants: many(creditGrants, { relationName: "grantee" }),
 	grantsGiven: many(creditGrants, { relationName: "granter" }),
 	subscriptions: many(subscriptions),
 }));
 
-export const userFilesRelations = relations(userFiles, ({ one }) => ({
+export const userFilesRelations = relations(userFiles, ({ one, many }) => ({
 	user: one(users, {
 		fields: [userFiles.userId],
 		references: [users.id],
 	}),
+	resumes: many(resumes),
 }));
 
 export const userContextsRelations = relations(userContexts, ({ one }) => ({
 	user: one(users, {
 		fields: [userContexts.userId],
 		references: [users.id],
+	}),
+}));
+
+export const resumesRelations = relations(resumes, ({ one }) => ({
+	user: one(users, {
+		fields: [resumes.userId],
+		references: [users.id],
+	}),
+	pdfFile: one(userFiles, {
+		fields: [resumes.pdfFileId],
+		references: [userFiles.id],
 	}),
 }));
 
