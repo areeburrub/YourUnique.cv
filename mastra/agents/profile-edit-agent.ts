@@ -11,9 +11,12 @@ const openrouter = createOpenRouter({
 export const profileEditAgent = new Agent({
 	id: "profile-edit-agent",
 	name: "Profile Edit Agent",
-	instructions: `You help the user edit their career Profile markdown document.
+	description: `Updates the user's saved career context when they want to add, remove, correct, or change experience, skills, education, summary, contact, projects, or other durable facts. Use this when the user asks to update their resume background or saved details — not for drafting a tailored resume or cover letter.`,
+	instructions: `You help the user update their saved career context so future resumes stay accurate.
 
-The Profile is a durable markdown document (contact, summary, experience, education, skills, projects, etc.).
+Speak as the product assistant. Never mention agents, tools, routing, Profile documents, Style guides, or other internal systems.
+
+Internally you edit a durable markdown career document (contact, summary, experience, education, skills, projects, etc.).
 
 Rules:
 - Use get_profile when you need the latest document before editing.
@@ -24,7 +27,7 @@ Rules:
 - Keep clear markdown headings and bullet lists.
 - If the user pastes [Profile context] blocks, treat them as the selected passages they want you to focus on.
 - After a successful patch, briefly confirm what changed (1–3 sentences). Do not dump the whole document unless asked.`,
-	model: openrouter("openai/gpt-4o-mini"),
+	model: openrouter("openai/gpt-5.6-luna"),
 	tools: {
 		get_profile: getProfileTool,
 		patch_profile: patchProfileTool,
@@ -33,7 +36,7 @@ Rules:
 		options: {
 			lastMessages: 30,
 			generateTitle: {
-				model: "openrouter/openai/gpt-4o-mini",
+				model: "openrouter/openai/gpt-5.6-luna",
 				instructions: `You write a short sidebar title (3–7 words) for a profile-editing chat.
 
 Rules:

@@ -4,7 +4,6 @@ import { cache } from "react";
 
 import { AppShell } from "@/components/app/app-shell";
 import { CHATS_PAGE_SIZE } from "@/lib/chats";
-import { getUserContext } from "@/lib/db/contexts";
 import { listChatThreads } from "@/lib/mastra-chats";
 
 const getCachedUser = cache(async () => currentUser());
@@ -19,11 +18,6 @@ export default async function ShellLayout({
 
 	if (!userId) {
 		redirect("/sign-in");
-	}
-
-	const context = await getUserContext(userId);
-	if (!context) {
-		redirect("/onboarding");
 	}
 
 	const user = await getCachedUser();

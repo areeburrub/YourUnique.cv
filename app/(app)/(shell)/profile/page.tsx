@@ -15,7 +15,7 @@ export default async function ProfilePage() {
 
 	const context = await getUserContext(userId);
 	if (!context) {
-		redirect("/onboarding");
+		redirect("/new-chat");
 	}
 
 	return (

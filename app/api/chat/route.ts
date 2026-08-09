@@ -3,13 +3,14 @@ import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
-import { prepareMessagesForModel } from "@/lib/chat-files";
+import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
+import { getUserContext } from "@/lib/db/contexts";
 import { attachFilesToThread } from "@/lib/db/files";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
-import { parseFileIdFromAppUrl } from "@/lib/uploads";
+import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
 import { mastra } from "@/mastra";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function previewFromMessages(messages: UIMessage[]) {
 	for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -26,26 +27,12 @@ function previewFromMessages(messages: UIMessage[]) {
 			.join("\n")
 			.trim();
 		if (text) {
-			return text;
+			return isOnboardingKickoffMessage(text)
+				? "Getting to know you"
+				: text;
 		}
 	}
 	return "Attachment";
-}
-
-function fileIdsFromMessages(messages: UIMessage[]) {
-	const ids = new Set<string>();
-	for (const message of messages) {
-		for (const part of message.parts) {
-			if (part.type !== "file") {
-				continue;
-			}
-			const fileId = parseFileIdFromAppUrl(part.url);
-			if (fileId) {
-				ids.add(fileId);
-			}
-		}
-	}
-	return [...ids];
 }
 
 export async function POST(req: Request) {
@@ -83,30 +70,39 @@ export async function POST(req: Request) {
 	}
 
 	const fileIds = fileIdsFromMessages(messages);
-	const [preparedMessages] = await Promise.all([
+	const [preparedMessages, context] = await Promise.all([
 		prepareMessagesForModel(messages, userId),
-		fileIds.length > 0
-			? attachFilesToThread({ userId, threadId, fileIds })
-			: Promise.resolve(),
+		getUserContext(userId),
 	]);
+	if (fileIds.length > 0) {
+		await attachFilesToThread({ userId, threadId, fileIds });
+	}
 
 	if (Array.isArray(params?.messages)) {
 		params.messages = preparedMessages;
 	}
 
+	const needsOnboarding = !context;
+	const agentId = needsOnboarding ? "onboarding-agent" : "app-agent";
+	const chatSurface =
+		params?.chatSurface === "profile" ? "profile" : "main";
+
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
+	requestContext.set("needsOnboarding", needsOnboarding);
+	requestContext.set("sourceFileIds", fileIds);
+	requestContext.set("chatSurface", chatSurface);
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId: "resume-agent",
+		agentId,
 		params: {
 			...params,
 			requestContext,
 			memory: {
 				thread: threadId,
-				resource: userId,
+				resource: thread.resourceId || userId,
 			},
 		},
 		version: "v6",

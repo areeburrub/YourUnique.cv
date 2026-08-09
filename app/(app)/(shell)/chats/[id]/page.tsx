@@ -1,20 +1,22 @@
 import { auth } from "@clerk/nextjs/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
-import { ChatView } from "./_components/chat-view";
+import { ChatView } from "@/components/chat/chat-view";
 import {
 	getChatThreadForUser,
 	listChatMessages,
 } from "@/lib/mastra-chats";
 
-type ChatThreadPageProps = {
+type ChatPageProps = {
 	params: Promise<{ id: string }>;
 };
 
-export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
+export default async function ChatPage({ params }: ChatPageProps) {
 	const { userId } = await auth();
+	await auth.protect();
+
 	if (!userId) {
-		notFound();
+		redirect("/sign-in");
 	}
 
 	const { id } = await params;
@@ -23,7 +25,7 @@ export default async function ChatThreadPage({ params }: ChatThreadPageProps) {
 		notFound();
 	}
 
-	const initialMessages = await listChatMessages(thread.id, userId);
+	const initialMessages = await listChatMessages(id, userId);
 
 	return <ChatView threadId={thread.id} initialMessages={initialMessages} />;
 }

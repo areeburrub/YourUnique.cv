@@ -59,6 +59,7 @@ import {
 	type ChatThreadListItem,
 	getChatThreadHref,
 	getProfileChatThreadHref,
+	getThreadHref,
 } from "@/lib/chats";
 import {
 	deleteChatThreadRequest,
@@ -68,13 +69,6 @@ import {
 	renameThreadInCache,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
-import {
-	deleteProfileChatThreadRequest,
-	removeProfileThreadFromCache,
-	renameProfileChatThreadRequest,
-	renameProfileThreadInCache,
-	useProfileChatThreadsInfinite,
-} from "@/lib/profile-chats-query";
 
 const primaryNav = [
 	{ title: "New chat", href: "/new-chat", icon: Plus, exact: true },
@@ -155,14 +149,15 @@ function ThreadLink({
 	thread,
 	pathname,
 	href,
-	mode,
 }: {
 	thread: ChatThreadListItem;
 	pathname: string;
 	href: string;
-	mode: "resume" | "profile";
 }) {
-	const isActive = pathname === href;
+	const isActive =
+		pathname === href ||
+		pathname === getChatThreadHref(thread.id) ||
+		pathname === getProfileChatThreadHref(thread.id);
 	const queryClient = useQueryClient();
 	const router = useRouter();
 	const { openNewChat } = useSoftNav();
@@ -172,34 +167,20 @@ function ThreadLink({
 	const [titleInput, setTitleInput] = useState(thread.title);
 
 	const renameMutation = useMutation({
-		mutationFn: (title: string) =>
-			mode === "profile"
-				? renameProfileChatThreadRequest(thread.id, title)
-				: renameChatThreadRequest(thread.id, title),
+		mutationFn: (title: string) => renameChatThreadRequest(thread.id, title),
 		onSuccess: (updated) => {
-			if (mode === "profile") {
-				renameProfileThreadInCache(queryClient, thread.id, updated.title);
-			} else {
-				renameThreadInCache(queryClient, thread.id, updated.title);
-			}
+			renameThreadInCache(queryClient, thread.id, updated.title);
 			setRenameOpen(false);
 		},
 	});
 
 	const deleteMutation = useMutation({
-		mutationFn: () =>
-			mode === "profile"
-				? deleteProfileChatThreadRequest(thread.id)
-				: deleteChatThreadRequest(thread.id),
+		mutationFn: () => deleteChatThreadRequest(thread.id),
 		onSuccess: () => {
-			if (mode === "profile") {
-				removeProfileThreadFromCache(queryClient, thread.id);
-			} else {
-				removeThreadFromCache(queryClient, thread.id);
-			}
+			removeThreadFromCache(queryClient, thread.id);
 			setDeleteOpen(false);
 			if (isActive) {
-				if (mode === "profile") {
+				if (pathname.startsWith("/profile")) {
 					router.push("/profile");
 				} else {
 					openNewChat();
@@ -344,38 +325,23 @@ export function AppSidebar({
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
 	const loadMoreRef = useRef<HTMLDivElement | null>(null);
-	const onProfile = pathname === "/profile" || pathname.startsWith("/profile/");
 
 	const handleOpenNewChat = () => {
 		setOpenMobile(false);
 		openNewChat();
 	};
 
-	const resumeQuery = useChatThreadsInfinite({
+	const {
+		data,
+		fetchNextPage,
+		hasNextPage,
+		isFetchingNextPage,
+	} = useChatThreadsInfinite({
 		initialThreads,
 		initialHasMore,
 	});
 
-	const profileQuery = useProfileChatThreadsInfinite({
-		enabled: onProfile,
-	});
-
-	const data = onProfile ? profileQuery.data : resumeQuery.data;
-	const fetchNextPage = onProfile
-		? profileQuery.fetchNextPage
-		: resumeQuery.fetchNextPage;
-	const hasNextPage = onProfile
-		? profileQuery.hasNextPage
-		: resumeQuery.hasNextPage;
-	const isFetchingNextPage = onProfile
-		? profileQuery.isFetchingNextPage
-		: resumeQuery.isFetchingNextPage;
-
 	const threads = flatChatThreads(data);
-	const recentsMode = onProfile ? "profile" : "resume";
-	const threadHref = onProfile
-		? getProfileChatThreadHref
-		: getChatThreadHref;
 
 	useEffect(() => {
 		const stored = window.localStorage.getItem(GROUP_BY_KEY);
@@ -535,7 +501,7 @@ export function AppSidebar({
 					<SidebarGroupContent>
 						{threads.length === 0 ? (
 							<p className="px-2 text-[12px] text-muted-soft">
-								{onProfile ? "No profile chats yet" : "No chats yet"}
+								No chats yet
 							</p>
 						) : groupBy === "date" ? (
 							<div className="flex flex-col gap-2">
@@ -550,8 +516,7 @@ export function AppSidebar({
 													key={thread.id}
 													thread={thread}
 													pathname={pathname}
-													href={threadHref(thread.id)}
-													mode={recentsMode}
+													href={getThreadHref(thread)}
 												/>
 											))}
 										</SidebarMenu>
@@ -565,8 +530,7 @@ export function AppSidebar({
 										key={thread.id}
 										thread={thread}
 										pathname={pathname}
-										href={threadHref(thread.id)}
-										mode={recentsMode}
+										href={getThreadHref(thread)}
 									/>
 								))}
 							</SidebarMenu>

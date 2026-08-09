@@ -3,13 +3,14 @@ import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
+import { getUserContext } from "@/lib/db/contexts";
 import {
 	ensureProfileChatThreadForUser,
 	profileChatResourceId,
 } from "@/lib/profile-chat";
 import { mastra } from "@/mastra";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
 function previewFromMessages(messages: UIMessage[]) {
 	for (let i = messages.length - 1; i >= 0; i -= 1) {
@@ -56,22 +57,30 @@ export async function POST(req: Request) {
 		? (params.messages as UIMessage[])
 		: [];
 
-	const thread = await ensureProfileChatThreadForUser({
-		userId,
-		threadId,
-		preview: previewFromMessages(messages),
-	});
+	const [thread, context] = await Promise.all([
+		ensureProfileChatThreadForUser({
+			userId,
+			threadId,
+			preview: previewFromMessages(messages),
+		}),
+		getUserContext(userId),
+	]);
 	if (!thread) {
 		return Response.json({ error: "Chat not found" }, { status: 404 });
 	}
 
+	const needsOnboarding = !context;
+	const agentId = needsOnboarding ? "onboarding-agent" : "app-agent";
+
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
+	requestContext.set("needsOnboarding", needsOnboarding);
+	requestContext.set("chatSurface", "profile");
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId: "profile-edit-agent",
+		agentId,
 		params: {
 			...params,
 			requestContext,

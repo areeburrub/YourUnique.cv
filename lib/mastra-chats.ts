@@ -7,12 +7,12 @@ import type { ChatThreadListItem } from "@/lib/chats";
 import { hydrateMessageFileParts } from "@/lib/chat-files";
 import {
 	isProfileEditThread,
-	legacyProfileEditThreadId,
 	listProfileChatThreads,
+	profileChatResourceId,
 } from "@/lib/profile-chat";
 import { mastra } from "@/mastra";
 
-async function getResumeMemory() {
+async function getChatMemory() {
 	const agent = mastra.getAgentById("resume-agent");
 	const memory = await agent.getMemory();
 	if (!memory) {
@@ -29,12 +29,43 @@ function previewFromText(text: string) {
 	return cleaned.length > 160 ? `${cleaned.slice(0, 160).trimEnd()}…` : cleaned;
 }
 
+function ownsChatThread(
+	thread: { resourceId?: string | null },
+	userId: string,
+) {
+	return (
+		thread.resourceId === userId ||
+		thread.resourceId === profileChatResourceId(userId)
+	);
+}
+
+function toListItem(thread: {
+	id: string;
+	title?: string | null;
+	metadata?: Record<string, unknown> | null;
+	updatedAt: Date;
+	resourceId?: string | null;
+}): ChatThreadListItem {
+	const metadataPreview =
+		typeof thread.metadata?.preview === "string"
+			? thread.metadata.preview
+			: "";
+
+	return {
+		id: thread.id,
+		title: thread.title?.trim() || "New chat",
+		preview: previewFromText(metadataPreview),
+		updatedAt: thread.updatedAt.toISOString(),
+		kind: isProfileEditThread(thread) ? "profile" : "chat",
+	};
+}
+
 export async function createChatThread(input: {
 	userId: string;
 	threadId?: string;
 	preview?: string;
 }) {
-	const memory = await getResumeMemory();
+	const memory = await getChatMemory();
 	const preview = input.preview?.trim() || "";
 
 	return memory.createThread({
@@ -51,13 +82,10 @@ export async function ensureChatThreadForUser(input: {
 	threadId: string;
 	preview?: string;
 }) {
-	const memory = await getResumeMemory();
+	const memory = await getChatMemory();
 	const existing = await memory.getThreadById({ threadId: input.threadId });
 	if (existing) {
-		if (existing.resourceId !== input.userId) {
-			return null;
-		}
-		if (isProfileEditThread(existing)) {
+		if (!ownsChatThread(existing, input.userId)) {
 			return null;
 		}
 		return existing;
@@ -70,17 +98,9 @@ export async function ensureChatThreadForUser(input: {
 	});
 }
 
-async function countHiddenProfileThreads(userId: string) {
-	const memory = await getResumeMemory();
-	const legacy = await memory.getThreadById({
-		threadId: legacyProfileEditThreadId(userId),
-	});
-	return legacy && legacy.resourceId === userId ? 1 : 0;
-}
-
 export async function listChatThreads(
 	userId: string,
-	options?: { limit?: number; page?: number; kind?: "resume" | "profile" },
+	options?: { limit?: number; page?: number },
 ): Promise<{
 	threads: ChatThreadListItem[];
 	page: number;
@@ -88,48 +108,62 @@ export async function listChatThreads(
 	total: number;
 	hasMore: boolean;
 }> {
-	if (options?.kind === "profile") {
-		return listProfileChatThreads(userId, {
-			limit: options.limit,
-			page: options.page,
-		});
-	}
-
-	const memory = await getResumeMemory();
+	const memory = await getChatMemory();
 	const page = options?.page ?? 0;
 	const perPage = options?.limit ?? 100;
-	const [result, hiddenProfileCount] = await Promise.all([
+	const [result, profilePage] = await Promise.all([
 		memory.listThreads({
 			filter: { resourceId: userId },
 			orderBy: { field: "updatedAt", direction: "DESC" },
 			page,
 			perPage,
 		}),
-		countHiddenProfileThreads(userId),
+		page === 0
+			? listProfileChatThreads(userId, { limit: perPage, page: 0 })
+			: Promise.resolve({
+					threads: [] as ChatThreadListItem[],
+					total: 0,
+					hasMore: false,
+				}),
 	]);
 
-	const threads = result.threads
-		.filter((thread) => !isProfileEditThread(thread))
-		.map((thread) => {
-			const metadataPreview =
-				typeof thread.metadata?.preview === "string"
-					? thread.metadata.preview
-					: "";
+	const mainThreads = result.threads.map(toListItem);
+	const merged = new Map<string, ChatThreadListItem>();
 
-			return {
-				id: thread.id,
-				title: thread.title?.trim() || "New chat",
-				preview: previewFromText(metadataPreview),
-				updatedAt: thread.updatedAt.toISOString(),
-			};
-		});
+	for (const thread of [...mainThreads, ...profilePage.threads]) {
+		const existing = merged.get(thread.id);
+		if (!existing) {
+			merged.set(thread.id, {
+				...thread,
+				kind: thread.kind ?? "chat",
+			});
+			continue;
+		}
+		if (
+			new Date(thread.updatedAt).getTime() >
+			new Date(existing.updatedAt).getTime()
+		) {
+			merged.set(thread.id, {
+				...thread,
+				kind: thread.kind ?? existing.kind ?? "chat",
+			});
+		}
+	}
+
+	const threads = [...merged.values()].sort(
+		(a, b) =>
+			new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+	);
+
+	const pageThreads =
+		page === 0 ? threads.slice(0, perPage) : mainThreads;
 
 	return {
-		threads,
+		threads: pageThreads,
 		page: result.page,
 		perPage: typeof result.perPage === "number" ? result.perPage : perPage,
-		total: Math.max(0, result.total - hiddenProfileCount),
-		hasMore: result.hasMore,
+		total: Math.max(result.total, threads.length),
+		hasMore: result.hasMore || Boolean(profilePage.hasMore),
 	};
 }
 
@@ -138,9 +172,9 @@ export async function renameChatThreadForUser(
 	userId: string,
 	title: string,
 ) {
-	const memory = await getResumeMemory();
+	const memory = await getChatMemory();
 	const thread = await memory.getThreadById({ threadId });
-	if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
+	if (!thread || !ownsChatThread(thread, userId)) {
 		return null;
 	}
 
@@ -152,9 +186,9 @@ export async function renameChatThreadForUser(
 }
 
 export async function deleteChatThreadForUser(threadId: string, userId: string) {
-	const memory = await getResumeMemory();
+	const memory = await getChatMemory();
 	const thread = await memory.getThreadById({ threadId });
-	if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
+	if (!thread || !ownsChatThread(thread, userId)) {
 		return false;
 	}
 
@@ -164,9 +198,9 @@ export async function deleteChatThreadForUser(threadId: string, userId: string) 
 
 export const getChatThreadForUser = cache(
 	async (threadId: string, userId: string) => {
-		const memory = await getResumeMemory();
+		const memory = await getChatMemory();
 		const thread = await memory.getThreadById({ threadId });
-		if (!thread || thread.resourceId !== userId || isProfileEditThread(thread)) {
+		if (!thread || !ownsChatThread(thread, userId)) {
 			return null;
 		}
 		return thread;
@@ -177,7 +211,12 @@ export async function listChatMessages(
 	threadId: string,
 	userId: string,
 ): Promise<UIMessage[]> {
-	const memory = await getResumeMemory();
+	const thread = await getChatThreadForUser(threadId, userId);
+	if (!thread) {
+		return [];
+	}
+
+	const memory = await getChatMemory();
 	const { messages } = await memory.recall({
 		threadId,
 		perPage: false,

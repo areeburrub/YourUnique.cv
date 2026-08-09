@@ -1,10 +1,10 @@
 import { Mastra } from "@mastra/core";
 import { PostgresStore } from "@mastra/pg";
 
-import { contextExtractAgent } from "./agents/onboarding/context-extract-agent";
+import { appAgent } from "./agents/app-agent";
+import { onboardingAgent } from "./agents/onboarding-agent";
 import { profileEditAgent } from "./agents/profile-edit-agent";
 import { resumeAgent } from "./agents/resume-agent";
-import { onboardingContextWorkflow } from "./workflows/onboarding-context";
 
 const storage = new PostgresStore({
 	id: "yourunique-cv",
@@ -14,12 +14,10 @@ const storage = new PostgresStore({
 
 export const mastra = new Mastra({
 	agents: {
+		appAgent,
+		onboardingAgent,
 		resumeAgent,
-		contextExtractAgent,
 		profileEditAgent,
-	},
-	workflows: {
-		onboardingContextWorkflow,
 	},
 	storage,
 });

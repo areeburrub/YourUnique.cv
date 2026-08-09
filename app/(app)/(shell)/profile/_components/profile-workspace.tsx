@@ -22,7 +22,11 @@ import {
 } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
-import { ProfileChat, type ProfileContextSnippet } from "./profile-chat";
+import {
+	ChatView,
+	type ChatContextSnippet,
+} from "@/components/chat/chat-view";
+
 import { ProfileEditor } from "./profile-editor";
 import { SelectionToChat } from "./selection-to-chat";
 
@@ -84,7 +88,7 @@ export function ProfileWorkspace({
 	const [updatedAt, setUpdatedAt] = useState<string | null>(
 		initialUpdatedAt,
 	);
-	const [snippets, setSnippets] = useState<ProfileContextSnippet[]>([]);
+	const [snippets, setSnippets] = useState<ChatContextSnippet[]>([]);
 	const [selection, setSelection] = useState<{
 		text: string;
 		rect: DOMRect | null;
@@ -212,8 +216,10 @@ export function ProfileWorkspace({
 	}, []);
 
 	const chat = (
-		<ProfileChat
+		<ChatView
 			key={threadId ?? `fresh-${freshChatKey}`}
+			variant="panel"
+			chatSurface="profile"
 			threadId={threadId}
 			initialMessages={initialMessages}
 			contextSnippets={snippets}

@@ -1,14 +1,26 @@
-"use client";
+import { auth } from "@clerk/nextjs/server";
+import { redirect } from "next/navigation";
 
-import { useSoftNav } from "@/components/app/soft-nav";
-import { ChatView } from "../chats/[id]/_components/chat-view";
+import { getUserContext } from "@/lib/db/contexts";
+import { ONBOARDING_KICKOFF_MESSAGE } from "@/lib/onboarding-kickoff";
 
-export default function NewChatPage() {
-	const { newChatKey } = useSoftNav();
+import { NewChatClient } from "./_components/new-chat-client";
+
+export default async function NewChatPage() {
+	const { userId } = await auth();
+	await auth.protect();
+
+	if (!userId) {
+		redirect("/sign-in");
+	}
+
+	const context = await getUserContext(userId);
 
 	return (
-		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<ChatView key={newChatKey} />
-		</div>
+		<NewChatClient
+			autoStartMessage={
+				context ? undefined : ONBOARDING_KICKOFF_MESSAGE
+			}
+		/>
 	);
 }

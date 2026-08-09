@@ -69,6 +69,7 @@ function toListItem(thread: {
 		title: thread.title?.trim() || "New chat",
 		preview: previewFromText(metadataPreview),
 		updatedAt: thread.updatedAt.toISOString(),
+		kind: "profile" as const,
 	};
 }
 

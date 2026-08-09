@@ -3,9 +3,9 @@ import { notFound, redirect } from "next/navigation";
 
 import { getUserContext } from "@/lib/db/contexts";
 import {
-	getProfileChatThreadForUser,
-	listProfileChatMessages,
-} from "@/lib/profile-chat";
+	getChatThreadForUser,
+	listChatMessages,
+} from "@/lib/mastra-chats";
 
 import { ProfileWorkspace } from "../_components/profile-workspace";
 
@@ -25,16 +25,16 @@ export default async function ProfileChatPage({
 
 	const context = await getUserContext(userId);
 	if (!context) {
-		redirect("/onboarding");
+		redirect("/new-chat");
 	}
 
 	const { threadId } = await params;
-	const thread = await getProfileChatThreadForUser(threadId, userId);
+	const thread = await getChatThreadForUser(threadId, userId);
 	if (!thread) {
 		notFound();
 	}
 
-	const initialMessages = await listProfileChatMessages(userId, threadId);
+	const initialMessages = await listChatMessages(threadId, userId);
 
 	return (
 		<ProfileWorkspace

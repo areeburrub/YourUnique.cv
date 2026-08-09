@@ -27,6 +27,22 @@ function r2ObjectKeyFromUrl(url: string) {
 	}
 }
 
+export function fileIdsFromMessages(messages: UIMessage[]) {
+	const ids = new Set<string>();
+	for (const message of messages) {
+		for (const part of message.parts) {
+			if (part.type !== "file") {
+				continue;
+			}
+			const fileId = parseFileIdFromAppUrl(part.url);
+			if (fileId) {
+				ids.add(fileId);
+			}
+		}
+	}
+	return [...ids];
+}
+
 export async function hydrateMessageFileParts(
 	messages: UIMessage[],
 	userId: string,

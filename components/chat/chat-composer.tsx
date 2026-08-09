@@ -43,6 +43,9 @@ type ChatComposerProps = {
 	canSubmit: boolean;
 	errorMessage?: string | null;
 	variant?: "docked" | "centered";
+	accept?: string;
+	maxFiles?: number;
+	placeholder?: string;
 };
 
 function LocalFilesSync({
@@ -336,6 +339,9 @@ export function ChatComposer({
 	canSubmit,
 	errorMessage,
 	variant = "docked",
+	accept = UPLOAD_ACCEPT,
+	maxFiles = MAX_UPLOAD_FILES,
+	placeholder = "Paste a job description, drop a resume, or ask anything…",
 }: ChatComposerProps) {
 	const uploading = Object.values(uploads).some(
 		(upload) => upload.status === "uploading",
@@ -355,9 +361,9 @@ export function ChatComposer({
 					<p className="mb-2 text-sm text-destructive">{errorMessage}</p>
 				) : null}
 				<PromptInput
-					accept={UPLOAD_ACCEPT}
+					accept={accept}
 					multiple
-					maxFiles={MAX_UPLOAD_FILES}
+					maxFiles={maxFiles}
 					maxFileSize={MAX_UPLOAD_BYTES}
 					onSubmit={onSubmit}
 					onError={(err) => onError(err.message)}
@@ -372,7 +378,7 @@ export function ChatComposer({
 							onChange={(event) =>
 								onTextChange(event.currentTarget.value)
 							}
-							placeholder="Paste a job description, drop a resume, or ask anything…"
+							placeholder={placeholder}
 							className="min-h-12 px-4 pt-3.5 pb-1 text-[16px] leading-6 md:text-[16px]"
 						/>
 					</PromptInputBody>
