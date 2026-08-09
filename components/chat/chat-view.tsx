@@ -34,7 +34,9 @@ import {
 	renderAssistantParts,
 	UserMessage,
 } from "@/components/chat/chat-message-parts";
+import { UsageLimitDialog } from "@/components/chat/usage-limit-dialog";
 import { Button } from "@/components/ui/button";
+import { useUsageStatus } from "@/hooks/use-usage-status";
 import {
 	toFileUIParts,
 	uploadChatFile,
@@ -51,6 +53,7 @@ import {
 	touchChatThread,
 } from "@/lib/chats-query";
 import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
+import { usageStatusKey } from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
 
 export type ChatContextSnippet = {
@@ -161,6 +164,8 @@ export function ChatView({
 }: ChatViewProps) {
 	const { softReplace } = useSoftNav();
 	const queryClient = useQueryClient();
+	const usageStatus = useUsageStatus();
+	const [usageDialogOpen, setUsageDialogOpen] = useState(false);
 	const [text, setText] = useState("");
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [uploads, setUploads] = useState<Record<string, UploadRecord>>({});
@@ -242,6 +247,7 @@ export function ChatView({
 			return;
 		}
 
+		void queryClient.invalidateQueries({ queryKey: usageStatusKey });
 		const timers = refreshChatAfterTurn(queryClient, threadId);
 		return () => {
 			for (const timer of timers) {
@@ -249,6 +255,12 @@ export function ChatView({
 			}
 		};
 	}, [queryClient, status]);
+
+	useEffect(() => {
+		if (usageStatus.data?.blocked) {
+			setUsageDialogOpen(true);
+		}
+	}, [usageStatus.data?.blocked]);
 
 	useEffect(() => {
 		if (!onProfileUpdated) {
@@ -472,11 +484,31 @@ export function ChatView({
 		if (initialMessages.length > 0 || status !== "ready") {
 			return;
 		}
+		if (usageStatus.isLoading) {
+			return;
+		}
+		if (usageStatus.data?.blocked) {
+			autoStartedRef.current = true;
+			setUsageDialogOpen(true);
+			return;
+		}
 		autoStartedRef.current = true;
 		submitMessage(autoStartMessage, []);
-	}, [autoStartMessage, initialMessages.length, status, submitMessage]);
+	}, [
+		autoStartMessage,
+		initialMessages.length,
+		status,
+		submitMessage,
+		usageStatus.data?.blocked,
+		usageStatus.isLoading,
+	]);
 
 	const handleSubmit = (message: PromptInputMessage) => {
+		if (usageStatus.data?.blocked) {
+			setUsageDialogOpen(true);
+			return Promise.reject(new Error("Usage limit reached"));
+		}
+
 		const nextText = buildMessageWithContext(
 			message.text,
 			snippetsRef.current,
@@ -532,12 +564,14 @@ export function ChatView({
 	const hasReadyUploads = Object.values(uploads).some(
 		(upload) => upload.status === "ready",
 	);
+	const usageBlocked = Boolean(usageStatus.data?.blocked);
 	const busy = status !== "ready";
 	const canSubmit =
 		(Boolean(text.trim()) ||
 			hasReadyUploads ||
 			contextSnippets.length > 0) &&
-		!uploading;
+		!uploading &&
+		!usageBlocked;
 	const lastMessage = messages.at(-1);
 	const lastUserMessage = [...messages]
 		.reverse()
@@ -546,6 +580,14 @@ export function ChatView({
 		lastUserMessage?.parts.some((part) => part.type === "file"),
 	);
 	const isBusy = status === "submitted" || status === "streaming";
+	const visibleMessages = messages.filter(
+		(message) => !isHiddenUserMessage(message),
+	);
+	const awaitingAutoStart =
+		Boolean(autoStartMessage) &&
+		!autoStartedRef.current &&
+		visibleMessages.length === 0 &&
+		status === "ready";
 	const lastIsAssistant = lastMessage?.role === "assistant";
 	const lastHasAssistantText =
 		lastIsAssistant &&
@@ -564,52 +606,62 @@ export function ChatView({
 			? getAssistantToolStatusLabel(lastMessage)
 			: null;
 	const showThinking =
-		!error && isBusy && !lastHasAssistantText && !lastHasVisibleTools;
+		awaitingAutoStart ||
+		(!error && isBusy && !lastHasAssistantText && !lastHasVisibleTools);
 	const thinkingLabel =
 		runningToolLabel ||
 		(lastUserHadFiles ? "Reading your documents…" : "Thinking");
-	const visibleMessages = messages.filter(
-		(message) => !isHiddenUserMessage(message),
-	);
-	const awaitingOnboardingWelcome =
-		Boolean(autoStartMessage) &&
-		!error &&
-		(status === "ready" || isBusy) &&
-		visibleMessages.length === 0 &&
-		!lastHasAssistantText;
 	const isEmpty =
-		visibleMessages.length === 0 &&
-		!showThinking &&
-		!awaitingOnboardingWelcome &&
-		!autoStartMessage;
+		visibleMessages.length === 0 && !showThinking && !autoStartMessage;
 
 	const composer = (
-		<ChatComposer
-			text={text}
-			onTextChange={setText}
-			onSubmit={handleSubmit}
-			onError={setUploadError}
-			onLocalFilesChange={handleLocalFilesChange}
-			onDragStateChange={setIsDraggingFiles}
-			onStop={stop}
-			status={status}
-			uploads={uploadStates}
-			busy={busy}
-			canSubmit={canSubmit}
-			variant={isPanel ? "docked" : isEmpty ? "centered" : "docked"}
-			placeholder={
-				isPanel
-					? "Ask to update your profile, resume, or a job…"
-					: undefined
-			}
-			errorMessage={
-				error || uploadError
-					? uploadError ||
-						error?.message ||
-						"Something went wrong. Try again."
-					: null
-			}
-		/>
+		<>
+			{usageStatus.data ? (
+				<UsageLimitDialog
+					open={usageDialogOpen && usageBlocked}
+					onOpenChange={setUsageDialogOpen}
+					status={usageStatus.data}
+				/>
+			) : null}
+			{usageBlocked ? (
+				<button
+					type="button"
+					onClick={() => setUsageDialogOpen(true)}
+					className="mx-auto mb-2 block w-full max-w-3xl rounded-lg border border-border bg-surface-subtle px-3 py-2 text-left text-sm text-muted-foreground hover:text-foreground"
+				>
+					Usage limit reached — tap for details
+				</button>
+			) : null}
+			<ChatComposer
+				text={text}
+				onTextChange={setText}
+				onSubmit={handleSubmit}
+				onError={setUploadError}
+				onLocalFilesChange={handleLocalFilesChange}
+				onDragStateChange={setIsDraggingFiles}
+				onStop={stop}
+				status={status}
+				uploads={uploadStates}
+				busy={busy}
+				canSubmit={canSubmit}
+				disabled={usageBlocked}
+				variant={isPanel ? "docked" : isEmpty ? "centered" : "docked"}
+				placeholder={
+					usageBlocked
+						? "Usage limit reached"
+						: isPanel
+							? "Ask to update your profile, resume, or a job…"
+							: undefined
+				}
+				errorMessage={
+					error || uploadError
+						? uploadError ||
+							error?.message ||
+							"Something went wrong. Try again."
+						: null
+				}
+			/>
+		</>
 	);
 
 	const messageList = (
@@ -627,7 +679,7 @@ export function ChatView({
 					</Message>
 				);
 			})}
-			{showThinking || awaitingOnboardingWelcome ? (
+			{showThinking ? (
 				<Message from="assistant">
 					<MessageContent>
 						<ChatThinking label={thinkingLabel} />

@@ -15,6 +15,8 @@ type AppShellProps = {
 	user: SidebarUser;
 	recentThreads: ChatThreadListItem[];
 	recentHasMore?: boolean;
+	showUpgrade?: boolean;
+	upgradeHref?: string;
 	children: React.ReactNode;
 };
 
@@ -36,6 +38,8 @@ export function AppShell({
 	user,
 	recentThreads,
 	recentHasMore = false,
+	showUpgrade = false,
+	upgradeHref = "/settings",
 	children,
 }: AppShellProps) {
 	return (
@@ -47,6 +51,8 @@ export function AppShell({
 							user={user}
 							initialThreads={recentThreads}
 							initialHasMore={recentHasMore}
+							showUpgrade={showUpgrade}
+							upgradeHref={upgradeHref}
 						/>
 						<SidebarInset className="min-h-0 overflow-hidden">
 							<div className="flex h-14 shrink-0 items-center border-b border-border px-3 md:hidden">

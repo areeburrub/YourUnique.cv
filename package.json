@@ -23,6 +23,7 @@
     "@base-ui/react": "^1.7.0",
     "@clerk/nextjs": "^7.7.0",
     "@clerk/ui": "^1.29.0",
+    "@dodopayments/nextjs": "^0.3.7",
     "@mastra/ai-sdk": "^1.7.2",
     "@mastra/core": "^1.57.0",
     "@mastra/memory": "^1.26.0",

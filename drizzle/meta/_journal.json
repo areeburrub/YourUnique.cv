@@ -43,6 +43,41 @@
       "when": 1786221273899,
       "tag": "0005_solid_lorna_dane",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1786264632830,
+      "tag": "0006_credits_plans_usage",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786267338754,
+      "tag": "0007_drop_plans_table",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1786268366801,
+      "tag": "0008_add_dodo_customer_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1786270196928,
+      "tag": "0009_add_onboarding_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1786270741182,
+      "tag": "0010_breezy_toad",
+      "breakpoints": true
     }
   ]
 }

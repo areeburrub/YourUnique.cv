@@ -5,18 +5,28 @@ import { onboardingAgent } from "@/mastra/agents/onboarding-agent";
 import { profileEditAgent } from "@/mastra/agents/profile-edit-agent";
 import { resumeAgent } from "@/mastra/agents/resume-agent";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { usageTracker } from "@/mastra/processors/usage-tracker";
 
 /**
- * Supervisor for post-onboarding chat (main + profile): routes between
- * resume help and durable career-context edits. First-time onboarding
- * still goes straight to onboarding-agent from the API routes.
+ * Supervisor for all chat (main + profile): routes between onboarding,
+ * resume help, and durable career-context edits. Always the HTTP entry point.
  */
 export const appAgent = new Agent({
 	id: "app-agent",
 	name: "App Agent",
 	instructions: async ({ requestContext }) => {
 		const chatSurface = requestContext?.get("chatSurface");
+		const needsOnboarding = requestContext?.get("needsOnboarding") === true;
 		const onProfile = chatSurface === "profile";
+
+		if (needsOnboarding) {
+			return `You are YourUnique.cv's assistant. Speak as one product assistant.
+
+Never mention agents, tools, routing, specialists, delegation, Profile, Style, or internal failures.
+If something goes wrong internally, continue helpfully from what you know — ask the next natural question instead of apologizing about a process.
+
+The user has not finished sharing their career context yet. Always use onboarding-agent for this turn and relay only its user-facing reply.`;
+		}
 
 		return `You are YourUnique.cv's assistant. Speak as one product assistant.
 
@@ -40,6 +50,7 @@ ${
 		profileEditAgent,
 	},
 	memory: chatMemory,
+	outputProcessors: [usageTracker],
 	defaultOptions: {
 		maxSteps: 8,
 	},

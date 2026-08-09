@@ -50,8 +50,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 						appearance={clerkAppearance}
 						signInUrl="/sign-in"
 						signUpUrl="/sign-up"
-						signInFallbackRedirectUrl="/new-chat"
-						signUpFallbackRedirectUrl="/new-chat"
+						signInFallbackRedirectUrl="/onboarding"
+						signUpFallbackRedirectUrl="/onboarding"
 					>
 						{children}
 					</ClerkProvider>

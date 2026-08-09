@@ -1,12 +1,17 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { getUserContext } from "@/lib/db/contexts";
-import { ONBOARDING_KICKOFF_MESSAGE } from "@/lib/onboarding-kickoff";
+import { getUserById } from "@/lib/db/users";
+import { buildOnboardingKickoff } from "@/lib/onboarding-kickoff";
 
 import { NewChatClient } from "./_components/new-chat-client";
 
-export default async function NewChatPage() {
+export default async function NewChatPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ onboarding?: string }>;
+}) {
 	const { userId } = await auth();
 	await auth.protect();
 
@@ -14,13 +19,25 @@ export default async function NewChatPage() {
 		redirect("/sign-in");
 	}
 
-	const context = await getUserContext(userId);
+	const [{ onboarding }, context, dbUser, clerkUser] = await Promise.all([
+		searchParams,
+		getUserContext(userId),
+		getUserById(userId),
+		currentUser(),
+	]);
+
+	const needsCareerContext = !context?.profile?.trim();
+	const welcomeName =
+		dbUser?.firstName?.trim() || clerkUser?.firstName?.trim() || null;
 
 	return (
 		<NewChatClient
 			autoStartMessage={
-				context ? undefined : ONBOARDING_KICKOFF_MESSAGE
+				needsCareerContext
+					? buildOnboardingKickoff(welcomeName)
+					: undefined
 			}
+			stripOnboardingParam={onboarding === "1"}
 		/>
 	);
 }

@@ -9,6 +9,7 @@ import {
 	Plus,
 	Search,
 	SlidersHorizontal,
+	Sparkles,
 	Trash2,
 	UserRound,
 } from "lucide-react";
@@ -312,12 +313,16 @@ type AppSidebarProps = {
 	user: SidebarUser;
 	initialThreads: ChatThreadListItem[];
 	initialHasMore?: boolean;
+	showUpgrade?: boolean;
+	upgradeHref?: string;
 };
 
 export function AppSidebar({
 	user,
 	initialThreads,
 	initialHasMore = false,
+	showUpgrade = false,
+	upgradeHref = "/settings",
 }: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
@@ -549,6 +554,18 @@ export function AppSidebar({
 			</SidebarContent>
 
 			<SidebarFooter className="border-t border-sidebar-border p-2">
+				{showUpgrade ? (
+					<a
+						href={upgradeHref}
+						onClick={() => setOpenMobile(false)}
+						className="mb-1 flex h-9 items-center gap-2 rounded-lg bg-brand px-2.5 text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+					>
+						<Sparkles className="size-4 shrink-0" />
+						<span className="group-data-[collapsible=icon]:hidden">
+							Upgrade to Pro
+						</span>
+					</a>
+				) : null}
 				<SidebarUserMenu user={user} />
 			</SidebarFooter>
 

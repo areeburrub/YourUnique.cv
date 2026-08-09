@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
+import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { getProfileTool, patchProfileTool } from "@/mastra/tools/profile-tools";
 
 const openrouter = createOpenRouter({
@@ -52,4 +53,5 @@ Rules:
 			},
 		},
 	}),
+	outputProcessors: [usageTracker],
 });

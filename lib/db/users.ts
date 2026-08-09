@@ -12,11 +12,12 @@ export type SyncUserInput = {
 };
 
 export async function upsertUser(input: SyncUserInput) {
+	const email = input.email.trim().toLowerCase();
 	const [user] = await db
 		.insert(users)
 		.values({
 			id: input.id,
-			email: input.email,
+			email,
 			firstName: input.firstName ?? null,
 			lastName: input.lastName ?? null,
 			imageUrl: input.imageUrl ?? null,
@@ -24,7 +25,7 @@ export async function upsertUser(input: SyncUserInput) {
 		.onConflictDoUpdate({
 			target: users.id,
 			set: {
-				email: input.email,
+				email,
 				firstName: input.firstName ?? null,
 				lastName: input.lastName ?? null,
 				imageUrl: input.imageUrl ?? null,
@@ -50,4 +51,23 @@ export async function ensureUserSynced(input: SyncUserInput) {
 	}
 
 	return upsertUser(input);
+}
+
+export async function getUserById(id: string) {
+	return db.query.users.findFirst({
+		where: eq(users.id, id),
+	});
+}
+
+export async function markUserOnboarded(userId: string) {
+	const [row] = await db
+		.update(users)
+		.set({
+			onboardedAt: new Date(),
+			updatedAt: new Date(),
+		})
+		.where(eq(users.id, userId))
+		.returning();
+
+	return row ?? null;
 }

@@ -6,6 +6,7 @@ import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
 import { getUserContext } from "@/lib/db/contexts";
 import { attachFilesToThread } from "@/lib/db/files";
+import { checkUsageLimit } from "@/lib/db/usage";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
 import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
 import { mastra } from "@/mastra";
@@ -49,6 +50,19 @@ export async function POST(req: Request) {
 		return Response.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
+	const limit = await checkUsageLimit(userId);
+	if (limit.blocked) {
+		return Response.json(
+			{
+				error: "usage_limit",
+				scope: limit.scope,
+				resetAt: limit.resetAt?.toISOString() ?? null,
+				plan: limit.plan.id,
+			},
+			{ status: 402 },
+		);
+	}
+
 	const threadId =
 		typeof params?.threadId === "string" ? params.threadId : undefined;
 
@@ -82,8 +96,7 @@ export async function POST(req: Request) {
 		params.messages = preparedMessages;
 	}
 
-	const needsOnboarding = !context;
-	const agentId = needsOnboarding ? "onboarding-agent" : "app-agent";
+	const needsOnboarding = !context?.profile?.trim();
 	const chatSurface =
 		params?.chatSurface === "profile" ? "profile" : "main";
 
@@ -96,7 +109,7 @@ export async function POST(req: Request) {
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId,
+		agentId: "app-agent",
 		params: {
 			...params,
 			requestContext,

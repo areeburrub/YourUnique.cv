@@ -41,6 +41,7 @@ type ChatComposerProps = {
 	uploads: Record<string, AttachmentUploadState>;
 	busy: boolean;
 	canSubmit: boolean;
+	disabled?: boolean;
 	errorMessage?: string | null;
 	variant?: "docked" | "centered";
 	accept?: string;
@@ -337,6 +338,7 @@ export function ChatComposer({
 	uploads,
 	busy,
 	canSubmit,
+	disabled = false,
 	errorMessage,
 	variant = "docked",
 	accept = UPLOAD_ACCEPT,
@@ -347,6 +349,7 @@ export function ChatComposer({
 		(upload) => upload.status === "uploading",
 	);
 	const isCentered = variant === "centered";
+	const inputDisabled = disabled || busy;
 
 	return (
 		<div
@@ -369,7 +372,9 @@ export function ChatComposer({
 					onError={(err) => onError(err.message)}
 					className={INPUT_GROUP_STYLE}
 				>
-					<GlobalFileDrop onDragStateChange={onDragStateChange} />
+					{disabled ? null : (
+						<GlobalFileDrop onDragStateChange={onDragStateChange} />
+					)}
 					<LocalFilesSync onChange={onLocalFilesChange} />
 					<ComposerAttachmentsHeader uploads={uploads} />
 					<PromptInputBody>
@@ -379,17 +384,21 @@ export function ChatComposer({
 								onTextChange(event.currentTarget.value)
 							}
 							placeholder={placeholder}
+							disabled={disabled}
 							className="min-h-12 px-4 pt-3.5 pb-1 text-[16px] leading-6 md:text-[16px]"
 						/>
 					</PromptInputBody>
 					<PromptInputFooter className="px-3 pb-2.5 pt-1">
 						<PromptInputTools>
-							<AttachFilesButton disabled={busy} />
+							<AttachFilesButton disabled={inputDisabled} />
 						</PromptInputTools>
 						<PromptInputSubmit
 							status={status === "ready" && uploading ? "submitted" : status}
 							onStop={onStop}
-							disabled={status === "ready" ? !canSubmit || uploading : false}
+							disabled={
+								disabled ||
+								(status === "ready" ? !canSubmit || uploading : false)
+							}
 						/>
 					</PromptInputFooter>
 				</PromptInput>

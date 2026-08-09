@@ -5,6 +5,7 @@ import {
 	openrouterFileParserPlugins,
 } from "@/lib/ai/openrouter";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { usageTracker } from "@/mastra/processors/usage-tracker";
 
 export const resumeAgent = new Agent({
 	id: "resume-agent",
@@ -21,4 +22,5 @@ Never mention agents, tools, routing, or internal systems.`,
 		plugins: openrouterFileParserPlugins,
 	}),
 	memory: chatMemory,
+	outputProcessors: [usageTracker],
 });

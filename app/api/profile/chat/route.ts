@@ -4,6 +4,7 @@ import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
 import { getUserContext } from "@/lib/db/contexts";
+import { checkUsageLimit } from "@/lib/db/usage";
 import {
 	ensureProfileChatThreadForUser,
 	profileChatResourceId,
@@ -47,6 +48,19 @@ export async function POST(req: Request) {
 		return Response.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
+	const limit = await checkUsageLimit(userId);
+	if (limit.blocked) {
+		return Response.json(
+			{
+				error: "usage_limit",
+				scope: limit.scope,
+				resetAt: limit.resetAt?.toISOString() ?? null,
+				plan: limit.plan.id,
+			},
+			{ status: 402 },
+		);
+	}
+
 	const threadId =
 		typeof params?.threadId === "string" ? params.threadId : undefined;
 	if (!threadId) {
@@ -69,8 +83,7 @@ export async function POST(req: Request) {
 		return Response.json({ error: "Chat not found" }, { status: 404 });
 	}
 
-	const needsOnboarding = !context;
-	const agentId = needsOnboarding ? "onboarding-agent" : "app-agent";
+	const needsOnboarding = !context?.profile?.trim();
 
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
@@ -80,7 +93,7 @@ export async function POST(req: Request) {
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId,
+		agentId: "app-agent",
 		params: {
 			...params,
 			requestContext,

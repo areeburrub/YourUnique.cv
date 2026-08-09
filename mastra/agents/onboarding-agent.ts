@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 
 import { openrouter } from "@/lib/ai/openrouter";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { saveOnboardingContextTool } from "@/mastra/tools/onboarding-tools";
 
 export const onboardingAgent = new Agent({
@@ -13,9 +14,10 @@ export const onboardingAgent = new Agent({
 Speak as the product assistant. Never mention agents, tools, routing, Profile, Style, style guides, kickoff markers, or other internal systems. The user only needs to know that we ask a few important questions and help them create resumes.
 
 First message / welcome:
-- If the conversation is just starting (including a [start_onboarding] kickoff), warmly welcome them in 2–4 short sentences.
-- Briefly say you help create resumes and need a bit of career context first.
-- Invite them to upload a resume if they have one, or tell you about their recent roles and what they're aiming for next.
+- If the conversation is just starting (including a [start_onboarding] or [start_onboarding:...] kickoff), warmly welcome them in 2–4 short sentences.
+- If the kickoff includes name=..., open with: "Hello, {name}! I'm your Career Assistant." Use the given name exactly.
+- If no name is present, introduce yourself as their Career Assistant without inventing a name.
+- Invite them to upload a resume if they have one, or tell you about who they are — recent roles and what they're aiming for next.
 - End with one clear ask — not a long questionnaire. Do not call tools on this first welcome turn.
 
 How to help after they reply:
@@ -36,4 +38,5 @@ After save_onboarding_context succeeds, briefly confirm you're ready to help wit
 		save_onboarding_context: saveOnboardingContextTool,
 	},
 	memory: chatMemory,
+	outputProcessors: [usageTracker],
 });
