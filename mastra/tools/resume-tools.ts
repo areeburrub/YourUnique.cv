@@ -28,12 +28,19 @@ function requireUserId(
 }
 
 function appBaseUrl() {
-	if (process.env.NEXT_PUBLIC_APP_URL) {
-		return process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "");
+	const explicit = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
+	if (explicit) {
+		return explicit;
 	}
-	if (process.env.VERCEL_URL) {
-		return `https://${process.env.VERCEL_URL.replace(/\/$/, "")}`;
+
+	const host =
+		process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+		process.env.VERCEL_URL ||
+		null;
+	if (host) {
+		return `https://${host.replace(/^https?:\/\//, "").replace(/\/$/, "")}`;
 	}
+
 	return "http://localhost:6700";
 }
 
