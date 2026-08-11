@@ -101,7 +101,9 @@ export const resumes = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
-		sourceTex: text("source_tex").notNull(),
+		sourceJson: jsonb("source_json")
+			.$type<Record<string, unknown>>()
+			.notNull(),
 		jobDescription: text("job_description"),
 		pdfFileId: text("pdf_file_id").references(() => userFiles.id, {
 			onDelete: "set null",

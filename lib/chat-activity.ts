@@ -11,19 +11,21 @@ export type ChatActivityData = {
 	steps: ChatActivityStep[];
 };
 
+export const CHAT_ACTIVITY_PLANNING_STEP_ID = "__planning";
+
 const toolTitles: Record<string, string> = {
 	"name-chat": "Naming this chat",
 	nameChatTool: "Naming this chat",
 	save_onboarding_context: "Saving your profile",
 	"agent-onboardingAgent": "Learning about you",
 	"agent-resumeAgent": "Working on your resume",
-	"agent-profileEditAgent": "Updating your profile",
+	"agent-profileEditAgent": "Learning about you",
 	onboardingAgent: "Learning about you",
 	resumeAgent: "Working on your resume",
-	profileEditAgent: "Updating your profile",
+	profileEditAgent: "Learning about you",
 	"onboarding-agent": "Learning about you",
 	"resume-agent": "Working on your resume",
-	"profile-edit-agent": "Updating your profile",
+	"profile-edit-agent": "Learning about you",
 	patch_profile: "Updating your profile",
 	update_profile: "Updating your profile",
 	get_profile: "Reading your profile",

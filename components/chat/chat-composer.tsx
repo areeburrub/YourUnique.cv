@@ -15,8 +15,9 @@ import {
 	PromptInputTools,
 	usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
-import { fileTypeLabel } from "@/lib/file-type";
+import { SpeechToTextButton } from "@/components/chat/speech-to-text-button";
 import { dataTransferHasFiles } from "@/lib/file-drag";
+import { fileTypeLabel } from "@/lib/file-type";
 import {
 	MAX_UPLOAD_BYTES,
 	MAX_UPLOAD_FILES,
@@ -392,14 +393,26 @@ export function ChatComposer({
 						<PromptInputTools>
 							<AttachFilesButton disabled={inputDisabled} />
 						</PromptInputTools>
-						<PromptInputSubmit
-							status={status === "ready" && uploading ? "submitted" : status}
-							onStop={onStop}
-							disabled={
-								disabled ||
-								(status === "ready" ? !canSubmit || uploading : false)
-							}
-						/>
+						<div className="flex items-center gap-1">
+							<SpeechToTextButton
+								text={text}
+								onTextChange={onTextChange}
+								onError={onError}
+								disabled={inputDisabled}
+							/>
+							<PromptInputSubmit
+								status={
+									status === "ready" && uploading ? "submitted" : status
+								}
+								onStop={onStop}
+								disabled={
+									disabled ||
+									(status === "ready"
+										? !canSubmit || uploading
+										: false)
+								}
+							/>
+						</div>
 					</PromptInputFooter>
 				</PromptInput>
 			</div>

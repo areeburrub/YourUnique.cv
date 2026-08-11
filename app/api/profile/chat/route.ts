@@ -12,7 +12,7 @@ import {
 } from "@/lib/profile-chat";
 import { mastra } from "@/mastra";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 function previewFromMessages(messages: UIMessage[]) {
 	for (let i = messages.length - 1; i >= 0; i -= 1) {

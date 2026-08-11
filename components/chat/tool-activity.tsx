@@ -16,6 +16,7 @@ import {
 	CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+	CHAT_ACTIVITY_PLANNING_STEP_ID,
 	isChatActivityPart,
 	isInternalToolName,
 	toolStepLabel,
@@ -229,7 +230,85 @@ function stepsFromSubAgentToolResults(
 	});
 }
 
-export function collectAssistantActivitySteps(message: UIMessage): ActivityStep[] {
+function messageToolParts(message: UIMessage) {
+	return message.parts.filter(
+		(part): part is ToolUIPart | DynamicToolUIPart =>
+			typeof part === "object" &&
+			part !== null &&
+			"type" in part &&
+			(String((part as { type: unknown }).type).startsWith("tool-") ||
+				(part as { type: unknown }).type === "dynamic-tool"),
+	);
+}
+
+function messageHasAssistantText(message: UIMessage) {
+	return message.parts.some(
+		(part) =>
+			part.type === "text" &&
+			"text" in part &&
+			typeof part.text === "string" &&
+			part.text.trim().length > 0,
+	);
+}
+
+export type CollectActivityOptions = {
+	/** False once useChat is no longer submitted/streaming for this turn. */
+	streamActive?: boolean;
+};
+
+/**
+ * Drop stale "Learning about you…" planning rows after the agent tool has
+ * already finished (or the assistant already replied). The stream transform
+ * should clear these; this covers persisted / mid-error leftovers.
+ */
+function reconcileActivitySteps(
+	steps: ActivityStep[],
+	message: UIMessage,
+	options?: CollectActivityOptions,
+): ActivityStep[] {
+	const streamActive = options?.streamActive ?? true;
+	const toolParts = messageToolParts(message);
+	const anyToolRunning = toolParts.some((part) => isToolRunning(part.state));
+	const agentToolSettled = toolParts.some(
+		(part) =>
+			isInternalToolName(getToolName(part)) && !isToolRunning(part.state),
+	);
+	const settlePlanning =
+		!streamActive ||
+		(!anyToolRunning &&
+			(agentToolSettled || messageHasAssistantText(message)));
+
+	const next: ActivityStep[] = [];
+	for (const step of steps) {
+		if (step.id === CHAT_ACTIVITY_PLANNING_STEP_ID) {
+			if (step.state === "running" && settlePlanning) {
+				continue;
+			}
+			next.push(step);
+			continue;
+		}
+
+		const tool = toolParts.find((part) => part.toolCallId === step.id);
+		if (tool && step.state === "running") {
+			next.push({
+				...step,
+				state: activityStateFromToolPart(tool.state),
+			});
+			continue;
+		}
+		if (step.state === "running" && !streamActive) {
+			next.push({ ...step, state: "done" });
+			continue;
+		}
+		next.push(step);
+	}
+	return next;
+}
+
+export function collectAssistantActivitySteps(
+	message: UIMessage,
+	options?: CollectActivityOptions,
+): ActivityStep[] {
 	const steps: ActivityStep[] = [];
 
 	for (const part of message.parts) {
@@ -247,17 +326,10 @@ export function collectAssistantActivitySteps(message: UIMessage): ActivityStep[
 	}
 
 	if (steps.length > 0) {
-		return steps;
+		return reconcileActivitySteps(steps, message, options);
 	}
 
-	const toolParts = message.parts.filter(
-		(part): part is ToolUIPart | DynamicToolUIPart =>
-			typeof part === "object" &&
-			part !== null &&
-			"type" in part &&
-			(String((part as { type: unknown }).type).startsWith("tool-") ||
-				(part as { type: unknown }).type === "dynamic-tool"),
-	);
+	const toolParts = messageToolParts(message);
 
 	for (const part of toolParts) {
 		const name = getToolName(part);

@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
-import { getResumeForUser } from "@/lib/db/resumes";
+import { getResumeDocument, getResumeForUser } from "@/lib/db/resumes";
 import { toResumeListItem } from "@/lib/resumes";
 
 export const runtime = "nodejs";
@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: ResumeRouteProps) {
 	return Response.json({
 		resume: {
 			...toResumeListItem(row),
-			sourceTex: row.sourceTex,
+			document: getResumeDocument(row),
 			jobDescription: row.jobDescription,
 		},
 	});

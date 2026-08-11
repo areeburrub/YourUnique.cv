@@ -190,6 +190,8 @@ For each job requirement:
 
 ### 4. Structure the Tailored Resume
 
+YourUnique.cv output is a **structured JSON document** via `create_resume` / `update_resume_document` (see `get_resume_template_notes`). Do not write Typst, LaTeX, or Markdown resume markup.
+
 **Professional Summary** (3-4 lines):
 - Lead with years of experience in the target role/field
 - Include top 3-4 required skills from job description
@@ -201,14 +203,18 @@ For each job requirement:
 - List required tools and technologies first
 - Use exact terminology from job description
 - Only include skills you can substantiate with experience
+- Each skill group is `{ category, items }` where `items` is one comma-separated string
 
 **Professional Experience**:
+- Group by company with nested `roles[]`. Same employer + multiple titles = one company object, multiple roles (do not repeat the company).
 - For each role, emphasize responsibilities and achievements aligned with job requirements
+- Prefer labeled bullets `{ label, text }` (short category + outcome)
 - Use action verbs: Led, Developed, Implemented, Optimized, Managed, Created, Analyzed
 - **Quantify achievements**: Include numbers, percentages, timeframes, scale
 - Reorder bullet points to prioritize most relevant experience
 - Use keywords naturally from job description
-- Format: **[Action Verb] + [What] + [How/Why] + [Result/Impact]**
+- Bullet shape: Action + What + How/Why + Result/Impact
+- Set `employment` only when known (`Full-time`, `Internship`, …); omit if unknown — no placeholder text
 
 **Education**:
 - List degrees, certifications relevant to position
@@ -317,6 +323,7 @@ Ask if user wants to:
 - Include technical skills section prominently
 - List programming languages, frameworks, tools
 - Include GitHub, portfolio, or project links
+- For each project, include a `stack` field (comma-separated tech) separate from outcome bullets
 - Mention methodologies (Agile, Scrum, etc.)
 
 **Creative Roles**:

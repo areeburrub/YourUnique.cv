@@ -13,9 +13,14 @@ import {
 	getUserFilesByKeys,
 	insertUserFileRow,
 } from "@/lib/db/files";
-import { getResumeForUser, updateResumeForUser } from "@/lib/db/resumes";
+import {
+	getResumeDocument,
+	getResumeForUser,
+	updateResumeForUser,
+} from "@/lib/db/resumes";
 import { userFiles } from "@/lib/db/schema";
 import { putR2Object } from "@/lib/r2";
+import { renderResumeTypst } from "@/lib/resume-render-typst";
 
 const execFileAsync = promisify(execFile);
 
@@ -39,19 +44,19 @@ export async function readResumeSkillNotes(
 	return fs.readFile(notesPath, "utf8");
 }
 
-async function resolveTectonicBinary() {
-	if (process.env.TECTONIC_PATH) {
-		return process.env.TECTONIC_PATH;
+async function resolveTypstBinary() {
+	if (process.env.TYPST_PATH) {
+		return process.env.TYPST_PATH;
 	}
 
 	const candidates = [
-		path.join(os.homedir(), ".local", "bin", "tectonic"),
-		"/usr/local/bin/tectonic",
-		"tectonic",
+		path.join(os.homedir(), ".local", "bin", "typst"),
+		"/usr/local/bin/typst",
+		"typst",
 	];
 
 	for (const candidate of candidates) {
-		if (candidate === "tectonic") {
+		if (candidate === "typst") {
 			return candidate;
 		}
 		try {
@@ -62,7 +67,7 @@ async function resolveTectonicBinary() {
 		}
 	}
 
-	return "tectonic";
+	return "typst";
 }
 
 function resumePdfKey(userId: string, resumeId: string) {
@@ -78,27 +83,27 @@ function safeFilename(name: string) {
 	return `${cleaned || "resume"}.pdf`;
 }
 
-async function compileTexToPdf(sourceTex: string) {
+async function compileTypstToPdf(sourceTyp: string) {
 	const templateDir = resolveResumeTemplateDir();
-	const mainTexPath = path.join(templateDir, "main.tex");
+	const libTypPath = path.join(templateDir, "lib.typ");
 
 	try {
-		await fs.access(mainTexPath);
+		await fs.access(libTypPath);
 	} catch {
 		throw new Error(
-			`Resume template is not configured. Missing ${mainTexPath}.`,
+			`Resume template is not configured. Missing ${libTypPath}.`,
 		);
 	}
 
 	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-compile-"));
 
 	try {
-		await fs.copyFile(mainTexPath, path.join(workDir, "main.tex"));
-		await fs.writeFile(path.join(workDir, "resume.tex"), sourceTex, "utf8");
+		await fs.copyFile(libTypPath, path.join(workDir, "lib.typ"));
+		await fs.writeFile(path.join(workDir, "resume.typ"), sourceTyp, "utf8");
 
-		const tectonicBin = await resolveTectonicBinary();
+		const typstBin = await resolveTypstBinary();
 		try {
-			await execFileAsync(tectonicBin, ["main.tex"], {
+			await execFileAsync(typstBin, ["compile", "resume.typ", "main.pdf"], {
 				cwd: workDir,
 				timeout: 180_000,
 				maxBuffer: 10 * 1024 * 1024,
@@ -115,7 +120,7 @@ async function compileTexToPdf(sourceTex: string) {
 					: "";
 			const details = `${stdout}\n${stderr}`.trim();
 			throw new Error(
-				`Tectonic compile failed${details ? `: ${details.slice(-1500)}` : ""}`,
+				`Typst compile failed${details ? `: ${details.slice(-1500)}` : ""}`,
 			);
 		}
 
@@ -140,7 +145,9 @@ export async function compileResumePdf(input: {
 	});
 
 	try {
-		const pdfBuffer = await compileTexToPdf(resume.sourceTex);
+		const document = getResumeDocument(resume);
+		const sourceTyp = renderResumeTypst(document);
+		const pdfBuffer = await compileTypstToPdf(sourceTyp);
 		const key = resumePdfKey(input.userId, input.resumeId);
 		const filename = safeFilename(resume.name);
 

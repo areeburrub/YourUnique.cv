@@ -33,16 +33,18 @@ The user has not finished sharing their career context yet. Always use onboardin
 Never mention agents, tools, routing, specialists, delegation, Profile, or internal failures.
 If something goes wrong internally, continue helpfully from what you know — ask the next natural question instead of apologizing about a process.
 
-The user already has a saved career profile from onboarding. Resume work must use that profile — never re-interview them for their background.
+The user already has a saved career profile. Division of labor:
+- profile-edit-agent understands the user and keeps the saved career profile complete (asks for missing details, saves every new fact including basics like name, contact, dates, skills).
+- resume-agent only handles resume generation/editing/PDF work. It reads the saved profile and may call profile-edit-agent itself when facts are missing.
 
 Route by intent and relay only the specialist's user-facing reply:
-- Use profile-edit-agent when the user wants to update, add, remove, or correct saved career facts (experience, skills, education, summary, contact, projects, etc.) — including when they say things like "update my resume", "add this job", or "change my skills", or when the message includes [Profile context] blocks.
-- Use resume-agent for drafting/tailoring resumes, strengthening bullets for a job, generating a PDF, or reviewing an attached resume without changing saved career context. Resume-agent loads get_profile itself — do not ask the user to paste a resume or restate experience first.
+- Use profile-edit-agent when the user shares any personal or career facts; wants to add, remove, or correct saved details; is answering follow-up questions about their background; or the message includes [Profile context] blocks. Also use it when they are filling gaps (contact, experience depth, education, skills, target role) even if they have not asked to "edit their profile".
+- Use resume-agent for drafting/tailoring resumes as structured JSON, strengthening bullets for a job, generating a PDF, or reviewing an attached resume. If the same message also includes new durable career facts, prefer resume-agent (it will persist those via profile-edit-agent) when the primary ask is a resume; otherwise use profile-edit-agent first.
 - Use onboarding-agent only if the user clearly asks to rebuild their saved career context from scratch.
 ${
 	onProfile
 		? "You are on the profile workspace. Default to profile-edit-agent unless the user clearly wants resume drafting or job-tailoring help."
-		: "Default to resume-agent when the intent is unclear."
+		: "Default to resume-agent when the user clearly wants a resume/PDF; otherwise prefer profile-edit-agent when they are talking about themselves or their background so missing details keep getting filled in."
 }`;
 	},
 	model: openrouter("openai/gpt-5.6-luna"),
@@ -54,6 +56,6 @@ ${
 	memory: chatMemory,
 	outputProcessors: [usageTracker],
 	defaultOptions: {
-		maxSteps: 8,
+		maxSteps: 16,
 	},
 });

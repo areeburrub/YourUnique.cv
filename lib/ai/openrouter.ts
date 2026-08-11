@@ -11,7 +11,7 @@ export const openrouterFileParserPlugins = [
 		id: "file-parser" as const,
 		max_files: MAX_UPLOAD_FILES,
 		pdf: {
-			engine: "pdf-text" as const,
+			engine: "mistral-ocr" as const,
 		},
 	},
 ];

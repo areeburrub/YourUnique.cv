@@ -2,35 +2,36 @@ import { defineConfig } from "@trigger.dev/sdk/v3";
 import { additionalFiles } from "@trigger.dev/build/extensions/core";
 import type { BuildContext, BuildExtension } from "@trigger.dev/core/v3/build";
 
-const TECTONIC_VERSION = "0.15.0";
-const TECTONIC_BIN = "/usr/local/bin/tectonic";
+const TYPST_VERSION = "0.13.1";
+const TYPST_BIN = "/usr/local/bin/typst";
 
-function installTectonic(): BuildExtension {
+function installTypst(): BuildExtension {
 	return {
-		name: "install-tectonic",
+		name: "install-typst",
 		onBuildComplete(context: BuildContext) {
 			if (context.target === "dev") {
 				return;
 			}
 
-			const archive = `tectonic-${TECTONIC_VERSION}-x86_64-unknown-linux-gnu.tar.gz`;
-			const url = `https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/${archive}`;
+			const archive = `typst-x86_64-unknown-linux-musl.tar.xz`;
+			const url = `https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/${archive}`;
 
 			context.addLayer({
-				id: "tectonic-cli",
+				id: "typst-cli",
 				image: {
 					instructions: [
-						"RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates fontconfig && rm -rf /var/lib/apt/lists/*",
-						`RUN curl -fsSL ${url} -o /tmp/tectonic.tar.gz \\
-&& tar -xzf /tmp/tectonic.tar.gz -C /usr/local/bin tectonic \\
-&& chmod +x ${TECTONIC_BIN} \\
-&& rm /tmp/tectonic.tar.gz \\
-&& tectonic --version`,
+						"RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates xz-utils fontconfig fonts-liberation fonts-cmu && rm -rf /var/lib/apt/lists/*",
+						`RUN curl -fsSL ${url} -o /tmp/typst.tar.xz \\
+&& tar -xJf /tmp/typst.tar.xz -C /tmp \\
+&& mv /tmp/typst-x86_64-unknown-linux-musl/typst ${TYPST_BIN} \\
+&& chmod +x ${TYPST_BIN} \\
+&& rm -rf /tmp/typst.tar.xz /tmp/typst-x86_64-unknown-linux-musl \\
+&& typst --version`,
 					],
 				},
 				deploy: {
 					env: {
-						TECTONIC_PATH: TECTONIC_BIN,
+						TYPST_PATH: TYPST_BIN,
 					},
 					override: true,
 				},
@@ -59,7 +60,7 @@ export default defineConfig({
 	build: {
 		extensions: [
 			additionalFiles({ files: ["./templates/resume/**"] }),
-			installTectonic(),
+			installTypst(),
 		],
 	},
 });

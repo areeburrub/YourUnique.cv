@@ -48,8 +48,6 @@ next-env.d.ts
 *.db
 *.db-*
 
-# local TeX preview artifacts
-/templates/resume/resume.tex
+# local resume preview artifacts
 /templates/resume/*.pdf
 /templates/resume/*.log
-/templates/resume/*.synctex.gz

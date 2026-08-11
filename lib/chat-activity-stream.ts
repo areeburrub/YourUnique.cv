@@ -1,6 +1,7 @@
 import type { UIMessageChunk } from "ai";
 
 import {
+	CHAT_ACTIVITY_PLANNING_STEP_ID,
 	isInternalToolName,
 	toolStepLabel,
 	type ChatActivityData,
@@ -151,35 +152,48 @@ function collectFromAgentData(
  * Builds a stable, human-readable activity feed from Mastra/AI SDK UI stream
  * chunks (top-level tools + nested data-tool-agent snapshots).
  */
-const PLANNING_STEP_ID = "__planning";
-
 type ActivityStreamChunk = UIMessageChunk;
 
 export function createChatActivityTransform() {
 	const steps = new Map<string, ChatActivityStep>();
+	let hasPublished = false;
 
 	const clearPlanning = () => {
-		steps.delete(PLANNING_STEP_ID);
+		steps.delete(CHAT_ACTIVITY_PLANNING_STEP_ID);
 	};
 
 	const ensurePlanning = (agentName: string) => {
-		if ([...steps.keys()].some((id) => id !== PLANNING_STEP_ID)) {
+		if (
+			[...steps.keys()].some(
+				(id) => id !== CHAT_ACTIVITY_PLANNING_STEP_ID,
+			)
+		) {
 			return;
 		}
-		steps.set(PLANNING_STEP_ID, {
-			id: PLANNING_STEP_ID,
+		steps.set(CHAT_ACTIVITY_PLANNING_STEP_ID, {
+			id: CHAT_ACTIVITY_PLANNING_STEP_ID,
 			name: agentName,
 			label: toolStepLabel(agentName),
 			state: "running",
 		});
 	};
 
+	const failRunningSteps = () => {
+		for (const step of steps.values()) {
+			if (step.state === "running") {
+				step.state = "failed";
+			}
+		}
+	};
+
 	const publish = (
 		controller: TransformStreamDefaultController<ActivityStreamChunk>,
+		options?: { allowEmpty?: boolean },
 	) => {
-		if (steps.size === 0) {
+		if (steps.size === 0 && !options?.allowEmpty && !hasPublished) {
 			return;
 		}
+		hasPublished = true;
 		controller.enqueue({
 			type: "data-chat-activity",
 			id: "chat-activity",
@@ -244,11 +258,26 @@ export function createChatActivityTransform() {
 						});
 					}
 				}
-				publish(controller);
+
+				// Agent tools only create the synthetic planning row (id !==
+				// toolCallId). Clear it when the agent call finishes so a
+				// text-only turn doesn't spin forever.
+				const clearedPlanning = steps.has(
+					CHAT_ACTIVITY_PLANNING_STEP_ID,
+				);
+				if (clearedPlanning) {
+					clearPlanning();
+				}
+				publish(controller, {
+					allowEmpty: clearedPlanning && steps.size === 0,
+				});
 				return;
 			}
 
-			if (part.type === "tool-output-error") {
+			if (
+				part.type === "tool-output-error" ||
+				part.type === "tool-input-error"
+			) {
 				const id = readString(part.toolCallId);
 				if (id && steps.has(id)) {
 					upsertStep(steps, {
@@ -256,15 +285,27 @@ export function createChatActivityTransform() {
 						name: steps.get(id)!.name,
 						state: "failed",
 					});
-					publish(controller);
 				}
+				const planning = steps.get(CHAT_ACTIVITY_PLANNING_STEP_ID);
+				if (planning) {
+					planning.state = "failed";
+				}
+				publish(controller);
+				return;
+			}
+
+			if (part.type === "error") {
+				failRunningSteps();
+				publish(controller);
 				return;
 			}
 
 			if (part.type === "data-tool-agent") {
 				collectFromAgentData(part.data, steps);
 				if (
-					[...steps.keys()].some((id) => id !== PLANNING_STEP_ID)
+					[...steps.keys()].some(
+						(id) => id !== CHAT_ACTIVITY_PLANNING_STEP_ID,
+					)
 				) {
 					clearPlanning();
 				}

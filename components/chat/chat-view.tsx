@@ -660,11 +660,15 @@ export function ChatView({
 		);
 	const lastHasVisibleActivity =
 		lastIsAssistant && lastMessage
-			? assistantHasVisibleActivity(lastMessage)
+			? assistantHasVisibleActivity(lastMessage, {
+					streamActive: isBusy,
+				})
 			: false;
 	const runningToolLabel =
 		lastIsAssistant && lastMessage
-			? getAssistantToolStatusLabel(lastMessage)
+			? getAssistantToolStatusLabel(lastMessage, {
+					streamActive: isBusy,
+				})
 			: null;
 	const showThinking =
 		awaitingAutoStart ||
@@ -735,10 +739,13 @@ export function ChatView({
 					return <UserMessage key={message.id} message={message} />;
 				}
 
+				const streamActive =
+					isBusy && lastMessage?.id === message.id;
+
 				return (
 					<Message from={message.role} key={message.id}>
 						<MessageContent>
-							{renderAssistantParts(message)}
+							{renderAssistantParts(message, { streamActive })}
 						</MessageContent>
 					</Message>
 				);

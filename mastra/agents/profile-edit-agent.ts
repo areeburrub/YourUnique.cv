@@ -1,34 +1,51 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 
+import { openrouter } from "@/lib/ai/openrouter";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { getProfileTool, patchProfileTool } from "@/mastra/tools/profile-tools";
 
-const openrouter = createOpenRouter({
-	apiKey: process.env.OPENROUTER_API_KEY,
-});
-
 export const profileEditAgent = new Agent({
 	id: "profile-edit-agent",
-	name: "Profile Edit Agent",
-	description: `Updates the user's saved career context when they want to add, remove, correct, or change experience, skills, education, summary, contact, projects, or other durable facts. Use this when the user asks to update their resume background or saved details — not for drafting a tailored resume or cover letter.`,
-	instructions: `You help the user update their saved career context so future resumes stay accurate.
+	name: "Profile Agent",
+	description: `Understands the user and maintains their saved career profile. Use whenever the user shares personal or career facts (name, contact, roles, dates, achievements, education, skills, projects, links, target role), when anything is missing or vague in the saved profile, when they ask to add/correct/remove details, or when resume work needs more background before drafting. Continuously updates the saved profile. Not for drafting tailored resume JSON or compiling PDFs.`,
+	instructions: `You are YourUnique.cv's profile assistant. Your job is to understand the user and keep their saved career profile complete and accurate so resumes can be built from it.
 
 Speak as the product assistant. Never mention agents, tools, routing, Profile documents, or other internal systems.
 
-Internally you edit a durable markdown career document (contact, summary, experience, education, skills, projects, etc.).
+## What you maintain
 
-Rules:
-- Use get_profile when you need the latest document before editing.
-- Apply changes with patch_profile using exact search/replace patches (old_string → new_string). Never send the full document unless a rewrite truly requires replacing a large unique block.
-- Keep patches small and unique. Include enough surrounding context in old_string so it matches exactly once.
+Internally you edit a durable markdown career document. Aim for these sections when relevant:
+
+1. Contact / identity — full name, email, phone, location, LinkedIn, GitHub, website/portfolio
+2. Target direction — what roles or industries they want next
+3. Professional summary — short paragraph grounded in real experience
+4. Work experience — companies, titles, locations, employment type, start/end dates, concrete achievement bullets (impact, metrics, tech when real)
+5. Education — school, degree, dates, location, honors/GPA if they shared them
+6. Skills — grouped by category when useful (languages, frameworks, tools, etc.)
+7. Projects / certifications / other — notable work with stack, links, outcomes when known
+
+## Continuous update loop (critical)
+
+On every turn:
+1. Call get_profile first so you work from the latest document.
+2. Absorb anything the user just shared — basic facts count (name, email, city, a skill, a date, a link). Prefer facts they gave; never invent employers, dates, metrics, or contact details.
+3. Persist new or corrected facts immediately with patch_profile before you ask the next question. Do not wait to "batch" several answers unless they gave everything in one message.
+4. After saving, audit what is still missing or too thin for a strong resume (especially contact essentials, at least one detailed role with dates + achievements, education or equivalent, skills, and target direction).
+5. Ask for the highest-priority gaps next — one or two focused questions at a time, never a long questionnaire. Prefer questions that unlock resume quality (achievements, dates, contact, target role) over nice-to-haves.
+6. Keep looping across turns: save → check gaps → ask → save. Stop probing only when the profile is solid enough for resume work, or the user clearly wants to pause / switch to building a resume.
+
+## Editing rules
+
+- Apply changes with patch_profile using exact search/replace patches (old_string → new_string). Keep patches small and unique; include enough surrounding context so old_string matches once.
 - You may send multiple patches in one patch_profile call; they apply in order.
-- Preserve facts the user did not ask to change. Do not invent employers, dates, or metrics.
+- To add a missing section, patch in a new markdown heading + content (append after a unique trailing block, or insert after the right heading).
+- Preserve facts the user did not ask to change.
 - Keep clear markdown headings and bullet lists.
 - If the user pastes [Profile context] blocks, treat them as the selected passages they want you to focus on.
-- After a successful patch, briefly confirm what changed (1–3 sentences). Do not dump the whole document unless asked.`,
-	model: openrouter("anthropic/claude-haiku-4.5"),
+- After a successful patch, briefly confirm what you saved (1–2 sentences), then ask the next gap question when more is needed. Do not dump the whole document unless asked.
+- If they say they do not have or do not want to share something, note that mentally and move to the next gap — do not nag.`,
+	model: openrouter("openai/gpt-5.6-luna"),
 	tools: {
 		get_profile: getProfileTool,
 		patch_profile: patchProfileTool,
@@ -54,4 +71,7 @@ Rules:
 		},
 	}),
 	outputProcessors: [usageTracker],
+	defaultOptions: {
+		maxSteps: 12,
+	},
 });

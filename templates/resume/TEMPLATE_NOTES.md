@@ -1,140 +1,119 @@
-# Resume TeX template notes
+# Resume document notes
 
-Only edit `resume.tex` (stored as `sourceTex`). `templates/resume/main.tex` is static layout and must not be changed via tools. This is the same contract as the portfolio MCP (`documents://resume-template-notes`).
+You produce a **structured JSON document** and pass it to `create_resume` / `update_resume_document`.
 
-## Document flow
+The app renders the PDF. Do **not** write Typst, LaTeX, Markdown resumes, or any markup.
 
-- Compile writes the generation's `sourceTex` as `resume.tex` next to the static `main.tex`, then runs Tectonic.
-- Keep content to roughly **one A4 page**. Prefer cutting weaker bullets over shrinking font or inventing macros.
+## Document shape
 
-## Suggested structure (match this order)
-
-Use this section order and nesting. Do not invent a different layout or macros that are not listed below.
-
-1. **Heading** — `tabular*` with name (left) and contact (right). Include email, site, phone, GitHub, LinkedIn via `\href{...}{...}`.
-2. **Summary** — short `\section{Summary}` + `\small` paragraph. 2–4 sentences, role-targeted, no bullets.
-3. **Work Experience** — `\section{Work Experience}` then per company:
-   - `\resumeCompany{...}` (company name; link + `\textbf{...}` ok)
-   - `\resumeRoleListStart` … `\resumeRoleListEnd`
-   - For each role under that company: `\item` then `\resumeRole{Title}{Location}{Employment Type}{Date Range}` then achievement bullets in `\resumeSubBulletStart` … `\resumeSubBulletEnd`
-   - Prefer `\resumeItem{Label}{Body}` for achievements (bold label + body). Use `\resumeBullet{Body}` only when a label does not fit.
-4. **Skills** — `\section{Skills}` with `\resumeListStart` / `\resumeListEnd` and `\resumeSkill{Category}{comma-separated items}`.
-5. **Projects** — `\section{Projects}` with `\resumeListStart` / `\resumeListEnd`. Each project is `\resumeSkill{Name}{Description + Links: \href{...}{Label}, ...}`.
-6. **Education** — `\section{Education}` with `\resumeEntry{School}{Location}{Degree; details}{Date Range}` (not inside a list).
-
-Optional sections (only if space and relevant): keep them after Skills / before Education, still using the same macros. Do not add custom environments.
-
-## Skeleton (copy this shape)
-
-```tex
-% !TEX root = main.tex
-%----------HEADING-----------------
-\begin{tabular*}{\textwidth}[t]{l@{\extracolsep{\fill}}r}
-  \textbf{\Large Full Name} & \href{mailto:email@example.com}{email@example.com} \\
-  \href{https://example.com}{example.com} & +91-000-0000-000 \\
-  \href{https://github.com/user}{github.com/user} & \href{https://linkedin.com/in/user}{linkedin.com/in/user} \\
-\end{tabular*}
-
-%-----------SUMMARY-----------------
-\section{Summary}
-\small One tight paragraph tailored to the job. Emphasize stack and outcomes with \textbf{keywords}.
-
-%-----------WORK EXPERIENCE-----------------
-\section{Work Experience}
-
-\resumeCompany{\href{https://company.example}{\textbf{Company Name}}}
-
-\resumeRoleListStart
-  \item
-  \resumeRole{Role Title}{City, Country}{Full-time}{Mon YYYY to Present}
-  \resumeSubBulletStart
-    \resumeItem{Label}{Outcome-focused bullet with \textbf{tech} and a metric when true.}
-    \resumeItem{Label}{Another concrete achievement.}
-  \resumeSubBulletEnd
-  \item
-  \resumeRole{Earlier Role}{Remote}{Internship}{Mon YYYY to Mon YYYY}
-  \resumeSubBulletStart
-    \resumeItem{Label}{Shorter bullets for older roles.}
-  \resumeSubBulletEnd
-\resumeRoleListEnd
-
-%-----------SKILLS-----------------
-\section{Skills}
-\resumeListStart
-  \resumeSkill{Languages}{TypeScript, Python, SQL}
-  \resumeSkill{Backend}{NestJS, FastAPI}
-  \resumeSkill{Databases}{PostgreSQL, Redis}
-  \resumeSkill{Frontend}{Next.js, React}
-  \resumeSkill{Cloud / Infra}{AWS, Docker, Kubernetes}
-  \resumeSkill{AI Frameworks}{LangGraph, LangChain}
-\resumeListEnd
-
-%-----------PROJECTS-----------------
-\section{Projects}
-\resumeListStart
-  \resumeSkill{Project Name}
-    {What it does, stack, and impact.
-    Links: \href{https://example.com}{Website}, \href{https://github.com/user/repo}{GitHub}}
-\resumeListEnd
-
-%-----------EDUCATION-----------------
-\section{Education}
-\resumeEntry
-  {School Name}{City, Country}
-  {Degree; CGPA or honors if relevant}{Mon YYYY to Mon YYYY}
+```json
+{
+  "name": "Full Name",
+  "email": "email@example.com",
+  "phone": "+91-000-0000-000",
+  "location": "City, Country",
+  "github": "github.com/user",
+  "linkedin": "linkedin.com/in/user",
+  "website": "example.com",
+  "summary": "One tight paragraph tailored to the job.",
+  "experience": [
+    {
+      "company": "Company Name",
+      "companyUrl": "https://company.example",
+      "roles": [
+        {
+          "title": "Founding Engineer",
+          "location": "Bangalore, India",
+          "employment": "Full-time",
+          "startDate": "Aug 2025",
+          "endDate": "Present",
+          "bullets": [
+            { "label": "LLM Systems", "text": "Built LangGraph pipelines that process social and news data." },
+            { "label": "Billing", "text": "Built Redis usage tracking and subscription billing." }
+          ]
+        },
+        {
+          "title": "Full Stack Developer Intern",
+          "location": "Remote",
+          "employment": "Internship",
+          "startDate": "Nov 2024",
+          "endDate": "Jul 2025",
+          "bullets": [
+            { "label": "Backend", "text": "Built NestJS services with PostgreSQL and Prisma." }
+          ]
+        }
+      ]
+    }
+  ],
+  "skills": [
+    { "category": "Languages", "items": "TypeScript, Python, SQL" },
+    { "category": "Backend", "items": "NestJS, FastAPI" }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "url": "example.com",
+      "startDate": "Jan 2024",
+      "endDate": "Jun 2024",
+      "stack": "Next.js, TypeScript, PostgreSQL",
+      "bullets": [
+        { "label": "Product", "text": "What it does and the impact." }
+      ],
+      "links": [
+        { "label": "Website", "url": "https://example.com" },
+        { "label": "GitHub", "url": "https://github.com/user/repo" }
+      ]
+    }
+  ],
+  "education": [
+    {
+      "school": "School Name",
+      "location": "City, Country",
+      "degree": "Degree; CGPA or honors if relevant",
+      "startDate": "Nov 2021",
+      "endDate": "Jul 2025"
+    }
+  ]
+}
 ```
 
-## Nesting rules (Work Experience)
+## Work experience nesting (critical)
 
-```
-\resumeCompany{...}
-\resumeRoleListStart
-  \item
-  \resumeRole{...}{...}{...}{...}
-  \resumeSubBulletStart
-    \resumeItem{...}{...}   % or \resumeBullet{...}
-  \resumeSubBulletEnd
-\resumeRoleListEnd
-```
+- Group by **company**. One company object can contain multiple `roles`.
+- Same company, different titles (e.g. Intern → Founding Engineer) = **one** company with **two** roles — do not repeat the company name as separate top-level entries.
+- Most recent company first; most recent role first within a company.
+- Prefer labeled bullets: `{ "label": "Short Title", "text": "..." }` (renders as **Short Title:** …). Plain `{ "text": "..." }` is ok when a label does not fit.
 
-- One company block can contain multiple `\item` + role blocks.
-- Put the strongest / most recent company first; most recent role first under a company.
-- Aim for ~4–8 `\resumeItem`s on the current role, fewer on older roles.
-- Labels are short title case (`Cost Optimization`, `Billing \& Usage`). Escape `&` as `\&`.
+## Field rules
 
-## Available macros (from main.tex)
+- `github`, `linkedin`, `website`, project `url`: **host/path only** (no `https://`)
+- `companyUrl`, `projects[].links[].url`: **full https URLs** when known; omit if unknown
+- `employment`: only `"Full-time"`, `"Part-time"`, `"Internship"`, `"Contract"`, or similar real values from the profile
+- If employment type is unknown, **omit** `employment` — never use placeholders
+- `location` on roles: real city / `"Remote"` from the profile
+- `skills[].items`: one comma-separated string
+- `projects[].stack`: comma-separated tech stack for that project (required when the project uses notable tech). Do not bury the stack only inside bullets — put it in `stack`.
+- Dates: `"Mon YYYY"` / `"Present"`
+- Keep to roughly **one A4 page** (~4–8 bullets on the current role, fewer on older roles)
+- Plain text in strings only — no Markdown bold, no HTML, no Typst
 
-- `\resumeCompany{Name}`
-- `\resumeRole{Role}{Location}{Employment Type}{Date Range}`
-- `\resumeEntry{School}{Location}{Degree}{Dates}`
-- `\resumeItem{Label}{Body}`
-- `\resumeBullet{Body}`
-- `\resumeSkill{Label}{Body}`
-- `\resumeListStart` / `\resumeListEnd`
-- `\resumeBulletStart` / `\resumeBulletEnd`
-- `\resumeRoleListStart` / `\resumeRoleListEnd`
-- `\resumeSubBulletStart` / `\resumeSubBulletEnd`
+## Projects
 
-Do **not** invent macros like `\resumeheader`. Use only the macros above plus standard LaTeX (`\section`, `\textbf`, `\href`, `tabular*`).
+- Include `stack` for every technical project when known from the profile.
+- Bullets should focus on what you built and the outcome — not restate the full stack.
+- Prefer labeled bullets; keep `links` for Website / GitHub / Product Hunt when available.
 
-## Rules for LLM-authored TeX
+## Content rules
 
-- Escape LaTeX specials in plain text: `# $ % & _ { }`
-- Prefer `\textbf{...}` for stack/keywords already used in the template style
-- Do not invent employers, titles, metrics, or dates that are not in `get_profile`
-- Tailor Summary, role bullet selection/order, and Skills categories to the job — do not fabricate experience
-- After drafting, call `get_humanizer_notes` and apply those rules to Summary + bullet prose before finalizing
-- When a job description is present, call `get_resume_builder_notes` and follow its JD analysis, priority mapping, Action+What+How+Result bullets, and ATS keywords
+- Only use facts from `get_profile` and the conversation
+- Do not invent employers, titles, metrics, or dates
+- Tailor summary, bullet selection/order, and skills categories to the job
+- After drafting, call `get_humanizer_notes` and apply those rules to summary + bullets
+- When a JD is present, call `get_resume_builder_notes` and follow its analysis / ATS guidance
 
-## Editing (token-efficient)
+## Tools
 
-- Prefer `append_to_resume` for new sections/bullets
-- Prefer `patch_resume` for small edits (unique `old_string` → `new_string`)
-- Do **not** rewrite the full `sourceTex` unless restructuring the whole file
-- Patch responses return success metadata only (not the full file)
-
-## PDF download
-
-- Call `compile_resume` — it waits until the PDF is ready and returns `previewUrl` / `downloadUrl`
-- Give the user the `downloadUrl`. Do **not** fetch, curl, or download the PDF yourself
-- The chat UI shows the PDF preview from the compile tool result
+- `create_resume` — `{ name, document, jobDescription? }`
+- `update_resume_document` — `{ id, document }` full replace
+- `compile_resume` — PDF; returns `previewUrl` / `downloadUrl`
+- Give the user `downloadUrl`. Do not fetch the PDF yourself

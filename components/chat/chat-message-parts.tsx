@@ -41,19 +41,29 @@ export function isVisibleChatToolPart(
 	return !isInternalToolName(getToolName(part));
 }
 
-export function getAssistantToolStatusLabel(message: UIMessage) {
-	const activitySteps = collectAssistantActivitySteps(message);
+export function getAssistantToolStatusLabel(
+	message: UIMessage,
+	options?: { streamActive?: boolean },
+) {
+	const activitySteps = collectAssistantActivitySteps(message, options);
 	const fromSteps = runningActivityStatusLabel(activitySteps);
 	if (fromSteps) {
 		return fromSteps;
+	}
+
+	if (options?.streamActive === false) {
+		return null;
 	}
 
 	const toolParts = message.parts.filter(isChatToolPart);
 	return runningToolStatusLabel(toolParts);
 }
 
-export function assistantHasVisibleActivity(message: UIMessage) {
-	return collectAssistantActivitySteps(message).length > 0;
+export function assistantHasVisibleActivity(
+	message: UIMessage,
+	options?: { streamActive?: boolean },
+) {
+	return collectAssistantActivitySteps(message, options).length > 0;
 }
 
 const dotWaveDelays = [0, 100, 200, 100, 200, 300, 200, 300, 400] as const;
@@ -309,9 +319,12 @@ function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 	return cards;
 }
 
-export function renderAssistantParts(message: UIMessage): ReactNode[] {
+export function renderAssistantParts(
+	message: UIMessage,
+	options?: { streamActive?: boolean },
+): ReactNode[] {
 	const nodes: ReactNode[] = [];
-	const activitySteps = collectAssistantActivitySteps(message);
+	const activitySteps = collectAssistantActivitySteps(message, options);
 	const historical = assistantHasText(message);
 
 	if (activitySteps.length > 0) {

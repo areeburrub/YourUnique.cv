@@ -3,13 +3,14 @@ import { runs, tasks } from "@trigger.dev/sdk";
 import { z } from "zod";
 
 import {
-	appendResumeSource,
 	createResume,
+	getResumeDocument,
 	getResumeForUser,
 	listResumesForUser,
-	patchResumeSource,
+	replaceResumeDocument,
 	updateResumeForUser,
 } from "@/lib/db/resumes";
+import { resumeDocumentSchema } from "@/lib/resume-document";
 import {
 	readResumeSkillNotes,
 	readResumeTemplateNotes,
@@ -43,18 +44,6 @@ function resumePreviewUrl(resumeId: string) {
 function resumeDownloadUrl(resumeId: string) {
 	return `${appBaseUrl()}/api/resumes/${resumeId}/download?download=1`;
 }
-
-const patchSchema = z.object({
-	old_string: z
-		.string()
-		.min(1)
-		.describe(
-			"Exact text to find in the current sourceTex. Include enough surrounding context to make it unique.",
-		),
-	new_string: z
-		.string()
-		.describe("Replacement text. Use an empty string to delete the matched text."),
-});
 
 function toResumeSummary(row: {
 	id: string;
@@ -102,14 +91,14 @@ export const listResumesTool = createTool({
 export const getResumeTool = createTool({
 	id: "get_resume",
 	description:
-		"Get a resume generation including sourceTex LaTeX content and compile status.",
+		"Get a resume generation including its structured document JSON and compile status.",
 	inputSchema: z.object({
 		id: z.string().min(1).describe("Resume id"),
 	}),
 	outputSchema: z.object({
 		id: z.string(),
 		name: z.string(),
-		sourceTex: z.string(),
+		document: resumeDocumentSchema,
 		jobDescription: z.string().nullable(),
 		compileStatus: z.string(),
 		compileError: z.string().nullable(),
@@ -126,7 +115,7 @@ export const getResumeTool = createTool({
 		return {
 			id: row.id,
 			name: row.name,
-			sourceTex: row.sourceTex,
+			document: getResumeDocument(row),
 			jobDescription: row.jobDescription,
 			compileStatus: row.compileStatus,
 			compileError: row.compileError,
@@ -140,7 +129,7 @@ export const getResumeTool = createTool({
 export const getResumeTemplateNotesTool = createTool({
 	id: "get_resume_template_notes",
 	description:
-		"Read the LaTeX resume template allowlist, skeleton, and editing rules (same as portfolio MCP documents://resume-template-notes). Call this before creating or heavily editing sourceTex.",
+		"Read resume document structure rules and content guidelines. Call this before creating or heavily editing a resume document.",
 	inputSchema: z.object({}),
 	outputSchema: z.object({
 		notes: z.string(),
@@ -154,7 +143,7 @@ export const getResumeTemplateNotesTool = createTool({
 export const getResumeBuilderNotesTool = createTool({
 	id: "get_resume_builder_notes",
 	description:
-		"Read job-tailoring / ATS resume-builder skill instructions (same as portfolio MCP skills://resume-builder). Call when the user provided a job description or asked to tailor a resume for a role.",
+		"Read job-tailoring / ATS resume-builder skill instructions. Call when the user provided a job description or asked to tailor a resume for a role.",
 	inputSchema: z.object({}),
 	outputSchema: z.object({
 		notes: z.string(),
@@ -168,7 +157,7 @@ export const getResumeBuilderNotesTool = createTool({
 export const getHumanizerNotesTool = createTool({
 	id: "get_humanizer_notes",
 	description:
-		"Read humanizer skill instructions for removing AI writing patterns (same as portfolio MCP skills://humanizer). Call after drafting sourceTex and rewrite Summary + bullet prose before create/patch finalize.",
+		"Read humanizer skill instructions for removing AI writing patterns. Call after drafting document prose and rewrite Summary + bullets before create/update finalize.",
 	inputSchema: z.object({}),
 	outputSchema: z.object({
 		notes: z.string(),
@@ -182,13 +171,12 @@ export const getHumanizerNotesTool = createTool({
 export const createResumeTool = createTool({
 	id: "create_resume",
 	description:
-		"Create a new resume generation. Body goes in sourceTex (resume.tex LaTeX using only allowlisted macros from main.tex).",
+		"Create a new resume from structured document JSON only. Never send Typst/LaTeX/markup.",
 	inputSchema: z.object({
 		name: z.string().min(1).max(200).describe("Display name for this resume"),
-		sourceTex: z
-			.string()
-			.min(1)
-			.describe("LaTeX resume.tex content using allowlisted macros only"),
+		document: resumeDocumentSchema.describe(
+			"Structured resume JSON: contact, summary, experience, skills, projects, education",
+		),
 		jobDescription: z
 			.string()
 			.optional()
@@ -205,7 +193,7 @@ export const createResumeTool = createTool({
 		const row = await createResume({
 			userId,
 			name: input.name,
-			sourceTex: input.sourceTex,
+			document: input.document,
 			jobDescription: input.jobDescription,
 		});
 		return {
@@ -217,14 +205,13 @@ export const createResumeTool = createTool({
 	},
 });
 
-export const appendToResumeTool = createTool({
-	id: "append_to_resume",
+export const updateResumeDocumentTool = createTool({
+	id: "update_resume_document",
 	description:
-		"Append a LaTeX snippet to sourceTex. Prefer this for adding sections/bullets. Do not send the full document — only the new text.",
+		"Replace the structured resume JSON for an existing generation. Send the full updated document object — never markup.",
 	inputSchema: z.object({
 		id: z.string().min(1),
-		text: z.string().min(1),
-		ensureLeadingNewline: z.boolean().optional(),
+		document: resumeDocumentSchema,
 	}),
 	outputSchema: z.object({
 		ok: z.boolean(),
@@ -233,48 +220,13 @@ export const appendToResumeTool = createTool({
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
-		const row = await appendResumeSource(
-			input.id,
-			userId,
-			input.text,
-			input.ensureLeadingNewline ?? true,
-		);
+		const row = await replaceResumeDocument(input.id, userId, input.document);
 		if (!row) {
 			throw new Error("Resume not found");
 		}
 		return {
 			ok: true,
 			id: row.id,
-			updatedAt: row.updatedAt.toISOString(),
-		};
-	},
-});
-
-export const patchResumeTool = createTool({
-	id: "patch_resume",
-	description:
-		"Apply one or more exact search/replace patches to sourceTex. Prefer small unique edits over rewriting the whole document. Patches are applied in order.",
-	inputSchema: z.object({
-		id: z.string().min(1),
-		patches: z
-			.array(patchSchema)
-			.min(1)
-			.describe("Ordered list of exact string replacements to apply"),
-	}),
-	outputSchema: z.object({
-		ok: z.boolean(),
-		applied: z.number(),
-		updatedAt: z.string().nullable(),
-	}),
-	execute: async (input, context) => {
-		const userId = requireUserId(context?.requestContext);
-		const row = await patchResumeSource(input.id, userId, input.patches);
-		if (!row) {
-			throw new Error("Resume not found");
-		}
-		return {
-			ok: true,
-			applied: input.patches.length,
 			updatedAt: row.updatedAt.toISOString(),
 		};
 	},
@@ -311,7 +263,7 @@ export const renameResumeTool = createTool({
 export const compileResumeTool = createTool({
 	id: "compile_resume",
 	description:
-		"Compile a resume to PDF via Tectonic (LaTeX) and wait until it finishes. Returns previewUrl and downloadUrl when ready. The chat UI shows the PDF from this result — call this after create/patch and share the links with the user.",
+		"Compile a resume document to PDF via Typst and wait until it finishes. Returns previewUrl and downloadUrl when ready. Call after create/update and share the links with the user.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),

@@ -6,6 +6,10 @@ import {
 	type CompileStatus,
 	resumes,
 } from "@/lib/db/schema";
+import {
+	type ResumeDocument,
+	parseResumeDocument,
+} from "@/lib/resume-document";
 
 export type ResumeRow = typeof resumes.$inferSelect;
 
@@ -22,19 +26,25 @@ export async function getResumeForUser(resumeId: string, userId: string) {
 	});
 }
 
+export function getResumeDocument(row: ResumeRow): ResumeDocument {
+	return parseResumeDocument(row.sourceJson);
+}
+
 export async function createResume(input: {
 	userId: string;
 	name: string;
-	sourceTex: string;
+	document: ResumeDocument;
 	jobDescription?: string | null;
 }) {
+	const document = parseResumeDocument(input.document);
+
 	const [row] = await db
 		.insert(resumes)
 		.values({
 			id: nanoid(),
 			userId: input.userId,
 			name: input.name,
-			sourceTex: input.sourceTex,
+			sourceJson: document,
 			jobDescription: input.jobDescription ?? null,
 			compileStatus: "idle",
 		})
@@ -48,7 +58,7 @@ export async function updateResumeForUser(
 	userId: string,
 	data: {
 		name?: string;
-		sourceTex?: string;
+		document?: ResumeDocument;
 		jobDescription?: string | null;
 		pdfFileId?: string | null;
 		compileStatus?: CompileStatus;
@@ -56,87 +66,48 @@ export async function updateResumeForUser(
 		compiledAt?: Date | null;
 	},
 ) {
+	const patch: Record<string, unknown> = {
+		updatedAt: new Date(),
+	};
+
+	if (data.name !== undefined) {
+		patch.name = data.name;
+	}
+	if (data.jobDescription !== undefined) {
+		patch.jobDescription = data.jobDescription;
+	}
+	if (data.pdfFileId !== undefined) {
+		patch.pdfFileId = data.pdfFileId;
+	}
+	if (data.compileStatus !== undefined) {
+		patch.compileStatus = data.compileStatus;
+	}
+	if (data.compileError !== undefined) {
+		patch.compileError = data.compileError;
+	}
+	if (data.compiledAt !== undefined) {
+		patch.compiledAt = data.compiledAt;
+	}
+	if (data.document !== undefined) {
+		patch.sourceJson = parseResumeDocument(data.document);
+	}
+
 	const [row] = await db
 		.update(resumes)
-		.set({
-			...data,
-			updatedAt: new Date(),
-		})
+		.set(patch)
 		.where(and(eq(resumes.id, resumeId), eq(resumes.userId, userId)))
 		.returning();
 
 	return row ?? null;
 }
 
-export function applySourceTexPatches(
-	sourceTex: string,
-	patches: Array<{ old_string: string; new_string: string }>,
-) {
-	let next = sourceTex;
-
-	for (const [index, patch] of patches.entries()) {
-		const oldString = patch.old_string;
-		const newString = patch.new_string;
-		const occurrences = next.split(oldString).length - 1;
-
-		if (occurrences === 0) {
-			throw new Error(
-				`Patch ${index + 1}: could not find old_string in the resume source.`,
-			);
-		}
-		if (occurrences > 1) {
-			throw new Error(
-				`Patch ${index + 1}: old_string matched ${occurrences} times. Include more surrounding context so it is unique.`,
-			);
-		}
-
-		next = next.replace(oldString, newString);
-	}
-
-	if (!next.trim()) {
-		throw new Error("Resume source cannot be empty after applying patches.");
-	}
-
-	return next;
-}
-
-export async function appendResumeSource(
+export async function replaceResumeDocument(
 	resumeId: string,
 	userId: string,
-	text: string,
-	ensureLeadingNewline = true,
+	document: ResumeDocument,
 ) {
-	const existing = await getResumeForUser(resumeId, userId);
-	if (!existing) {
-		return null;
-	}
-
-	const separator =
-		ensureLeadingNewline && !existing.sourceTex.endsWith("\n")
-			? "\n"
-			: "";
-	const next = `${existing.sourceTex}${separator}${text}`;
-
 	return updateResumeForUser(resumeId, userId, {
-		sourceTex: next,
-		compileStatus: "idle",
-		compileError: null,
-	});
-}
-
-export async function patchResumeSource(
-	resumeId: string,
-	userId: string,
-	patches: Array<{ old_string: string; new_string: string }>,
-) {
-	const existing = await getResumeForUser(resumeId, userId);
-	if (!existing) {
-		return null;
-	}
-
-	const next = applySourceTexPatches(existing.sourceTex, patches);
-	return updateResumeForUser(resumeId, userId, {
-		sourceTex: next,
+		document,
 		compileStatus: "idle",
 		compileError: null,
 	});
