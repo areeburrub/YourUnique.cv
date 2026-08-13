@@ -30,7 +30,6 @@ import {
 	ChatThinking,
 	getAssistantToolStatusLabel,
 	isChatToolPart,
-	isHiddenUserMessage,
 	renderAssistantParts,
 	UserMessage,
 } from "@/components/chat/chat-message-parts";
@@ -53,7 +52,6 @@ import {
 	refreshChatAfterTurn,
 	touchChatThread,
 } from "@/lib/chats-query";
-import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
 import { usageStatusKey } from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
 
@@ -65,7 +63,6 @@ export type ChatContextSnippet = {
 type ChatViewProps = {
 	threadId?: string;
 	initialMessages?: UIMessage[];
-	autoStartMessage?: string;
 	variant?: "page" | "panel";
 	chatSurface?: "main" | "profile";
 	contextSnippets?: ChatContextSnippet[];
@@ -211,7 +208,6 @@ function latestSuccessfulPatchKey(messages: UIMessage[]) {
 export function ChatView({
 	threadId: threadIdProp,
 	initialMessages = [],
-	autoStartMessage,
 	variant = "page",
 	chatSurface = "main",
 	contextSnippets = [],
@@ -238,7 +234,6 @@ export function ChatView({
 	const uploadsRef = useRef(uploads);
 	const inFlightUploads = useRef(new Set<string>());
 	const prevStatusRef = useRef<string>("ready");
-	const autoStartedRef = useRef(false);
 	const snippetsRef = useRef(contextSnippets);
 	const lastAppliedPatchKey = useRef<string | null>(null);
 	const chatSurfaceRef = useRef(chatSurface);
@@ -481,9 +476,7 @@ export function ChatView({
 		(messageText: string, fileParts: FileUIPart[]) => {
 			setUploadError(null);
 
-			const preview = isOnboardingKickoffMessage(messageText)
-				? "Getting to know you"
-				: messageText.replace(/\s+/g, " ").trim().slice(0, 160);
+			const preview = messageText.replace(/\s+/g, " ").trim().slice(0, 160);
 			const now = new Date().toISOString();
 			let created = false;
 
@@ -494,9 +487,7 @@ export function ChatView({
 				softReplace(threadHrefFor(newThreadId));
 				prependChatThread(queryClient, {
 					id: newThreadId,
-					title: isOnboardingKickoffMessage(messageText)
-						? "Getting to know you"
-						: "New chat",
+					title: "New chat",
 					preview,
 					updatedAt: now,
 					kind: "chat",
@@ -536,32 +527,6 @@ export function ChatView({
 			threadHrefFor,
 		],
 	);
-
-	useEffect(() => {
-		if (!autoStartMessage || autoStartedRef.current) {
-			return;
-		}
-		if (initialMessages.length > 0 || status !== "ready") {
-			return;
-		}
-		if (usageStatus.isLoading) {
-			return;
-		}
-		if (usageStatus.data?.blocked) {
-			autoStartedRef.current = true;
-			setUsageDialogOpen(true);
-			return;
-		}
-		autoStartedRef.current = true;
-		submitMessage(autoStartMessage, []);
-	}, [
-		autoStartMessage,
-		initialMessages.length,
-		status,
-		submitMessage,
-		usageStatus.data?.blocked,
-		usageStatus.isLoading,
-	]);
 
 	const handleSubmit = (message: PromptInputMessage) => {
 		if (usageStatus.data?.blocked) {
@@ -640,14 +605,6 @@ export function ChatView({
 		lastUserMessage?.parts.some((part) => part.type === "file"),
 	);
 	const isBusy = status === "submitted" || status === "streaming";
-	const visibleMessages = messages.filter(
-		(message) => !isHiddenUserMessage(message),
-	);
-	const awaitingAutoStart =
-		Boolean(autoStartMessage) &&
-		!autoStartedRef.current &&
-		visibleMessages.length === 0 &&
-		status === "ready";
 	const lastIsAssistant = lastMessage?.role === "assistant";
 	const lastHasAssistantText =
 		lastIsAssistant &&
@@ -671,16 +628,14 @@ export function ChatView({
 				})
 			: null;
 	const showThinking =
-		awaitingAutoStart ||
-		(!error &&
-			isBusy &&
-			!lastHasAssistantText &&
-			!lastHasVisibleActivity);
+		!error &&
+		isBusy &&
+		!lastHasAssistantText &&
+		!lastHasVisibleActivity;
 	const thinkingLabel =
 		runningToolLabel ||
 		(lastUserHadFiles ? "Reading your documents…" : "Thinking");
-	const isEmpty =
-		visibleMessages.length === 0 && !showThinking && !autoStartMessage;
+	const isEmpty = messages.length === 0 && !showThinking;
 
 	const composer = (
 		<>

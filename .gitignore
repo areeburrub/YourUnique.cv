@@ -51,3 +51,4 @@ next-env.d.ts
 # local resume preview artifacts
 /templates/resume/*.pdf
 /templates/resume/*.log
+/templates/resume/*-preview.html

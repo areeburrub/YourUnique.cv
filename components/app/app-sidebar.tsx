@@ -3,6 +3,7 @@
 import Link from "next/link";
 import {
 	FileText,
+	LayoutTemplate,
 	MessageSquare,
 	MoreHorizontal,
 	Pencil,
@@ -76,6 +77,7 @@ const primaryNav = [
 	{ title: "Chats", href: "/chats", icon: MessageSquare, exact: true },
 	{ title: "Profile", href: "/profile", icon: UserRound },
 	{ title: "Resumes", href: "/resumes", icon: FileText },
+	{ title: "Templates", href: "/templates", icon: LayoutTemplate },
 ] as const;
 
 const GROUP_BY_KEY = "yourunique:recents-group-by";

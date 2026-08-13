@@ -1,11 +1,11 @@
-import { execFile } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
+import { pathToFileURL } from "node:url";
 
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
+import { chromium } from "playwright";
 
 import { db } from "@/lib/db";
 import {
@@ -20,21 +20,12 @@ import {
 } from "@/lib/db/resumes";
 import { userFiles } from "@/lib/db/schema";
 import { putR2Object } from "@/lib/r2";
-import { renderResumeTypst } from "@/lib/resume-render-typst";
-
-const execFileAsync = promisify(execFile);
-
-export function resolveResumeTemplateDir() {
-	return path.join(process.cwd(), "templates", "resume");
-}
+import { compileHtmlToPng } from "@/lib/resume-templates/html-to-image";
+import { resolveTemplate } from "@/lib/resume-templates/registry";
+import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
 
 export function resolveMastraSkillsDir() {
 	return path.join(process.cwd(), "mastra", "skills");
-}
-
-export async function readResumeTemplateNotes() {
-	const notesPath = path.join(resolveResumeTemplateDir(), "TEMPLATE_NOTES.md");
-	return fs.readFile(notesPath, "utf8");
 }
 
 export async function readResumeSkillNotes(
@@ -44,87 +35,113 @@ export async function readResumeSkillNotes(
 	return fs.readFile(notesPath, "utf8");
 }
 
-async function resolveTypstBinary() {
-	if (process.env.TYPST_PATH) {
-		return process.env.TYPST_PATH;
-	}
-
-	const candidates = [
-		path.join(os.homedir(), ".local", "bin", "typst"),
-		"/usr/local/bin/typst",
-		"typst",
-	];
-
-	for (const candidate of candidates) {
-		if (candidate === "typst") {
-			return candidate;
-		}
-		try {
-			await fs.access(candidate);
-			return candidate;
-		} catch {
-			// try next
-		}
-	}
-
-	return "typst";
-}
-
 function resumePdfKey(userId: string, resumeId: string) {
 	return `users/${userId}/resumes/${resumeId}.pdf`;
 }
 
-function safeFilename(name: string) {
+function resumePreviewKey(userId: string, resumeId: string) {
+	return `users/${userId}/resumes/${resumeId}-preview.png`;
+}
+
+function safeFilename(name: string, extension: "pdf" | "png") {
 	const cleaned = name
 		.replace(/[^\w\s.-]+/g, "")
 		.trim()
 		.replace(/\s+/g, "-")
 		.slice(0, 80);
-	return `${cleaned || "resume"}.pdf`;
+	return `${cleaned || "resume"}.${extension}`;
 }
 
-async function compileTypstToPdf(sourceTyp: string) {
-	const templateDir = resolveResumeTemplateDir();
-	const libTypPath = path.join(templateDir, "lib.typ");
+async function upsertResumeBinaryFile(input: {
+	userId: string;
+	existingFileId: string | null;
+	key: string;
+	filename: string;
+	contentType: string;
+	body: Buffer;
+}) {
+	let fileId = input.existingFileId;
+	let existingFile = fileId
+		? await getUserFileForUser(fileId, input.userId)
+		: null;
 
-	try {
-		await fs.access(libTypPath);
-	} catch {
-		throw new Error(
-			`Resume template is not configured. Missing ${libTypPath}.`,
-		);
+	if (!existingFile) {
+		const byKey = await getUserFilesByKeys([input.key], input.userId);
+		existingFile = byKey[0] ?? null;
+		fileId = existingFile?.id ?? null;
 	}
 
+	await putR2Object({
+		key: input.key,
+		body: input.body,
+		contentType: input.contentType,
+	});
+
+	if (existingFile) {
+		await db
+			.update(userFiles)
+			.set({
+				key: input.key,
+				filename: input.filename,
+				contentType: input.contentType,
+				size: input.body.byteLength,
+			})
+			.where(eq(userFiles.id, existingFile.id));
+		return existingFile.id;
+	}
+
+	const row = await insertUserFileRow({
+		id: nanoid(),
+		userId: input.userId,
+		key: input.key,
+		filename: input.filename,
+		contentType: input.contentType,
+		size: input.body.byteLength,
+	});
+	return row.id;
+}
+
+export async function compileHtmlToPdf(html: string) {
 	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-compile-"));
+	const htmlPath = path.join(workDir, "resume.html");
 
 	try {
-		await fs.copyFile(libTypPath, path.join(workDir, "lib.typ"));
-		await fs.writeFile(path.join(workDir, "resume.typ"), sourceTyp, "utf8");
+		await fs.writeFile(htmlPath, html, "utf8");
 
-		const typstBin = await resolveTypstBinary();
+		const browser = await chromium.launch({
+			headless: true,
+		});
 		try {
-			await execFileAsync(typstBin, ["compile", "resume.typ", "main.pdf"], {
-				cwd: workDir,
-				timeout: 180_000,
-				maxBuffer: 10 * 1024 * 1024,
-				env: process.env,
+			const page = await browser.newPage();
+			await page.goto(pathToFileURL(htmlPath).href, {
+				waitUntil: "networkidle",
+				timeout: 120_000,
 			});
-		} catch (error) {
-			const stderr =
-				error && typeof error === "object" && "stderr" in error
-					? String((error as { stderr?: Buffer | string }).stderr ?? "")
-					: "";
-			const stdout =
-				error && typeof error === "object" && "stdout" in error
-					? String((error as { stdout?: Buffer | string }).stdout ?? "")
-					: "";
-			const details = `${stdout}\n${stderr}`.trim();
-			throw new Error(
-				`Typst compile failed${details ? `: ${details.slice(-1500)}` : ""}`,
-			);
+			await page.evaluate(async () => {
+				if (document.fonts?.ready) {
+					await document.fonts.ready;
+				}
+			});
+			const pdfBuffer = await page.pdf({
+				format: "A4",
+				printBackground: true,
+				preferCSSPageSize: true,
+				margin: {
+					top: "0",
+					right: "0",
+					bottom: "0",
+					left: "0",
+				},
+			});
+			await page.close();
+			return Buffer.from(pdfBuffer);
+		} finally {
+			await browser.close();
 		}
-
-		return fs.readFile(path.join(workDir, "main.pdf"));
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message.slice(0, 1500) : "PDF failed";
+		throw new Error(`HTML to PDF compile failed: ${message}`);
 	} finally {
 		await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
 	}
@@ -145,54 +162,35 @@ export async function compileResumePdf(input: {
 	});
 
 	try {
-		const document = getResumeDocument(resume);
-		const sourceTyp = renderResumeTypst(document);
-		const pdfBuffer = await compileTypstToPdf(sourceTyp);
-		const key = resumePdfKey(input.userId, input.resumeId);
-		const filename = safeFilename(resume.name);
+		const templateRef = normalizeTemplateRef(resume.templateRef);
+		const template = await resolveTemplate(templateRef, input.userId);
+		const document = template.validate(getResumeDocument(resume));
+		const html = template.render(document);
+		const [pdfBuffer, pngBuffer] = await Promise.all([
+			compileHtmlToPdf(html),
+			compileHtmlToPng(html),
+		]);
 
-		await putR2Object({
-			key,
-			body: pdfBuffer,
+		const pdfFileId = await upsertResumeBinaryFile({
+			userId: input.userId,
+			existingFileId: resume.pdfFileId,
+			key: resumePdfKey(input.userId, input.resumeId),
+			filename: safeFilename(resume.name, "pdf"),
 			contentType: "application/pdf",
+			body: pdfBuffer,
 		});
-
-		let pdfFileId = resume.pdfFileId;
-		let existingFile = pdfFileId
-			? await getUserFileForUser(pdfFileId, input.userId)
-			: null;
-
-		if (!existingFile) {
-			const byKey = await getUserFilesByKeys([key], input.userId);
-			existingFile = byKey[0] ?? null;
-			pdfFileId = existingFile?.id ?? null;
-		}
-
-		if (existingFile) {
-			await db
-				.update(userFiles)
-				.set({
-					key,
-					filename,
-					contentType: "application/pdf",
-					size: pdfBuffer.byteLength,
-				})
-				.where(eq(userFiles.id, existingFile.id));
-			pdfFileId = existingFile.id;
-		} else {
-			const row = await insertUserFileRow({
-				id: nanoid(),
-				userId: input.userId,
-				key,
-				filename,
-				contentType: "application/pdf",
-				size: pdfBuffer.byteLength,
-			});
-			pdfFileId = row.id;
-		}
+		const previewFileId = await upsertResumeBinaryFile({
+			userId: input.userId,
+			existingFileId: resume.previewFileId,
+			key: resumePreviewKey(input.userId, input.resumeId),
+			filename: safeFilename(resume.name, "png"),
+			contentType: "image/png",
+			body: pngBuffer,
+		});
 
 		const updated = await updateResumeForUser(input.resumeId, input.userId, {
 			pdfFileId,
+			previewFileId,
 			compileStatus: "ready",
 			compileError: null,
 			compiledAt: new Date(),

@@ -11,7 +11,7 @@ on:
       - "lib/db/**"
       - "lib/r2.ts"
       - "lib/resume-compile.ts"
-      - "lib/resume-render-typst.ts"
+      - "lib/resume-templates/**"
       - "package.json"
       - "bun.lock"
       - ".github/workflows/deploy-trigger-prod.yml"

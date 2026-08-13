@@ -1,10 +1,12 @@
-import { UserButton } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { BrandLogo } from "@/components/landing/brand-logo";
-import { ModeToggle } from "@/components/mode-toggle";
+import { HeaderUserMenu } from "@/components/landing/header-user-menu";
+import { getUserContext } from "@/lib/db/contexts";
+import { getUserFileForUser } from "@/lib/db/files";
 import { getUserById } from "@/lib/db/users";
+import { resolveOnboardingStep } from "@/lib/onboarding/progress";
 
 import { OnboardingWizard } from "./_components/onboarding-wizard";
 
@@ -16,30 +18,41 @@ export default async function OnboardingPage() {
 		redirect("/sign-in");
 	}
 
-	const dbUser = await getUserById(userId);
+	const [dbUser, context] = await Promise.all([
+		getUserById(userId),
+		getUserContext(userId),
+	]);
 
 	if (dbUser?.onboardedAt) {
 		redirect("/new-chat");
 	}
 
+	const resumeFileId = context?.sourceFileIds?.[0] ?? "";
+	const resumeFile = resumeFileId
+		? await getUserFileForUser(resumeFileId, userId)
+		: null;
+	const effectiveContext =
+		context && resumeFileId && !resumeFile
+			? { ...context, sourceFileIds: [] }
+			: context;
+	const initialStep = resolveOnboardingStep(effectiveContext);
+
 	return (
 		<div className="flex min-h-full flex-1 flex-col bg-background">
-			<header className="border-b border-border">
+			<header className="sticky top-0 z-50 border-b border-border bg-background">
 				<div className="rail flex h-14 items-center justify-between px-4 sm:px-8 md:px-10">
 					<BrandLogo />
-					<div className="flex items-center gap-2">
-						<ModeToggle />
-						<UserButton
-							appearance={{
-								elements: {
-									avatarBox: "size-8",
-								},
-							}}
-						/>
-					</div>
+					<HeaderUserMenu />
 				</div>
 			</header>
-			<OnboardingWizard />
+			<OnboardingWizard
+				initialStep={initialStep}
+				initialResumeFileId={resumeFile?.id ?? ""}
+				initialResumeFilename={resumeFile?.filename ?? ""}
+				initialResumeMediaType={resumeFile?.contentType ?? ""}
+				initialLinkedinUrl={context?.linkedinUrl ?? ""}
+				initialIntroduction={context?.introduction ?? ""}
+			/>
 		</div>
 	);
 }

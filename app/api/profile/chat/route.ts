@@ -4,7 +4,6 @@ import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
-import { getUserContext } from "@/lib/db/contexts";
 import { checkUsageLimit } from "@/lib/db/usage";
 import {
 	ensureProfileChatThreadForUser,
@@ -72,24 +71,18 @@ export async function POST(req: Request) {
 		? (params.messages as UIMessage[])
 		: [];
 
-	const [thread, context] = await Promise.all([
-		ensureProfileChatThreadForUser({
-			userId,
-			threadId,
-			preview: previewFromMessages(messages),
-		}),
-		getUserContext(userId),
-	]);
+	const thread = await ensureProfileChatThreadForUser({
+		userId,
+		threadId,
+		preview: previewFromMessages(messages),
+	});
 	if (!thread) {
 		return Response.json({ error: "Chat not found" }, { status: 404 });
 	}
 
-	const needsOnboarding = !context?.profile?.trim();
-
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
-	requestContext.set("needsOnboarding", needsOnboarding);
 	requestContext.set("chatSurface", "profile");
 
 	const stream = await handleChatStream({

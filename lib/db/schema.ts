@@ -29,6 +29,12 @@ export type CompileStatus = (typeof COMPILE_STATUSES)[number];
 
 export const compileStatusEnum = pgEnum("compile_status", COMPILE_STATUSES);
 
+export const TEMPLATE_STATUSES = ["drafting", "ready", "failed"] as const;
+
+export type TemplateStatus = (typeof TEMPLATE_STATUSES)[number];
+
+export const templateStatusEnum = pgEnum("template_status", TEMPLATE_STATUSES);
+
 export const users = pgTable("users", {
 	id: text("id").primaryKey(),
 	email: text("email").notNull().unique(),
@@ -81,6 +87,9 @@ export const userContexts = pgTable("user_contexts", {
 		.references(() => users.id, { onDelete: "cascade" }),
 	profile: text("profile").notNull(),
 	role: text("role"),
+	linkedinUrl: text("linkedin_url"),
+	introduction: text("introduction"),
+	templateRef: text("template_ref"),
 	sourceFileIds: jsonb("source_file_ids")
 		.$type<string[]>()
 		.notNull()
@@ -93,6 +102,47 @@ export const userContexts = pgTable("user_contexts", {
 		.notNull(),
 });
 
+export const resumeTemplates = pgTable(
+	"resume_templates",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		description: text("description").notNull().default(""),
+		inputSchema: jsonb("input_schema")
+			.$type<Record<string, unknown>>()
+			.notNull()
+			.default({}),
+		html: text("html").notNull().default(""),
+		notes: text("notes").notNull().default(""),
+		sourceFileId: text("source_file_id").references(() => userFiles.id, {
+			onDelete: "set null",
+		}),
+		previewFileId: text("preview_file_id").references(() => userFiles.id, {
+			onDelete: "set null",
+		}),
+		previewPdfFileId: text("preview_pdf_file_id").references(() => userFiles.id, {
+			onDelete: "set null",
+		}),
+		status: templateStatusEnum("status").notNull().default("drafting"),
+		error: text("error"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("resume_templates_user_id_updated_at_idx").on(
+			table.userId,
+			table.updatedAt,
+		),
+	],
+);
+
 export const resumes = pgTable(
 	"resumes",
 	{
@@ -101,11 +151,18 @@ export const resumes = pgTable(
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
+		templateRef: text("template_ref").notNull().default("builtin:classic-serif"),
 		sourceJson: jsonb("source_json")
 			.$type<Record<string, unknown>>()
 			.notNull(),
 		jobDescription: text("job_description"),
+		companyName: text("company_name"),
+		roleTitle: text("role_title"),
+		jobLink: text("job_link"),
 		pdfFileId: text("pdf_file_id").references(() => userFiles.id, {
+			onDelete: "set null",
+		}),
+		previewFileId: text("preview_file_id").references(() => userFiles.id, {
 			onDelete: "set null",
 		}),
 		compileStatus: compileStatusEnum("compile_status")
@@ -122,6 +179,7 @@ export const resumes = pgTable(
 	},
 	(table) => [
 		index("resumes_user_id_updated_at_idx").on(table.userId, table.updatedAt),
+		index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
 	],
 );
 
@@ -193,6 +251,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 		references: [userContexts.userId],
 	}),
 	resumes: many(resumes),
+	resumeTemplates: many(resumeTemplates),
 	usageDaily: many(usageDaily),
 	creditGrants: many(creditGrants, { relationName: "grantee" }),
 	grantsGiven: many(creditGrants, { relationName: "granter" }),
@@ -213,6 +272,28 @@ export const userContextsRelations = relations(userContexts, ({ one }) => ({
 		references: [users.id],
 	}),
 }));
+
+export const resumeTemplatesRelations = relations(
+	resumeTemplates,
+	({ one }) => ({
+		user: one(users, {
+			fields: [resumeTemplates.userId],
+			references: [users.id],
+		}),
+		sourceFile: one(userFiles, {
+			fields: [resumeTemplates.sourceFileId],
+			references: [userFiles.id],
+		}),
+		previewFile: one(userFiles, {
+			fields: [resumeTemplates.previewFileId],
+			references: [userFiles.id],
+		}),
+		previewPdfFile: one(userFiles, {
+			fields: [resumeTemplates.previewPdfFileId],
+			references: [userFiles.id],
+		}),
+	}),
+);
 
 export const resumesRelations = relations(resumes, ({ one }) => ({
 	user: one(users, {

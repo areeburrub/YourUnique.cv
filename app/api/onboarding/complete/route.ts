@@ -1,7 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { getUserContext } from "@/lib/db/contexts";
 import { markUserOnboarded } from "@/lib/db/users";
+import {
+	isOnboardingContextComplete,
+	resolveOnboardingStep,
+} from "@/lib/onboarding/progress";
 import { PlanId, isPlanId } from "@/lib/plans";
 
 export async function POST(req: Request) {
@@ -29,12 +34,22 @@ export async function POST(req: Request) {
 		);
 	}
 
+	const context = await getUserContext(userId);
+	if (!isOnboardingContextComplete(context)) {
+		const nextStep = resolveOnboardingStep(context);
+		return NextResponse.json(
+			{
+				error: "Finish the earlier onboarding steps first",
+				nextStep,
+			},
+			{ status: 400 },
+		);
+	}
+
 	await markUserOnboarded(userId);
 
 	const redirectUrl =
-		planId === PlanId.PRO
-			? "/api/checkout"
-			: "/new-chat?onboarding=1";
+		planId === PlanId.PRO ? "/api/checkout" : "/new-chat";
 
 	return NextResponse.json({ redirectUrl });
 }

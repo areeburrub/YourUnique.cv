@@ -6,17 +6,14 @@ import {
 	type CompileStatus,
 	resumes,
 } from "@/lib/db/schema";
-import {
-	type ResumeDocument,
-	parseResumeDocument,
-} from "@/lib/resume-document";
+import { DEFAULT_TEMPLATE_REF } from "@/lib/resume-templates/types";
 
 export type ResumeRow = typeof resumes.$inferSelect;
 
 export async function listResumesForUser(userId: string) {
 	return db.query.resumes.findMany({
 		where: eq(resumes.userId, userId),
-		orderBy: [desc(resumes.updatedAt)],
+		orderBy: [desc(resumes.createdAt)],
 	});
 }
 
@@ -26,26 +23,32 @@ export async function getResumeForUser(resumeId: string, userId: string) {
 	});
 }
 
-export function getResumeDocument(row: ResumeRow): ResumeDocument {
-	return parseResumeDocument(row.sourceJson);
+export function getResumeDocument(row: ResumeRow): Record<string, unknown> {
+	return (row.sourceJson ?? {}) as Record<string, unknown>;
 }
 
 export async function createResume(input: {
 	userId: string;
 	name: string;
-	document: ResumeDocument;
+	document: Record<string, unknown>;
+	templateRef: string;
 	jobDescription?: string | null;
+	companyName?: string | null;
+	roleTitle?: string | null;
+	jobLink?: string | null;
 }) {
-	const document = parseResumeDocument(input.document);
-
 	const [row] = await db
 		.insert(resumes)
 		.values({
 			id: nanoid(),
 			userId: input.userId,
 			name: input.name,
-			sourceJson: document,
+			templateRef: input.templateRef || DEFAULT_TEMPLATE_REF,
+			sourceJson: input.document,
 			jobDescription: input.jobDescription ?? null,
+			companyName: input.companyName?.trim() || null,
+			roleTitle: input.roleTitle?.trim() || null,
+			jobLink: input.jobLink?.trim() || null,
 			compileStatus: "idle",
 		})
 		.returning();
@@ -58,9 +61,14 @@ export async function updateResumeForUser(
 	userId: string,
 	data: {
 		name?: string;
-		document?: ResumeDocument;
+		document?: Record<string, unknown>;
+		templateRef?: string;
 		jobDescription?: string | null;
+		companyName?: string | null;
+		roleTitle?: string | null;
+		jobLink?: string | null;
 		pdfFileId?: string | null;
+		previewFileId?: string | null;
 		compileStatus?: CompileStatus;
 		compileError?: string | null;
 		compiledAt?: Date | null;
@@ -76,8 +84,20 @@ export async function updateResumeForUser(
 	if (data.jobDescription !== undefined) {
 		patch.jobDescription = data.jobDescription;
 	}
+	if (data.companyName !== undefined) {
+		patch.companyName = data.companyName?.trim() || null;
+	}
+	if (data.roleTitle !== undefined) {
+		patch.roleTitle = data.roleTitle?.trim() || null;
+	}
+	if (data.jobLink !== undefined) {
+		patch.jobLink = data.jobLink?.trim() || null;
+	}
 	if (data.pdfFileId !== undefined) {
 		patch.pdfFileId = data.pdfFileId;
+	}
+	if (data.previewFileId !== undefined) {
+		patch.previewFileId = data.previewFileId;
 	}
 	if (data.compileStatus !== undefined) {
 		patch.compileStatus = data.compileStatus;
@@ -88,8 +108,11 @@ export async function updateResumeForUser(
 	if (data.compiledAt !== undefined) {
 		patch.compiledAt = data.compiledAt;
 	}
+	if (data.templateRef !== undefined) {
+		patch.templateRef = data.templateRef;
+	}
 	if (data.document !== undefined) {
-		patch.sourceJson = parseResumeDocument(data.document);
+		patch.sourceJson = data.document;
 	}
 
 	const [row] = await db
@@ -104,7 +127,7 @@ export async function updateResumeForUser(
 export async function replaceResumeDocument(
 	resumeId: string,
 	userId: string,
-	document: ResumeDocument,
+	document: Record<string, unknown>,
 ) {
 	return updateResumeForUser(resumeId, userId, {
 		document,

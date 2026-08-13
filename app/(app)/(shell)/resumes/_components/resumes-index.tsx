@@ -1,7 +1,13 @@
 "use client";
 
-import { Download, FileText, LoaderCircle, MessageSquare } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import {
+	Download,
+	ExternalLink,
+	FileText,
+	LoaderCircle,
+	MessageSquare,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSoftNav } from "@/components/app/soft-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -14,60 +20,12 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import {
+	groupResumesByDate,
 	isResumeCompiling,
 	resumeDownloadPath,
 	type ResumeListItem,
 } from "@/lib/resumes";
 import { cn } from "@/lib/utils";
-
-function formatUpdatedAt(iso: string) {
-	const date = new Date(iso);
-	const now = new Date();
-	const startOfToday = new Date(
-		now.getFullYear(),
-		now.getMonth(),
-		now.getDate(),
-	);
-	const startOfThatDay = new Date(
-		date.getFullYear(),
-		date.getMonth(),
-		date.getDate(),
-	);
-	const dayDiff = Math.round(
-		(startOfToday.getTime() - startOfThatDay.getTime()) / 86_400_000,
-	);
-
-	if (dayDiff === 0) {
-		return date.toLocaleTimeString(undefined, {
-			hour: "numeric",
-			minute: "2-digit",
-		});
-	}
-	if (dayDiff === 1) {
-		return "Yesterday";
-	}
-	if (dayDiff < 7) {
-		return date.toLocaleDateString(undefined, { weekday: "short" });
-	}
-	return date.toLocaleDateString(undefined, {
-		month: "short",
-		day: "numeric",
-	});
-}
-
-function UpdatedAt({ iso }: { iso: string }) {
-	const [label, setLabel] = useState<string | null>(null);
-
-	useEffect(() => {
-		setLabel(formatUpdatedAt(iso));
-	}, [iso]);
-
-	return (
-		<span className="shrink-0 text-[12px] text-muted-soft" suppressHydrationWarning>
-			{label ?? "\u00a0"}
-		</span>
-	);
-}
 
 function statusLabel(status: ResumeListItem["compileStatus"]) {
 	switch (status) {
@@ -107,6 +65,8 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 	const [resumes, setResumes] = useState(initialResumes);
 	const [preview, setPreview] = useState<ResumeListItem | null>(null);
 
+	const groups = useMemo(() => groupResumesByDate(resumes), [resumes]);
+
 	const refresh = useCallback(async () => {
 		const res = await fetch("/api/resumes");
 		if (!res.ok) {
@@ -137,14 +97,14 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="shrink-0 border-b border-border px-4 py-5 sm:px-6">
-				<div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+				<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
 						<div className="min-w-0">
 							<h1 className="font-display text-[24px] font-medium tracking-[-0.48px] text-foreground">
 								Resumes
 							</h1>
 							<p className="mt-1 text-sm text-muted-foreground">
-								PDF resumes drafted in chat. Click a ready resume to preview.
+								Tailored PDFs from chat, grouped by the day you created them.
 							</p>
 						</div>
 						<Button
@@ -161,7 +121,7 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 			</div>
 
 			<div className="min-h-0 flex-1 overflow-auto">
-				<div className="mx-auto w-full max-w-3xl px-4 py-2 sm:px-6">
+				<div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
 					{resumes.length === 0 ? (
 						<div className="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
 							<div className="flex size-12 items-center justify-center rounded-media border border-border bg-surface-subtle text-brand">
@@ -185,101 +145,33 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 							</Button>
 						</div>
 					) : (
-						<ul className="divide-y divide-border">
-							{resumes.map((resume) => {
-								const compiling = isResumeCompiling(resume.compileStatus);
-								const canPreview =
-									resume.compileStatus === "ready" && resume.hasPdf;
-
-								return (
-									<li key={resume.id}>
-										<div
-											className={cn(
-												"flex items-start gap-3 py-4",
-												"-mx-2 rounded-control px-2 sm:-mx-3 sm:px-3",
-												canPreview &&
-													"cursor-pointer transition-colors hover:bg-surface-subtle/80",
-											)}
-											onClick={() => {
-												if (canPreview) {
-													setPreview(resume);
-												}
-											}}
-											onKeyDown={(event) => {
-												if (
-													canPreview &&
-													(event.key === "Enter" || event.key === " ")
-												) {
-													event.preventDefault();
-													setPreview(resume);
-												}
-											}}
-											role={canPreview ? "button" : undefined}
-											tabIndex={canPreview ? 0 : undefined}
-										>
-											<div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-media border border-border bg-background text-muted-foreground">
-												{compiling ? (
-													<LoaderCircle className="size-4 animate-spin" />
-												) : (
-													<FileText className="size-4" />
-												)}
-											</div>
-											<div className="min-w-0 flex-1">
-												<div className="flex items-baseline justify-between gap-3">
-													<h2 className="truncate text-sm font-medium text-foreground">
-														{resume.name}
-													</h2>
-													<UpdatedAt iso={resume.updatedAt} />
-												</div>
-												<div className="mt-1.5 flex flex-wrap items-center gap-2">
-													<span
-														className={cn(
-															"inline-flex items-center rounded-control border px-1.5 py-0.5 text-[11px] font-medium",
-															statusClass(resume.compileStatus),
-														)}
-													>
-														{statusLabel(resume.compileStatus)}
-													</span>
-													{canPreview ? (
-														<span className="text-[12px] text-muted-soft">
-															Click to preview
-														</span>
-													) : null}
-													{resume.compileStatus === "failed" &&
-													resume.compileError ? (
-														<p className="line-clamp-2 text-[12px] text-red-700">
-															{resume.compileError}
-														</p>
-													) : null}
-												</div>
-											</div>
-											{canPreview ? (
-												<a
-													href={resumeDownloadPath(resume.id, {
-														download: true,
-													})}
-													download
-													onClick={(event) => event.stopPropagation()}
-													className={cn(
-														buttonVariants({
-															variant: "outline",
-															size: "sm",
-														}),
-														"shrink-0",
-													)}
-												>
-													<Download data-icon="inline-start" />
-													Download
-												</a>
-											) : null}
-										</div>
-									</li>
-								);
-							})}
-						</ul>
+						<div className="space-y-10">
+							{groups.map((group) => (
+								<section key={group.key} className="space-y-4">
+									<div className="flex items-baseline justify-between gap-3">
+										<h2 className="text-base font-semibold tracking-[-0.2px]">
+											{group.label}
+										</h2>
+										<span className="text-xs text-muted-foreground">
+											{group.resumes.length}{" "}
+											{group.resumes.length === 1 ? "resume" : "resumes"}
+										</span>
+									</div>
+									<div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+										{group.resumes.map((resume) => (
+											<ResumeCard
+												key={resume.id}
+												resume={resume}
+												onPreview={() => setPreview(resume)}
+											/>
+										))}
+									</div>
+								</section>
+							))}
+						</div>
 					)}
 					{hasInFlight ? (
-						<p className="px-2 py-4 text-center text-[12px] text-muted-soft">
+						<p className="px-2 py-6 text-center text-[12px] text-muted-soft">
 							Refreshing while PDFs compile…
 						</p>
 					) : null}
@@ -302,7 +194,9 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 						<>
 							<DialogHeader className="border-b border-border px-4 py-3">
 								<DialogTitle className="truncate pr-8">
-									{preview.name}
+									{preview.roleTitle && preview.companyName
+										? `${preview.roleTitle} @ ${preview.companyName}`
+										: preview.name}
 								</DialogTitle>
 								<DialogDescription>
 									Preview of your compiled PDF resume.
@@ -315,14 +209,27 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 								style={{ height: "min(72vh, 44rem)" }}
 							/>
 							<DialogFooter className="sm:justify-between">
-								<a
-									href={resumeDownloadPath(preview.id)}
-									target="_blank"
-									rel="noreferrer"
-									className={buttonVariants({ variant: "outline" })}
-								>
-									Open in new tab
-								</a>
+								<div className="flex flex-wrap gap-2">
+									<a
+										href={resumeDownloadPath(preview.id)}
+										target="_blank"
+										rel="noreferrer"
+										className={buttonVariants({ variant: "outline" })}
+									>
+										Open in new tab
+									</a>
+									{preview.jobLink ? (
+										<a
+											href={preview.jobLink}
+											target="_blank"
+											rel="noreferrer"
+											className={buttonVariants({ variant: "outline" })}
+										>
+											<ExternalLink data-icon="inline-start" />
+											Job posting
+										</a>
+									) : null}
+								</div>
 								<a
 									href={resumeDownloadPath(preview.id, { download: true })}
 									download
@@ -337,5 +244,145 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 				</DialogContent>
 			</Dialog>
 		</div>
+	);
+}
+
+function ResumeCard({
+	resume,
+	onPreview,
+}: {
+	resume: ResumeListItem;
+	onPreview: () => void;
+}) {
+	const compiling = isResumeCompiling(resume.compileStatus);
+	const canPreview = resume.compileStatus === "ready" && resume.hasPdf;
+	const title =
+		resume.roleTitle?.trim() ||
+		resume.name;
+	const subtitle = resume.companyName?.trim() || null;
+
+	return (
+		<article className="group flex flex-col">
+			<div
+				className={cn(
+					"relative overflow-hidden rounded-2xl bg-[#e8ebef] p-2.5 transition-shadow sm:p-3",
+					canPreview
+						? "cursor-pointer hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
+						: "",
+				)}
+				onClick={() => {
+					if (canPreview) {
+						onPreview();
+					}
+				}}
+				onKeyDown={(event) => {
+					if (
+						canPreview &&
+						(event.key === "Enter" || event.key === " ")
+					) {
+						event.preventDefault();
+						onPreview();
+					}
+				}}
+				role={canPreview ? "button" : undefined}
+				tabIndex={canPreview ? 0 : undefined}
+			>
+				<div className="relative overflow-hidden rounded-lg bg-white shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+					{resume.previewUrl ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img
+							src={resume.previewUrl}
+							alt={`${title} preview`}
+							className="aspect-210/297 h-auto w-full object-cover object-top"
+						/>
+					) : (
+						<div className="flex aspect-210/297 flex-col items-center justify-center gap-2 p-6 text-center">
+							{compiling ? (
+								<LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+							) : (
+								<FileText className="size-6 text-muted-foreground" />
+							)}
+							<p className="text-xs text-muted-foreground">
+								{compiling
+									? "Compiling preview…"
+									: resume.compileStatus === "failed"
+										? "Compile failed"
+										: "No preview yet"}
+							</p>
+						</div>
+					)}
+
+					{canPreview ? (
+						<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-all max-md:bg-black/35 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
+							<div className="flex w-[min(100%,13.5rem)] flex-col gap-2.5 px-4">
+								<Button
+									type="button"
+									size="lg"
+									className="h-10 w-full cursor-pointer rounded-xl bg-brand text-sm font-semibold text-brand-foreground shadow-[0_8px_24px_rgba(2,91,255,0.35)] hover:bg-brand/90"
+									onClick={(event) => {
+										event.stopPropagation();
+										onPreview();
+									}}
+								>
+									Preview
+								</Button>
+								<a
+									href={resumeDownloadPath(resume.id, { download: true })}
+									download
+									onClick={(event) => event.stopPropagation()}
+									className={cn(
+										buttonVariants({ size: "lg", variant: "secondary" }),
+										"h-10 w-full cursor-pointer rounded-xl border border-zinc-200 bg-white text-sm font-semibold text-zinc-900 shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:bg-zinc-50 hover:text-zinc-900",
+									)}
+								>
+									<Download data-icon="inline-start" />
+									Download
+								</a>
+							</div>
+						</div>
+					) : null}
+				</div>
+			</div>
+
+			<div className="mt-3 space-y-1.5 px-0.5">
+				<div className="flex items-start justify-between gap-2">
+					<div className="min-w-0">
+						<p className="truncate text-[15px] font-semibold tracking-[-0.2px]">
+							{title}
+						</p>
+						{subtitle ? (
+							<p className="truncate text-sm text-muted-foreground">
+								{subtitle}
+							</p>
+						) : null}
+					</div>
+					<span
+						className={cn(
+							"shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-medium",
+							statusClass(resume.compileStatus),
+						)}
+					>
+						{statusLabel(resume.compileStatus)}
+					</span>
+				</div>
+				{resume.jobLink ? (
+					<a
+						href={resume.jobLink}
+						target="_blank"
+						rel="noreferrer"
+						className="inline-flex items-center gap-1 text-xs font-medium text-brand hover:underline"
+						onClick={(event) => event.stopPropagation()}
+					>
+						Job posting
+						<ExternalLink className="size-3" />
+					</a>
+				) : null}
+				{resume.compileStatus === "failed" && resume.compileError ? (
+					<p className="line-clamp-2 text-xs text-red-700">
+						{resume.compileError}
+					</p>
+				) : null}
+			</div>
+		</article>
 	);
 }

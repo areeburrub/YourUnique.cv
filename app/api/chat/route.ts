@@ -5,11 +5,9 @@ import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
-import { getUserContext } from "@/lib/db/contexts";
 import { attachFilesToThread } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
-import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
 import { mastra } from "@/mastra";
 
 export const maxDuration = 300;
@@ -29,9 +27,7 @@ function previewFromMessages(messages: UIMessage[]) {
 			.join("\n")
 			.trim();
 		if (text) {
-			return isOnboardingKickoffMessage(text)
-				? "Getting to know you"
-				: text;
+			return text;
 		}
 	}
 	return "Attachment";
@@ -85,10 +81,7 @@ export async function POST(req: Request) {
 	}
 
 	const fileIds = fileIdsFromMessages(messages);
-	const [preparedMessages, context] = await Promise.all([
-		prepareMessagesForModel(messages, userId),
-		getUserContext(userId),
-	]);
+	const preparedMessages = await prepareMessagesForModel(messages, userId);
 	if (fileIds.length > 0) {
 		await attachFilesToThread({ userId, threadId, fileIds });
 	}
@@ -97,14 +90,12 @@ export async function POST(req: Request) {
 		params.messages = preparedMessages;
 	}
 
-	const needsOnboarding = !context?.profile?.trim();
 	const chatSurface =
 		params?.chatSurface === "profile" ? "profile" : "main";
 
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
-	requestContext.set("needsOnboarding", needsOnboarding);
 	requestContext.set("sourceFileIds", fileIds);
 	requestContext.set("chatSurface", chatSurface);
 

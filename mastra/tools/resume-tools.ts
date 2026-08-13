@@ -2,6 +2,7 @@ import { createTool } from "@mastra/core/tools";
 import { runs, tasks } from "@trigger.dev/sdk";
 import { z } from "zod";
 
+import { getUserContext } from "@/lib/db/contexts";
 import {
 	createResume,
 	getResumeDocument,
@@ -10,12 +11,15 @@ import {
 	replaceResumeDocument,
 	updateResumeForUser,
 } from "@/lib/db/resumes";
-import { resumeDocumentSchema } from "@/lib/resume-document";
+import { extractLinkedInJobId } from "@/lib/linkedin-jobs";
+import { readResumeSkillNotes } from "@/lib/resume-compile";
 import {
-	readResumeSkillNotes,
-	readResumeTemplateNotes,
-} from "@/lib/resume-compile";
+	resolveTemplate,
+	resolveUserSelectedTemplate,
+} from "@/lib/resume-templates/registry";
+import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
 import type { compileResume } from "@/trigger/compile-resume";
+import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
 
 function requireUserId(
 	requestContext: { get: (key: string) => unknown } | undefined,
@@ -55,6 +59,9 @@ function resumeDownloadUrl(resumeId: string) {
 function toResumeSummary(row: {
 	id: string;
 	name: string;
+	companyName: string | null;
+	roleTitle: string | null;
+	jobLink: string | null;
 	compileStatus: string;
 	compiledAt: Date | null;
 	updatedAt: Date;
@@ -63,6 +70,9 @@ function toResumeSummary(row: {
 	return {
 		id: row.id,
 		name: row.name,
+		companyName: row.companyName,
+		roleTitle: row.roleTitle,
+		jobLink: row.jobLink,
 		compileStatus: row.compileStatus,
 		compiledAt: row.compiledAt?.toISOString() ?? null,
 		updatedAt: row.updatedAt.toISOString(),
@@ -79,6 +89,9 @@ export const listResumesTool = createTool({
 			z.object({
 				id: z.string(),
 				name: z.string(),
+				companyName: z.string().nullable(),
+				roleTitle: z.string().nullable(),
+				jobLink: z.string().nullable(),
 				compileStatus: z.string(),
 				compiledAt: z.string().nullable(),
 				updatedAt: z.string(),
@@ -98,15 +111,19 @@ export const listResumesTool = createTool({
 export const getResumeTool = createTool({
 	id: "get_resume",
 	description:
-		"Get a resume generation including its structured document JSON and compile status.",
+		"Get a resume generation including its structured document JSON, template ref, and compile status.",
 	inputSchema: z.object({
 		id: z.string().min(1).describe("Resume id"),
 	}),
 	outputSchema: z.object({
 		id: z.string(),
 		name: z.string(),
-		document: resumeDocumentSchema,
+		templateRef: z.string(),
+		document: z.record(z.string(), z.unknown()),
 		jobDescription: z.string().nullable(),
+		companyName: z.string().nullable(),
+		roleTitle: z.string().nullable(),
+		jobLink: z.string().nullable(),
 		compileStatus: z.string(),
 		compileError: z.string().nullable(),
 		compiledAt: z.string().nullable(),
@@ -122,8 +139,12 @@ export const getResumeTool = createTool({
 		return {
 			id: row.id,
 			name: row.name,
+			templateRef: normalizeTemplateRef(row.templateRef),
 			document: getResumeDocument(row),
 			jobDescription: row.jobDescription,
+			companyName: row.companyName,
+			roleTitle: row.roleTitle,
+			jobLink: row.jobLink,
 			compileStatus: row.compileStatus,
 			compileError: row.compileError,
 			compiledAt: row.compiledAt?.toISOString() ?? null,
@@ -136,14 +157,42 @@ export const getResumeTool = createTool({
 export const getResumeTemplateNotesTool = createTool({
 	id: "get_resume_template_notes",
 	description:
-		"Read resume document structure rules and content guidelines. Call this before creating or heavily editing a resume document.",
-	inputSchema: z.object({}),
-	outputSchema: z.object({
-		notes: z.string(),
+		"Read the selected resume template's notes and JSON Schema. Call before create_resume / update_resume_document. The document must match inputSchema for this template — schemas differ per template.",
+	inputSchema: z.object({
+		resumeId: z
+			.string()
+			.optional()
+			.describe(
+				"When editing an existing resume, pass its id so notes/schema match the resume snapshot even if the user changed their default template.",
+			),
 	}),
-	execute: async () => {
-		const notes = await readResumeTemplateNotes();
-		return { notes };
+	outputSchema: z.object({
+		templateRef: z.string(),
+		name: z.string(),
+		notes: z.string(),
+		inputSchema: z.record(z.string(), z.unknown()),
+	}),
+	execute: async (input, context) => {
+		const userId = requireUserId(context?.requestContext);
+		let template;
+		if (input.resumeId) {
+			const resume = await getResumeForUser(input.resumeId, userId);
+			if (!resume) {
+				throw new Error("Resume not found");
+			}
+			template = await resolveTemplate(
+				normalizeTemplateRef(resume.templateRef),
+				userId,
+			);
+		} else {
+			template = await resolveUserSelectedTemplate(userId);
+		}
+		return {
+			templateRef: template.ref,
+			name: template.name,
+			notes: template.notes,
+			inputSchema: template.inputSchema,
+		};
 	},
 });
 
@@ -178,34 +227,73 @@ export const getHumanizerNotesTool = createTool({
 export const createResumeTool = createTool({
 	id: "create_resume",
 	description:
-		"Create a new resume from structured document JSON only. Never send Typst/LaTeX/markup.",
+		"Create a new resume from structured document JSON matching the selected template's inputSchema. Never send markup. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
 	inputSchema: z.object({
-		name: z.string().min(1).max(200).describe("Display name for this resume"),
-		document: resumeDocumentSchema.describe(
-			"Structured resume JSON: contact, summary, experience, skills, projects, education",
-		),
+		name: z
+			.string()
+			.min(1)
+			.max(200)
+			.describe(
+				"Display name for this resume, preferably like 'Role @ Company' when tailored",
+			),
+		document: z
+			.record(z.string(), z.unknown())
+			.describe(
+				"Structured resume JSON matching the inputSchema from get_resume_template_notes",
+			),
 		jobDescription: z
 			.string()
 			.optional()
 			.describe("Optional job description this resume was tailored for"),
+		companyName: z
+			.string()
+			.max(200)
+			.optional()
+			.describe("Target company name from the JD when known"),
+		roleTitle: z
+			.string()
+			.max(200)
+			.optional()
+			.describe("Target role / job title from the JD when known"),
+		jobLink: z
+			.string()
+			.max(2000)
+			.optional()
+			.describe("Job posting URL if the user provided one"),
 	}),
 	outputSchema: z.object({
 		id: z.string(),
 		name: z.string(),
+		companyName: z.string().nullable(),
+		roleTitle: z.string().nullable(),
+		jobLink: z.string().nullable(),
+		templateRef: z.string(),
 		compileStatus: z.string(),
 		updatedAt: z.string(),
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
+		const contextRow = await getUserContext(userId);
+		const templateRef = normalizeTemplateRef(contextRow?.templateRef);
+		const template = await resolveTemplate(templateRef, userId);
+		const document = template.validate(input.document);
 		const row = await createResume({
 			userId,
 			name: input.name,
-			document: input.document,
+			document,
+			templateRef: template.ref,
 			jobDescription: input.jobDescription,
+			companyName: input.companyName,
+			roleTitle: input.roleTitle,
+			jobLink: input.jobLink,
 		});
 		return {
 			id: row.id,
 			name: row.name,
+			companyName: row.companyName,
+			roleTitle: row.roleTitle,
+			jobLink: row.jobLink,
+			templateRef: row.templateRef,
 			compileStatus: row.compileStatus,
 			updatedAt: row.updatedAt.toISOString(),
 		};
@@ -215,10 +303,10 @@ export const createResumeTool = createTool({
 export const updateResumeDocumentTool = createTool({
 	id: "update_resume_document",
 	description:
-		"Replace the structured resume JSON for an existing generation. Send the full updated document object — never markup.",
+		"Replace the structured resume JSON for an existing generation. Document must match that resume's template inputSchema. Send the full updated document — never markup.",
 	inputSchema: z.object({
 		id: z.string().min(1),
-		document: resumeDocumentSchema,
+		document: z.record(z.string(), z.unknown()),
 	}),
 	outputSchema: z.object({
 		ok: z.boolean(),
@@ -227,7 +315,16 @@ export const updateResumeDocumentTool = createTool({
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
-		const row = await replaceResumeDocument(input.id, userId, input.document);
+		const existing = await getResumeForUser(input.id, userId);
+		if (!existing) {
+			throw new Error("Resume not found");
+		}
+		const template = await resolveTemplate(
+			normalizeTemplateRef(existing.templateRef),
+			userId,
+		);
+		const document = template.validate(input.document);
+		const row = await replaceResumeDocument(input.id, userId, document);
 		if (!row) {
 			throw new Error("Resume not found");
 		}
@@ -270,7 +367,7 @@ export const renameResumeTool = createTool({
 export const compileResumeTool = createTool({
 	id: "compile_resume",
 	description:
-		"Compile a resume document to PDF via Typst and wait until it finishes. Returns previewUrl and downloadUrl when ready. Call after create/update and share the links with the user.",
+		"Compile a resume document to PDF via the selected HTML template and wait until it finishes. Returns previewUrl and downloadUrl when ready. Call after create/update and share the links with the user.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),
@@ -396,5 +493,85 @@ export const getResumeDownloadTool = createTool({
 			instruction:
 				"Give the user this downloadUrl. Do not download or fetch the PDF yourself.",
 		};
+	},
+});
+
+export const fetchLinkedInJobTool = createTool({
+	id: "fetch_linkedin_job",
+	description:
+		"Fetch a LinkedIn job posting from a jobs URL (view or search-results with currentJobId). Call when the user pasted a LinkedIn job link but not the full job description text. Returns title, company, location, description, and criteria for tailoring.",
+	inputSchema: z.object({
+		url: z
+			.string()
+			.min(1)
+			.describe(
+				"LinkedIn job URL, e.g. https://www.linkedin.com/jobs/view/4443782677/ or a search-results URL with currentJobId",
+			),
+	}),
+	outputSchema: z.object({
+		ok: z.boolean(),
+		jobId: z.string(),
+		jobLink: z.string(),
+		title: z.string(),
+		company: z.string(),
+		location: z.string(),
+		description: z.string(),
+		criteria: z.object({
+			seniority: z.string().optional(),
+			employmentType: z.string().optional(),
+			jobFunction: z.string().optional(),
+			industries: z.string().optional(),
+		}),
+		instruction: z.string(),
+	}),
+	execute: async (input, context) => {
+		requireUserId(context?.requestContext);
+
+		const ref = extractLinkedInJobId(input.url);
+		if (!ref) {
+			throw new Error(
+				"Not a LinkedIn job URL. Expected /jobs/view/<id>/ or a search URL with currentJobId / jobId.",
+			);
+		}
+
+		try {
+			const handle = await tasks.trigger<typeof fetchLinkedInJob>(
+				"fetch-linkedin-job",
+				{ jobId: ref.jobId },
+			);
+
+			const run = await runs.poll<typeof fetchLinkedInJob>(handle.id, {
+				pollIntervalMs: 750,
+			});
+
+			if (!run.isSuccess || !run.output) {
+				const detail =
+					run.error?.message?.slice(0, 800) ??
+					`Fetch run ended with status ${run.status}`;
+				throw new Error(detail);
+			}
+
+			const job = run.output;
+			return {
+				ok: true,
+				jobId: job.jobId,
+				jobLink: job.url,
+				title: job.title,
+				company: job.company,
+				location: job.location,
+				description: job.description,
+				criteria: job.criteria ?? {},
+				instruction:
+					"Use description as the jobDescription for tailoring. Pass company as companyName, title as roleTitle, and jobLink to create_resume. Call get_resume_builder_notes next.",
+			};
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message.slice(0, 800)
+					: "Failed to fetch LinkedIn job";
+			throw new Error(
+				`Could not fetch LinkedIn job. Ensure TRIGGER_SECRET_KEY and FD_PROXY_URL are set and trigger.dev is running. (${message})`,
+			);
+		}
 	},
 });

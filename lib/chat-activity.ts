@@ -16,14 +16,10 @@ export const CHAT_ACTIVITY_PLANNING_STEP_ID = "__planning";
 const toolTitles: Record<string, string> = {
 	"name-chat": "Naming this chat",
 	nameChatTool: "Naming this chat",
-	save_onboarding_context: "Saving your profile",
-	"agent-onboardingAgent": "Learning about you",
 	"agent-resumeAgent": "Working on your resume",
 	"agent-profileEditAgent": "Learning about you",
-	onboardingAgent: "Learning about you",
 	resumeAgent: "Working on your resume",
 	profileEditAgent: "Learning about you",
-	"onboarding-agent": "Learning about you",
 	"resume-agent": "Working on your resume",
 	"profile-edit-agent": "Learning about you",
 	patch_profile: "Updating your profile",
@@ -40,13 +36,13 @@ const toolTitles: Record<string, string> = {
 	rename_resume: "Renaming your resume",
 	compile_resume: "Compiling your PDF",
 	get_resume_download: "Getting your download link",
+	fetch_linkedin_job: "Fetching the job posting",
 };
 
 export function isInternalToolName(name: string) {
 	return (
 		name.startsWith("agent-") ||
 		name.endsWith("Agent") ||
-		name === "onboardingAgent" ||
 		name === "resumeAgent" ||
 		name === "profileEditAgent" ||
 		name === "appAgent"

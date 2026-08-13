@@ -22,8 +22,6 @@ import {
 	ToolActivity,
 } from "@/components/chat/tool-activity";
 import { fileTypeLabel } from "@/lib/file-type";
-import { isOnboardingKickoffMessage } from "@/lib/onboarding-kickoff";
-
 export { isInternalToolName };
 
 export function isChatToolPart(
@@ -168,30 +166,7 @@ export function MessageFilePart({
 	);
 }
 
-export function isHiddenUserMessage(message: UIMessage) {
-	if (message.role !== "user") {
-		return false;
-	}
-	const fileParts = message.parts.filter((part) => part.type === "file");
-	if (fileParts.length > 0) {
-		return false;
-	}
-	const text = message.parts
-		.filter(
-			(part): part is { type: "text"; text: string } =>
-				part.type === "text" && typeof part.text === "string",
-		)
-		.map((part) => part.text)
-		.join("\n")
-		.trim();
-	return isOnboardingKickoffMessage(text);
-}
-
 export function UserMessage({ message }: { message: UIMessage }) {
-	if (isHiddenUserMessage(message)) {
-		return null;
-	}
-
 	const fileParts = message.parts.filter(
 		(part): part is FileUIPart => part.type === "file",
 	);
