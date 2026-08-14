@@ -1,10 +1,12 @@
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import path from "node:path";
 
-import { compileHtmlToPdf } from "@/lib/resume-compile";
-import { compileHtmlToPng } from "@/lib/resume-templates/html-to-image";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import { builtinTemplateSources } from "@/templates/resume";
+import {
+	compileHtmlToPdf,
+	compileHtmlToPng,
+} from "@/trigger/lib/playwright-html";
 
 async function main() {
 	for (const source of builtinTemplateSources) {

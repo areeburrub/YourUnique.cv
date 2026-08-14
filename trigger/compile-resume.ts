@@ -1,7 +1,7 @@
 import { schemaTask } from "@trigger.dev/sdk";
 import { z } from "zod";
 
-import { compileResumePdf } from "@/lib/resume-compile";
+import { compileResumePdf } from "@/trigger/lib/compile-resume-pdf";
 
 export const compileResume = schemaTask({
 	id: "compile-resume",

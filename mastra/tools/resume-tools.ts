@@ -12,7 +12,7 @@ import {
 	updateResumeForUser,
 } from "@/lib/db/resumes";
 import { extractLinkedInJobId } from "@/lib/linkedin-jobs";
-import { readResumeSkillNotes } from "@/lib/resume-compile";
+import { readResumeSkillNotes } from "@/lib/resume-skill-notes";
 import {
 	resolveTemplate,
 	resolveUserSelectedTemplate,

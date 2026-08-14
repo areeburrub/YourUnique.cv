@@ -1,11 +1,5 @@
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { pathToFileURL } from "node:url";
-
 import { eq } from "drizzle-orm";
 import { nanoid } from "nanoid";
-import { chromium } from "playwright";
 
 import { db } from "@/lib/db";
 import {
@@ -20,20 +14,12 @@ import {
 } from "@/lib/db/resumes";
 import { userFiles } from "@/lib/db/schema";
 import { putR2Object } from "@/lib/r2";
-import { compileHtmlToPng } from "@/lib/resume-templates/html-to-image";
 import { resolveTemplate } from "@/lib/resume-templates/registry";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
-
-export function resolveMastraSkillsDir() {
-	return path.join(process.cwd(), "mastra", "skills");
-}
-
-export async function readResumeSkillNotes(
-	name: "humanizer" | "resume-builder",
-) {
-	const notesPath = path.join(resolveMastraSkillsDir(), `${name}.md`);
-	return fs.readFile(notesPath, "utf8");
-}
+import {
+	compileHtmlToPdf,
+	compileHtmlToPng,
+} from "@/trigger/lib/playwright-html";
 
 function resumePdfKey(userId: string, resumeId: string) {
 	return `users/${userId}/resumes/${resumeId}.pdf`;
@@ -99,52 +85,6 @@ async function upsertResumeBinaryFile(input: {
 		size: input.body.byteLength,
 	});
 	return row.id;
-}
-
-export async function compileHtmlToPdf(html: string) {
-	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-compile-"));
-	const htmlPath = path.join(workDir, "resume.html");
-
-	try {
-		await fs.writeFile(htmlPath, html, "utf8");
-
-		const browser = await chromium.launch({
-			headless: true,
-		});
-		try {
-			const page = await browser.newPage();
-			await page.goto(pathToFileURL(htmlPath).href, {
-				waitUntil: "networkidle",
-				timeout: 120_000,
-			});
-			await page.evaluate(async () => {
-				if (document.fonts?.ready) {
-					await document.fonts.ready;
-				}
-			});
-			const pdfBuffer = await page.pdf({
-				format: "A4",
-				printBackground: true,
-				preferCSSPageSize: true,
-				margin: {
-					top: "0",
-					right: "0",
-					bottom: "0",
-					left: "0",
-				},
-			});
-			await page.close();
-			return Buffer.from(pdfBuffer);
-		} finally {
-			await browser.close();
-		}
-	} catch (error) {
-		const message =
-			error instanceof Error ? error.message.slice(0, 1500) : "PDF failed";
-		throw new Error(`HTML to PDF compile failed: ${message}`);
-	} finally {
-		await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
-	}
 }
 
 export async function compileResumePdf(input: {

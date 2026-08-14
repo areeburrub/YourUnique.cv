@@ -5,6 +5,52 @@ import { pathToFileURL } from "node:url";
 
 import { chromium } from "playwright";
 
+export async function compileHtmlToPdf(html: string) {
+	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-compile-"));
+	const htmlPath = path.join(workDir, "resume.html");
+
+	try {
+		await fs.writeFile(htmlPath, html, "utf8");
+
+		const browser = await chromium.launch({
+			headless: true,
+		});
+		try {
+			const page = await browser.newPage();
+			await page.goto(pathToFileURL(htmlPath).href, {
+				waitUntil: "networkidle",
+				timeout: 120_000,
+			});
+			await page.evaluate(async () => {
+				if (document.fonts?.ready) {
+					await document.fonts.ready;
+				}
+			});
+			const pdfBuffer = await page.pdf({
+				format: "A4",
+				printBackground: true,
+				preferCSSPageSize: true,
+				margin: {
+					top: "0",
+					right: "0",
+					bottom: "0",
+					left: "0",
+				},
+			});
+			await page.close();
+			return Buffer.from(pdfBuffer);
+		} finally {
+			await browser.close();
+		}
+	} catch (error) {
+		const message =
+			error instanceof Error ? error.message.slice(0, 1500) : "PDF failed";
+		throw new Error(`HTML to PDF compile failed: ${message}`);
+	} finally {
+		await fs.rm(workDir, { recursive: true, force: true }).catch(() => undefined);
+	}
+}
+
 export async function compileHtmlToPng(html: string) {
 	const workDir = await fs.mkdtemp(path.join(os.tmpdir(), "resume-preview-"));
 	const htmlPath = path.join(workDir, "resume.html");

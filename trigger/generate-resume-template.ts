@@ -9,14 +9,16 @@ import {
 	getResumeTemplateForUser,
 	updateResumeTemplateForUser,
 } from "@/lib/db/templates";
-import { compileHtmlToPdf } from "@/lib/resume-compile";
 import { putR2Object, getR2Object } from "@/lib/r2";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
-import { compileHtmlToPng } from "@/lib/resume-templates/html-to-image";
 import { customTemplatePreviewPdfKey } from "@/lib/resume-templates/registry";
 import { rasterizeSourceFile } from "@/lib/resume-templates/rasterize-source";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
 import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
+import {
+	compileHtmlToPdf,
+	compileHtmlToPng,
+} from "@/trigger/lib/playwright-html";
 
 const MAX_REFINE_ROUNDS = 2;
 const EARLY_STOP_SCORE = 90;
