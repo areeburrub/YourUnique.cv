@@ -40,6 +40,11 @@ export class UsageTracker implements Processor {
 			totalCost += costFromProviderMetadata(step.providerMetadata);
 		}
 
+		const finishReason = result.finishReason;
+		if (finishReason === "error" || finishReason === "abort") {
+			return messages;
+		}
+
 		if (totalCost > 0) {
 			await recordUsage(userId, totalCost);
 		}

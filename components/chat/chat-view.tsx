@@ -25,6 +25,7 @@ import {
 	ChatComposer,
 	type AttachmentUploadState,
 } from "@/components/chat/chat-composer";
+import { ChatInterruptBanner } from "@/components/chat/chat-interrupt-banner";
 import {
 	assistantHasVisibleActivity,
 	ChatThinking,
@@ -42,6 +43,11 @@ import {
 	uploadChatFile,
 	type UploadedFile,
 } from "@/lib/client-uploads";
+import {
+	clearChatTurnInFlight,
+	markChatTurnInFlight,
+	wasChatTurnInterrupted,
+} from "@/lib/chat-interrupt";
 import {
 	getChatThreadHref,
 	getProfileChatThreadHref,
@@ -205,6 +211,26 @@ function latestSuccessfulPatchKey(messages: UIMessage[]) {
 	return null;
 }
 
+function lastTurnLooksUnfinished(messages: UIMessage[]) {
+	const last = messages.at(-1);
+	if (!last) {
+		return false;
+	}
+	if (last.role === "user") {
+		return true;
+	}
+	if (last.role !== "assistant") {
+		return false;
+	}
+	return !last.parts.some(
+		(part) =>
+			part.type === "text" &&
+			"text" in part &&
+			typeof part.text === "string" &&
+			part.text.trim().length > 0,
+	);
+}
+
 export function ChatView({
 	threadId: threadIdProp,
 	initialMessages = [],
@@ -222,6 +248,19 @@ export function ChatView({
 	const queryClient = useQueryClient();
 	const usageStatus = useUsageStatus();
 	const [usageDialogOpen, setUsageDialogOpen] = useState(false);
+	const [interrupted, setInterrupted] = useState(() => {
+		if (!threadIdProp) {
+			return false;
+		}
+		if (
+			wasChatTurnInterrupted(threadIdProp) &&
+			lastTurnLooksUnfinished(initialMessages)
+		) {
+			return true;
+		}
+		clearChatTurnInFlight(threadIdProp);
+		return false;
+	});
 	const [text, setText] = useState("");
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [uploads, setUploads] = useState<Record<string, UploadRecord>>({});
@@ -258,7 +297,17 @@ export function ChatView({
 		threadIdRef.current = threadIdProp;
 		chatSessionId.current = threadIdProp;
 		threadExistsRef.current = true;
-	}, [threadIdProp]);
+		if (
+			wasChatTurnInterrupted(threadIdProp) &&
+			lastTurnLooksUnfinished(initialMessages)
+		) {
+			setInterrupted(true);
+			return;
+		}
+		if (!lastTurnLooksUnfinished(initialMessages)) {
+			clearChatTurnInFlight(threadIdProp);
+		}
+	}, [initialMessages, threadIdProp]);
 
 	const threadHrefFor = useCallback(
 		(id: string) =>
@@ -268,36 +317,51 @@ export function ChatView({
 		[chatSurface],
 	);
 
-	const { messages, sendMessage, status, stop, error } = useChat({
-		id: chatSessionId.current,
-		messages: initialMessages,
-		transport: new DefaultChatTransport({
-			api: "/api/chat",
-			prepareSendMessagesRequest: ({
-				messages: nextMessages,
-				body,
-				id,
-				trigger,
-				messageId,
-			}) => ({
-				body: {
-					...body,
+	const { messages, sendMessage, regenerate, clearError, status, stop, error } =
+		useChat({
+			id: chatSessionId.current,
+			messages: initialMessages,
+			transport: new DefaultChatTransport({
+				api: "/api/chat",
+				prepareSendMessagesRequest: ({
+					messages: nextMessages,
+					body,
 					id,
 					trigger,
 					messageId,
-					messages: nextMessages,
-					threadId: threadIdRef.current,
-					chatSurface: chatSurfaceRef.current,
-				},
+				}) => ({
+					body: {
+						...body,
+						id,
+						trigger,
+						messageId,
+						messages: nextMessages,
+						threadId: threadIdRef.current,
+						chatSurface: chatSurfaceRef.current,
+					},
+				}),
 			}),
-		}),
-	});
+		});
 
 	useEffect(() => {
 		const prev = prevStatusRef.current;
 		prevStatusRef.current = status;
 		const wasBusy = prev === "submitted" || prev === "streaming";
 		const threadId = threadIdRef.current;
+		if (status === "submitted" || status === "streaming") {
+			if (threadId) {
+				markChatTurnInFlight(threadId);
+			}
+			setInterrupted(false);
+		} else if (status === "error") {
+			if (threadId) {
+				markChatTurnInFlight(threadId);
+			}
+			setInterrupted(true);
+		} else if (status === "ready" && wasBusy && threadId) {
+			clearChatTurnInFlight(threadId);
+			setInterrupted(false);
+		}
 		if (status !== "ready" || !wasBusy || !threadId) {
 			return;
 		}
@@ -574,6 +638,25 @@ export function ChatView({
 		submitMessage(nextText, toFileUIParts(uploaded));
 	};
 
+	const handleRetry = () => {
+		if (usageStatus.data?.blocked) {
+			setUsageDialogOpen(true);
+			return;
+		}
+		if (!messages.some((message) => message.role === "user")) {
+			return;
+		}
+		setUploadError(null);
+		setInterrupted(false);
+		clearError();
+		void regenerate().catch((err) => {
+			setInterrupted(true);
+			setUploadError(
+				err instanceof Error ? err.message : "Something went wrong",
+			);
+		});
+	};
+
 	const uploadStates: Record<string, AttachmentUploadState> = {};
 	for (const [id, upload] of Object.entries(uploads)) {
 		uploadStates[id] = {
@@ -590,6 +673,7 @@ export function ChatView({
 		(upload) => upload.status === "ready",
 	);
 	const usageBlocked = Boolean(usageStatus.data?.blocked);
+	const showRetry = Boolean(error) || interrupted;
 	const busy = status !== "ready";
 	const canSubmit =
 		(Boolean(text.trim()) ||
@@ -655,6 +739,12 @@ export function ChatView({
 					Usage limit reached — tap for details
 				</button>
 			) : null}
+			{showRetry ? (
+				<ChatInterruptBanner
+					onRetry={handleRetry}
+					disabled={busy || usageBlocked}
+				/>
+			) : null}
 			<ChatComposer
 				text={text}
 				onTextChange={setText}
@@ -676,13 +766,7 @@ export function ChatView({
 							? "Ask to update your profile, resume, or a job…"
 							: undefined
 				}
-				errorMessage={
-					error || uploadError
-						? uploadError ||
-							error?.message ||
-							"Something went wrong. Try again."
-						: null
-				}
+				errorMessage={uploadError}
 			/>
 		</>
 	);
