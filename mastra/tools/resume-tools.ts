@@ -12,23 +12,39 @@ import {
 	updateResumeForUser,
 } from "@/lib/db/resumes";
 import { extractLinkedInJobId } from "@/lib/linkedin-jobs";
-import { readResumeSkillNotes } from "@/lib/resume-skill-notes";
+import { queueResumeCompile } from "@/lib/resume-compile";
 import {
 	resolveTemplate,
 	resolveUserSelectedTemplate,
 } from "@/lib/resume-templates/registry";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
-import type { compileResume } from "@/trigger/compile-resume";
 import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
 
-function requireUserId(
-	requestContext: { get: (key: string) => unknown } | undefined,
-) {
+const TURN_RESUME_ID_KEY = "turnResumeId";
+
+type ToolRequestContext = {
+	get: (key: string) => unknown;
+	set?: (key: string, value: unknown) => void;
+};
+
+function requireUserId(requestContext: ToolRequestContext | undefined) {
 	const userId = requestContext?.get("userId");
 	if (typeof userId !== "string" || !userId) {
 		throw new Error("Unauthorized");
 	}
 	return userId;
+}
+
+function getTurnResumeId(requestContext: ToolRequestContext | undefined) {
+	const id = requestContext?.get(TURN_RESUME_ID_KEY);
+	return typeof id === "string" && id ? id : null;
+}
+
+function setTurnResumeId(
+	requestContext: ToolRequestContext | undefined,
+	id: string,
+) {
+	requestContext?.set?.(TURN_RESUME_ID_KEY, id);
 }
 
 function appBaseUrl() {
@@ -54,6 +70,21 @@ function resumePreviewUrl(resumeId: string) {
 
 function resumeDownloadUrl(resumeId: string) {
 	return `${appBaseUrl()}/api/resumes/${resumeId}/download?download=1`;
+}
+
+function resumeLinkPayload(row: {
+	id: string;
+	name: string;
+	compileStatus: string;
+}) {
+	return {
+		previewUrl: resumePreviewUrl(row.id),
+		downloadUrl: resumeDownloadUrl(row.id),
+		resumesPath: "/resumes",
+		compileStatus: row.compileStatus,
+		instruction:
+			"The PDF compiles in the background and is shown in chat. Share the downloadUrl. Do not fetch the PDF yourself.",
+	};
 }
 
 function toResumeSummary(row: {
@@ -157,7 +188,7 @@ export const getResumeTool = createTool({
 export const getResumeTemplateNotesTool = createTool({
 	id: "get_resume_template_notes",
 	description:
-		"Read the selected resume template's notes and JSON Schema. Call before create_resume / update_resume_document. The document must match inputSchema for this template — schemas differ per template.",
+		"Read a resume template's notes and JSON Schema. The selected template is already in your instructions — call only when editing an existing resume that may use a different template (pass resumeId).",
 	inputSchema: z.object({
 		resumeId: z
 			.string()
@@ -196,38 +227,10 @@ export const getResumeTemplateNotesTool = createTool({
 	},
 });
 
-export const getResumeBuilderNotesTool = createTool({
-	id: "get_resume_builder_notes",
-	description:
-		"Read job-tailoring / ATS resume-builder skill instructions. Call when the user provided a job description or asked to tailor a resume for a role.",
-	inputSchema: z.object({}),
-	outputSchema: z.object({
-		notes: z.string(),
-	}),
-	execute: async () => {
-		const notes = await readResumeSkillNotes("resume-builder");
-		return { notes };
-	},
-});
-
-export const getHumanizerNotesTool = createTool({
-	id: "get_humanizer_notes",
-	description:
-		"Read humanizer skill instructions for removing AI writing patterns. Call after drafting document prose and rewrite Summary + bullets before create/update finalize.",
-	inputSchema: z.object({}),
-	outputSchema: z.object({
-		notes: z.string(),
-	}),
-	execute: async () => {
-		const notes = await readResumeSkillNotes("humanizer");
-		return { notes };
-	},
-});
-
 export const createResumeTool = createTool({
 	id: "create_resume",
 	description:
-		"Create a new resume from structured document JSON matching the selected template's inputSchema. Never send markup. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
+		"Create a resume from structured document JSON matching the selected template's inputSchema, and queue the PDF. Never send markup. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
 	inputSchema: z.object({
 		name: z
 			.string()
@@ -239,7 +242,7 @@ export const createResumeTool = createTool({
 		document: z
 			.record(z.string(), z.unknown())
 			.describe(
-				"Structured resume JSON matching the inputSchema from get_resume_template_notes",
+				"Structured resume JSON matching the selected template inputSchema",
 			),
 		jobDescription: z
 			.string()
@@ -270,9 +273,52 @@ export const createResumeTool = createTool({
 		templateRef: z.string(),
 		compileStatus: z.string(),
 		updatedAt: z.string(),
+		previewUrl: z.string(),
+		downloadUrl: z.string(),
+		resumesPath: z.string(),
+		instruction: z.string(),
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
+		const turnResumeId = getTurnResumeId(context?.requestContext);
+
+		if (turnResumeId) {
+			const existing = await getResumeForUser(turnResumeId, userId);
+			if (!existing) {
+				throw new Error("Resume not found");
+			}
+			const template = await resolveTemplate(
+				normalizeTemplateRef(existing.templateRef),
+				userId,
+			);
+			const document = template.validate(input.document);
+			const row = await updateResumeForUser(turnResumeId, userId, {
+				name: input.name,
+				document,
+				jobDescription: input.jobDescription,
+				companyName: input.companyName,
+				roleTitle: input.roleTitle,
+				jobLink: input.jobLink,
+			});
+			if (!row) {
+				throw new Error("Resume not found");
+			}
+			const queued = await queueResumeCompile({
+				resumeId: row.id,
+				userId,
+			});
+			return {
+				id: queued.resume.id,
+				name: queued.resume.name,
+				companyName: queued.resume.companyName,
+				roleTitle: queued.resume.roleTitle,
+				jobLink: queued.resume.jobLink,
+				templateRef: queued.resume.templateRef,
+				updatedAt: queued.resume.updatedAt.toISOString(),
+				...resumeLinkPayload(queued.resume),
+			};
+		}
+
 		const contextRow = await getUserContext(userId);
 		const templateRef = normalizeTemplateRef(contextRow?.templateRef);
 		const template = await resolveTemplate(templateRef, userId);
@@ -287,15 +333,20 @@ export const createResumeTool = createTool({
 			roleTitle: input.roleTitle,
 			jobLink: input.jobLink,
 		});
+		setTurnResumeId(context?.requestContext, row.id);
+		const queued = await queueResumeCompile({
+			resumeId: row.id,
+			userId,
+		});
 		return {
-			id: row.id,
-			name: row.name,
-			companyName: row.companyName,
-			roleTitle: row.roleTitle,
-			jobLink: row.jobLink,
-			templateRef: row.templateRef,
-			compileStatus: row.compileStatus,
-			updatedAt: row.updatedAt.toISOString(),
+			id: queued.resume.id,
+			name: queued.resume.name,
+			companyName: queued.resume.companyName,
+			roleTitle: queued.resume.roleTitle,
+			jobLink: queued.resume.jobLink,
+			templateRef: queued.resume.templateRef,
+			updatedAt: queued.resume.updatedAt.toISOString(),
+			...resumeLinkPayload(queued.resume),
 		};
 	},
 });
@@ -303,7 +354,7 @@ export const createResumeTool = createTool({
 export const updateResumeDocumentTool = createTool({
 	id: "update_resume_document",
 	description:
-		"Replace the structured resume JSON for an existing generation. Document must match that resume's template inputSchema. Send the full updated document — never markup.",
+		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match that resume's template inputSchema. Send the full updated document — never markup.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 		document: z.record(z.string(), z.unknown()),
@@ -311,7 +362,13 @@ export const updateResumeDocumentTool = createTool({
 	outputSchema: z.object({
 		ok: z.boolean(),
 		id: z.string(),
+		name: z.string(),
 		updatedAt: z.string().nullable(),
+		compileStatus: z.string(),
+		previewUrl: z.string(),
+		downloadUrl: z.string(),
+		resumesPath: z.string(),
+		instruction: z.string(),
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
@@ -328,10 +385,17 @@ export const updateResumeDocumentTool = createTool({
 		if (!row) {
 			throw new Error("Resume not found");
 		}
+		setTurnResumeId(context?.requestContext, row.id);
+		const queued = await queueResumeCompile({
+			resumeId: row.id,
+			userId,
+		});
 		return {
 			ok: true,
-			id: row.id,
-			updatedAt: row.updatedAt.toISOString(),
+			id: queued.resume.id,
+			name: queued.resume.name,
+			updatedAt: queued.resume.updatedAt.toISOString(),
+			...resumeLinkPayload(queued.resume),
 		};
 	},
 });
@@ -367,7 +431,7 @@ export const renameResumeTool = createTool({
 export const compileResumeTool = createTool({
 	id: "compile_resume",
 	description:
-		"Compile a resume document to PDF via the selected HTML template and wait until it finishes. Returns previewUrl and downloadUrl when ready. Call after create/update and share the links with the user.",
+		"Queue a PDF compile for an existing resume. create_resume and update_resume_document already do this — only call for a resume that has no PDF yet.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),
@@ -389,70 +453,17 @@ export const compileResumeTool = createTool({
 			throw new Error("Resume not found");
 		}
 
-		const updated = await updateResumeForUser(input.id, userId, {
-			compileStatus: "queued",
-			compileError: null,
+		const queued = await queueResumeCompile({
+			resumeId: input.id,
+			userId,
 		});
-		if (!updated) {
-			throw new Error("Resume not found");
-		}
-
-		let runId = "";
-		try {
-			const handle = await tasks.trigger<typeof compileResume>(
-				"compile-resume",
-				{
-					resumeId: input.id,
-					userId,
-				},
-			);
-			runId = handle.id;
-
-			const run = await runs.poll<typeof compileResume>(handle.id, {
-				pollIntervalMs: 750,
-			});
-
-			if (!run.isSuccess) {
-				const detail =
-					run.error?.message?.slice(0, 800) ??
-					`Compile run ended with status ${run.status}`;
-				throw new Error(detail);
-			}
-		} catch (error) {
-			const message =
-				error instanceof Error
-					? error.message.slice(0, 800)
-					: "Failed to compile resume";
-			const row = await getResumeForUser(input.id, userId);
-			if (row?.compileStatus !== "failed") {
-				await updateResumeForUser(input.id, userId, {
-					compileStatus: "failed",
-					compileError: message,
-				});
-			}
-			throw new Error(
-				`PDF compile failed. Ensure TRIGGER_SECRET_KEY is set and trigger.dev is running. (${message})`,
-			);
-		}
-
-		const ready = await getResumeForUser(input.id, userId);
-		if (!ready || ready.compileStatus !== "ready" || !ready.pdfFileId) {
-			throw new Error(
-				`Compile finished but resume is not ready (status: ${ready?.compileStatus ?? "missing"}).`,
-			);
-		}
 
 		return {
 			ok: true,
-			id: ready.id,
-			name: ready.name,
-			compileStatus: ready.compileStatus,
-			runId,
-			previewUrl: resumePreviewUrl(ready.id),
-			downloadUrl: resumeDownloadUrl(ready.id),
-			resumesPath: "/resumes",
-			instruction:
-				"The PDF is ready and shown in chat. Share the downloadUrl with the user. Do not fetch the PDF yourself.",
+			id: queued.resume.id,
+			name: queued.resume.name,
+			runId: queued.runId,
+			...resumeLinkPayload(queued.resume),
 		};
 	},
 });
@@ -460,7 +471,7 @@ export const compileResumeTool = createTool({
 export const getResumeDownloadTool = createTool({
 	id: "get_resume_download",
 	description:
-		"Get preview/download URLs for an already-compiled resume. Prefer compile_resume when you just finished drafting — it waits and returns these URLs.",
+		"Get preview/download URLs for a resume. The PDF may still be compiling — share the URLs anyway.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),
@@ -478,12 +489,6 @@ export const getResumeDownloadTool = createTool({
 		if (!row) {
 			throw new Error("Resume not found");
 		}
-		if (row.compileStatus !== "ready" || !row.pdfFileId) {
-			throw new Error(
-				`Resume PDF is not ready (status: ${row.compileStatus}). Call compile_resume first.`,
-			);
-		}
-
 		return {
 			previewUrl: resumePreviewUrl(row.id),
 			downloadUrl: resumeDownloadUrl(row.id),
@@ -491,7 +496,7 @@ export const getResumeDownloadTool = createTool({
 			compileStatus: row.compileStatus,
 			name: row.name,
 			instruction:
-				"Give the user this downloadUrl. Do not download or fetch the PDF yourself.",
+				"Give the user this downloadUrl. The PDF card in chat updates when compile finishes. Do not download or fetch the PDF yourself.",
 		};
 	},
 });
@@ -562,7 +567,7 @@ export const fetchLinkedInJobTool = createTool({
 				description: job.description,
 				criteria: job.criteria ?? {},
 				instruction:
-					"Use description as the jobDescription for tailoring. Pass company as companyName, title as roleTitle, and jobLink to create_resume. Call get_resume_builder_notes next.",
+					"Use description as the jobDescription for tailoring. Pass company as companyName, title as roleTitle, and jobLink to create_resume.",
 			};
 		} catch (error) {
 			const message =

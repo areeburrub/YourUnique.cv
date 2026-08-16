@@ -3,11 +3,13 @@ import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
+import { lastUserMessageText, resolveChatAgentId } from "@/lib/chat-intent";
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
 import { attachFilesToThread } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
+import { loadResumeBriefing } from "@/lib/resume-briefing";
 import { mastra } from "@/mastra";
 
 export const maxDuration = 300;
@@ -93,15 +95,23 @@ export async function POST(req: Request) {
 	const chatSurface =
 		params?.chatSurface === "profile" ? "profile" : "main";
 
+	const agentId = resolveChatAgentId({
+		chatSurface,
+		lastUserText: lastUserMessageText(preparedMessages),
+	});
+
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
 	requestContext.set("sourceFileIds", fileIds);
 	requestContext.set("chatSurface", chatSurface);
+	if (agentId === "resume-agent") {
+		requestContext.set("resumeBriefing", await loadResumeBriefing(userId));
+	}
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId: "app-agent",
+		agentId,
 		params: {
 			...params,
 			requestContext,

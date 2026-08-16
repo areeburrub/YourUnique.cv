@@ -28,8 +28,6 @@ const toolTitles: Record<string, string> = {
 	list_resumes: "Looking through your resumes",
 	get_resume: "Opening your resume",
 	get_resume_template_notes: "Checking the resume template",
-	get_resume_builder_notes: "Reviewing resume-writing guidance",
-	get_humanizer_notes: "Polishing the wording",
 	create_resume: "Creating your resume",
 	append_to_resume: "Adding to your resume",
 	patch_resume: "Editing your resume",

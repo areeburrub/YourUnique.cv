@@ -22,6 +22,10 @@ import {
 	ToolActivity,
 } from "@/components/chat/tool-activity";
 import { fileTypeLabel } from "@/lib/file-type";
+import {
+	isResumePdfCardTool,
+	type ResumeListItem,
+} from "@/lib/resumes";
 export { isInternalToolName };
 
 export function isChatToolPart(
@@ -231,12 +235,13 @@ function resumeCardFromOutput(output: unknown) {
 		typeof record.name === "string" && record.name.trim()
 			? record.name
 			: "Resume";
-	const ready =
-		record.compileStatus === "ready" ||
-		record.ok === true ||
-		Boolean(previewUrl);
+	const compileStatus = (
+		typeof record.compileStatus === "string"
+			? record.compileStatus
+			: undefined
+	) as ResumeListItem["compileStatus"] | undefined;
 
-	if (!ready || !previewUrl || !downloadUrl) {
+	if (!previewUrl || !downloadUrl) {
 		return null;
 	}
 
@@ -244,12 +249,13 @@ function resumeCardFromOutput(output: unknown) {
 		name: resumeName,
 		previewUrl,
 		downloadUrl,
+		compileStatus,
 	};
 }
 
 function resumeCardFromToolPart(part: ToolUIPart | DynamicToolUIPart) {
 	const name = getToolName(part);
-	if (name !== "compile_resume" && name !== "get_resume_download") {
+	if (!isResumePdfCardTool(name)) {
 		return null;
 	}
 	if (part.state !== "output-available") {
@@ -264,6 +270,7 @@ function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 			name: string;
 			previewUrl: string;
 			downloadUrl: string;
+			compileStatus?: ResumeListItem["compileStatus"];
 		}>;
 	}
 	const output = part.output as {
@@ -281,8 +288,8 @@ function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 	for (const result of output.subAgentToolResults) {
 		if (
 			result.isError ||
-			(result.toolName !== "compile_resume" &&
-				result.toolName !== "get_resume_download")
+			!result.toolName ||
+			!isResumePdfCardTool(result.toolName)
 		) {
 			continue;
 		}
@@ -314,7 +321,12 @@ export function renderAssistantParts(
 
 	const seenResumeIds = new Set<string>();
 	const pushResumeCard = (
-		card: { name: string; previewUrl: string; downloadUrl: string } | null,
+		card: {
+			name: string;
+			previewUrl: string;
+			downloadUrl: string;
+			compileStatus?: ResumeListItem["compileStatus"];
+		} | null,
 		key: string,
 	) => {
 		if (!card || seenResumeIds.has(card.previewUrl)) {
@@ -327,6 +339,7 @@ export function renderAssistantParts(
 				name={card.name}
 				previewUrl={card.previewUrl}
 				downloadUrl={card.downloadUrl}
+				compileStatus={card.compileStatus}
 			/>,
 		);
 	};

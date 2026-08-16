@@ -35,16 +35,14 @@ This template renders projects as compact one-liners: name, stack (if any), join
 
 ## Content rules
 
-- Only use facts from \`get_profile\` and the conversation
+- Only use facts from the saved profile and the conversation
 - Do not invent employers, titles, metrics, or dates
 - Tailor summary, bullet selection/order, and skills categories to the job
-- After drafting, call \`get_humanizer_notes\` and apply those rules to summary + bullets
-- When a JD is present, call \`get_resume_builder_notes\` and follow its analysis / ATS guidance
+- Humanize summary + bullets in the same write (no second pass)
 
 ## Tools
 
-- \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\`
-- \`update_resume_document\` — \`{ id, document }\` full replace
-- \`compile_resume\` — PDF; returns \`previewUrl\` / \`downloadUrl\`
+- \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
+- \`update_resume_document\` — \`{ id, document }\` full replace (also queues PDF)
 - Give the user \`downloadUrl\`. Do not fetch the PDF yourself
 `;

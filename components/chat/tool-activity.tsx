@@ -22,6 +22,7 @@ import {
 	toolStepLabel,
 	type ChatActivityStep,
 } from "@/lib/chat-activity";
+import { isResumePdfCardTool } from "@/lib/resumes";
 import { cn } from "@/lib/utils";
 
 export type ActivityStepState = ChatActivityStep["state"];
@@ -406,7 +407,7 @@ export function resumeOutputsFromAgentData(data: unknown) {
 	const collect = (slice: { toolResults?: LooseToolRef[] }) => {
 		for (const result of slice.toolResults ?? []) {
 			const name = refName(result);
-			if (name !== "compile_resume" && name !== "get_resume_download") {
+			if (!name || !isResumePdfCardTool(name)) {
 				continue;
 			}
 			if (refError(result)) {

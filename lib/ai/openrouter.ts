@@ -6,6 +6,10 @@ export const openrouter = createOpenRouter({
 	apiKey: process.env.OPENROUTER_API_KEY,
 });
 
+export const FAST_OPENROUTER_MODEL = "openai/gpt-4.1-mini";
+export const FAST_OPENROUTER_MEMORY_MODEL =
+	`openrouter/${FAST_OPENROUTER_MODEL}` as const;
+
 export const openrouterFileParserPlugins = [
 	{
 		id: "file-parser" as const,

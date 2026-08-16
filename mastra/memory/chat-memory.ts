@@ -1,10 +1,12 @@
 import { Memory } from "@mastra/memory";
 
+import { FAST_OPENROUTER_MEMORY_MODEL } from "@/lib/ai/openrouter";
+
 export const chatMemory = new Memory({
 	options: {
 		lastMessages: 20,
 		generateTitle: {
-			model: "openrouter/openai/gpt-5.6-luna",
+			model: FAST_OPENROUTER_MEMORY_MODEL,
 			instructions: `You write a short sidebar title (3–7 words) from the conversation transcript only.
 
 Rules:

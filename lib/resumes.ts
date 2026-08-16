@@ -45,9 +45,27 @@ export function resumePreviewPath(resumeId: string) {
 	return resumeDownloadPath(resumeId);
 }
 
+export const RESUME_PDF_CARD_TOOLS = [
+	"create_resume",
+	"update_resume_document",
+	"compile_resume",
+	"get_resume_download",
+] as const;
+
+export function isResumePdfCardTool(name: string) {
+	return (RESUME_PDF_CARD_TOOLS as readonly string[]).includes(name);
+}
+
+export function resumeIdFromDownloadUrl(url: string) {
+	const match = url.match(/\/api\/resumes\/([^/?#]+)\/download/);
+	return match?.[1] ?? null;
+}
+
 export function isResumeCompiling(status: ResumeListItem["compileStatus"]) {
 	return status === "queued" || status === "compiling";
 }
+
+export const resumeStatusKey = (id: string) => ["resume-status", id] as const;
 
 export function resumeDateGroupKey(iso: string) {
 	const date = new Date(iso);

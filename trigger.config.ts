@@ -37,6 +37,7 @@ export default defineConfig({
 			}),
 			playwright({
 				browsers: ["chromium"],
+				version: "1.57.0",
 			}),
 		],
 	},

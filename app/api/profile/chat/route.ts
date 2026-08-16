@@ -3,8 +3,10 @@ import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
 import { createUIMessageStreamResponse, type UIMessage } from "ai";
 
+import { lastUserMessageText, resolveChatAgentId } from "@/lib/chat-intent";
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { checkUsageLimit } from "@/lib/db/usage";
+import { loadResumeBriefing } from "@/lib/resume-briefing";
 import {
 	ensureProfileChatThreadForUser,
 	profileChatResourceId,
@@ -80,14 +82,22 @@ export async function POST(req: Request) {
 		return Response.json({ error: "Chat not found" }, { status: 404 });
 	}
 
+	const agentId = resolveChatAgentId({
+		chatSurface: "profile",
+		lastUserText: lastUserMessageText(messages),
+	});
+
 	const requestContext = new RequestContext();
 	requestContext.set("userId", userId);
 	requestContext.set("threadId", threadId);
 	requestContext.set("chatSurface", "profile");
+	if (agentId === "resume-agent") {
+		requestContext.set("resumeBriefing", await loadResumeBriefing(userId));
+	}
 
 	const stream = await handleChatStream({
 		mastra,
-		agentId: "app-agent",
+		agentId,
 		params: {
 			...params,
 			requestContext,
