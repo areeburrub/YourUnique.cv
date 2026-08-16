@@ -190,7 +190,7 @@ For each job requirement:
 
 ### 4. Structure the Tailored Resume
 
-YourUnique.cv output is a **structured JSON document** via `create_resume` / `update_resume_document` matching the selected template's `inputSchema` from `get_resume_template_notes`. Do not write Typst, LaTeX, HTML, or Markdown resume markup.
+YourUnique.cv output is a **structured JSON document** via `create_resume` / `update_resume_document` matching the selected template's `inputSchema` from `get_resume_template_notes`. Do not write Typst, LaTeX, HTML, or a Markdown resume document. Prose fields may use inline `**bold**` and `*italic*` on a few key terms.
 
 **Professional Summary** (3-4 lines):
 - Lead with years of experience in the target role/field

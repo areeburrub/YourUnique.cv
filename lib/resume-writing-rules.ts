@@ -13,4 +13,5 @@ export const RESUME_HUMANIZER_RULES = `Apply these while writing summary + bulle
 - No fake -ing depth (highlighting, ensuring, fostering, showcasing).
 - No "not only / not just… it's…". No rule-of-three padding.
 - Prefer "is/are" and concrete verbs (built, shipped, cut, led).
-- Keep metrics and tech exactly as in the profile. Rewrite wording, do not drop facts.`;
+- Keep metrics and tech exactly as in the profile. Rewrite wording, do not drop facts.
+- Optional inline **bold** or *italic* on a few key terms in summary and bullets. Never bold a whole sentence.`;

@@ -24,4 +24,6 @@ In `index.ts`, set gallery metadata: `category`, `colors`, `formats`, `styleLabe
 4. Run `bun scripts/generate-builtin-previews.ts`.
 5. Users select it as `builtin:<id>`.
 
-Helpers available in `template.ts` HTML: `eq`, `ne`, `and`, `or`, `gt`, `len`, `hostPath`, `href`, `dateRange`, `employment`, `projectBody`.
+Helpers available in `template.ts` HTML: `eq`, `ne`, `and`, `or`, `gt`, `len`, `hostPath`, `href`, `dateRange`, `employment`, `projectBody`, `rich`.
+
+`{{string}}` interpolations HTML-escape first, then render inline `**bold**` and `*italic*` from JSON strings. Use `{{value}}` (not triple-stash) for user text. Do not put raw HTML in document JSON.

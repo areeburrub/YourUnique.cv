@@ -1,9 +1,30 @@
 import Handlebars from "handlebars";
 
 import { hrefForHostPath, stripUrlScheme } from "@/lib/resume-templates/escape";
+import { formatInlineMarkup } from "@/lib/resume-templates/inline-format";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
 
+function escapeExpression(value: unknown) {
+	if (
+		value != null &&
+		typeof value === "object" &&
+		"toHTML" in value &&
+		typeof (value as { toHTML?: unknown }).toHTML === "function"
+	) {
+		return (value as { toHTML: () => string }).toHTML();
+	}
+	if (value == null) {
+		return "";
+	}
+	return formatInlineMarkup(value);
+}
+
+Handlebars.Utils.escapeExpression = escapeExpression;
+
 const runtime = Handlebars.create();
+runtime.registerHelper("rich", (value: unknown) => {
+	return new Handlebars.SafeString(formatInlineMarkup(value));
+});
 
 runtime.registerHelper("eq", (a: unknown, b: unknown) => a === b);
 runtime.registerHelper("ne", (a: unknown, b: unknown) => a !== b);

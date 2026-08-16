@@ -23,7 +23,7 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - \`projects[].stack\`: comma-separated tech stack for that project when known
 - Dates: \`"Mon YYYY"\` / \`"Present"\`
 - Keep to roughly **one A4 page** (~4–8 bullets on the current role, fewer on older roles)
-- Plain text in strings only — no Markdown bold, no HTML, no Typst
+- Prose fields (\`summary\`, bullet \`text\`, skill \`items\`) may use inline \`**bold**\` and \`*italic*\`. Use sparingly on a few key terms, not whole sentences. No HTML, Typst, or LaTeX in strings.
 
 ## Projects
 

@@ -35,7 +35,8 @@ export const schema = {
 		},
 		"summary": {
 			"type": "string",
-			"minLength": 1
+			"minLength": 1,
+			"description": "May include **bold** and *italic*. No HTML."
 		},
 		"experience": {
 			"minItems": 1,
@@ -92,7 +93,8 @@ export const schema = {
 											},
 											"text": {
 												"type": "string",
-												"minLength": 1
+												"minLength": 1,
+												"description": "May include **bold** and *italic*. No HTML."
 											}
 										},
 										"required": [
@@ -134,7 +136,7 @@ export const schema = {
 					"items": {
 						"type": "string",
 						"minLength": 1,
-						"description": "Comma-separated list, e.g. TypeScript, Python, SQL"
+						"description": "Comma-separated list, e.g. TypeScript, Python, SQL. May include **bold** and *italic*."
 					}
 				},
 				"required": [
@@ -181,7 +183,8 @@ export const schema = {
 								},
 								"text": {
 									"type": "string",
-									"minLength": 1
+									"minLength": 1,
+									"description": "May include **bold** and *italic*. No HTML."
 								}
 							},
 							"required": [
