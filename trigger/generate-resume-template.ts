@@ -114,7 +114,7 @@ Reproduce the uploaded design closely: same section order, header layout, column
 Return a single JSON object (not a string, not markdown) with these keys:
 - name: short template name (string)
 - description: one sentence (string)
-- notes: markdown instructions for a resume agent filling THIS template's inputSchema (field rules, nesting, what to omit). No global schema assumptions. Tell the agent that prose fields (summary, bullets, descriptions) may use inline **bold** and *italic*; the renderer turns those into emphasis. Do not allow HTML, Typst, or LaTeX in JSON strings. Do not say "plain text only".
+- notes: markdown instructions for a resume agent filling THIS template's inputSchema (field rules, nesting, what to omit). No global schema assumptions. Tell the agent that prose fields (summary, bullets, descriptions) may use inline **bold**, *italic*, and [label](https://url); the renderer turns those into emphasis and links. Do not allow HTML, Typst, or LaTeX in JSON strings. Do not say "plain text only". Do not use triple-stash {{{value}}} for user text.
 - inputSchema: a JSON Schema object (draft 2020-12 style) describing ONLY the fields this layout needs. Must be a nested object, not a string.
 - html: a complete HTML document (DOCTYPE + html) with embedded CSS for A4 print (@page size A4; margin 0). Use Handlebars mustache tags bound to inputSchema paths. No JavaScript, no Tailwind CDN, no external scripts. Prefer Google Fonts / jsDelivr font links matching the uploaded look.
 - sampleData: fixture document matching inputSchema. Copy the original resume's visible text, bullet counts, and section density so the preview lines up with the source.
@@ -124,7 +124,7 @@ Rules:
 - Keep vertical spacing tight and intentional — avoid extra padding that pushes later sections down the page.
 - One A4 page target unless the source clearly has more pages.
 - print CSS only. No script tags or event handlers.
-- Handlebars {{value}} interpolations HTML-escape first, then render inline **bold** and *italic* from JSON strings. Use {{value}}, not triple-stash, for user text.`,
+- Handlebars {{value}} interpolations HTML-escape first, then render inline **bold**, *italic*, and [label](url) from JSON strings. Use {{value}}, not triple-stash, for user text.`,
 		messages: [
 			{
 				role: "user",
