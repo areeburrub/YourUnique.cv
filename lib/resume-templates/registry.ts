@@ -86,6 +86,7 @@ export async function listTemplatesForUser(userId: string): Promise<{
 				formats: ["PDF"],
 				styleLabel: "Custom",
 				sourceFileId: row.sourceFileId,
+				createdAt: row.createdAt.toISOString(),
 			};
 		}),
 	);

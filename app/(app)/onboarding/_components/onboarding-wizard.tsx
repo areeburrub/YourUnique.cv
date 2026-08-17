@@ -10,15 +10,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { uploadChatFile } from "@/lib/client-uploads";
+import {
+	consumePendingOnboardingResume,
+	saveOnboardingProgress,
+	uploadOnboardingResume,
+} from "@/lib/onboarding/client";
 import { PlanId, type PlanId as PlanIdType } from "@/lib/plans";
 import { isLinkedInProfileUrl } from "@/lib/scrapecreators";
-import {
-	ONBOARDING_UPLOAD_ACCEPT,
-	isAllowedOnboardingUploadMediaType,
-	mediaTypeFromFilename,
-	resolveUploadMediaType,
-} from "@/lib/uploads";
+import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
 
 import { OnboardingGenerateStep } from "./onboarding-generate-step";
@@ -119,20 +118,6 @@ type OnboardingWizardProps = {
 	initialIntroduction: string;
 };
 
-async function saveOnboardingProgress(body: Record<string, unknown>) {
-	const response = await fetch("/api/onboarding/progress", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify(body),
-	});
-	const data = (await response.json().catch(() => null)) as {
-		error?: string;
-	} | null;
-	if (!response.ok) {
-		throw new Error(data?.error || "Could not save onboarding progress");
-	}
-}
-
 export function OnboardingWizard({
 	initialStep,
 	initialResumeFileId,
@@ -159,14 +144,47 @@ export function OnboardingWizard({
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const generateStartedRef = useRef(false);
+	const pendingStartedRef = useRef(false);
 
 	useEffect(() => {
-		if (initialStep !== "generate" || generateStartedRef.current) {
+		if (pendingStartedRef.current) {
 			return;
 		}
-		generateStartedRef.current = true;
-		setGenerateStage("analyzing");
-		void runGenerate();
+		pendingStartedRef.current = true;
+		void (async () => {
+			try {
+				const uploaded = await consumePendingOnboardingResume(
+					(progress) => {
+						setStep("resume");
+						setUploading(true);
+						setUploadPercent(progress.percent);
+					},
+				);
+				if (uploaded) {
+					setFileId(uploaded.id);
+					setFilename(uploaded.filename);
+					setMediaType(uploaded.mediaType);
+					setStep("linkedin");
+					return;
+				}
+			} catch (err) {
+				setError(
+					err instanceof Error
+						? err.message
+						: "Could not upload resume",
+				);
+				setStep("resume");
+				return;
+			} finally {
+				setUploading(false);
+			}
+
+			if (initialStep === "generate" && !generateStartedRef.current) {
+				generateStartedRef.current = true;
+				setGenerateStage("analyzing");
+				void runGenerate();
+			}
+		})();
 	}, [initialStep]);
 
 	async function handleResumeSelected(
@@ -178,33 +196,13 @@ export function OnboardingWizard({
 			return;
 		}
 
-		const resolvedType =
-			resolveUploadMediaType({
-				filename: file.name,
-				mediaType: file.type || mediaTypeFromFilename(file.name),
-			}) || file.type;
-
-		if (!isAllowedOnboardingUploadMediaType(resolvedType)) {
-			setError("Please upload a PDF, DOCX, image, or text resume.");
-			return;
-		}
-
 		setError(null);
 		setUploading(true);
 		setUploadPercent(0);
 
-		const objectUrl = URL.createObjectURL(file);
 		try {
-			const uploaded = await uploadChatFile({
-				file: {
-					type: "file",
-					filename: file.name,
-					mediaType: resolvedType,
-					url: objectUrl,
-				},
-				onProgress: (progress) => {
-					setUploadPercent(progress.percent);
-				},
+			const uploaded = await uploadOnboardingResume(file, (progress) => {
+				setUploadPercent(progress.percent);
 			});
 			setFileId(uploaded.id);
 			setFilename(uploaded.filename);
@@ -218,7 +216,6 @@ export function OnboardingWizard({
 				err instanceof Error ? err.message : "Could not upload resume",
 			);
 		} finally {
-			URL.revokeObjectURL(objectUrl);
 			setUploading(false);
 		}
 	}

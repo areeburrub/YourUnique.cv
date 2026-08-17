@@ -1,7 +1,8 @@
 "use client";
 
-import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 
+import { GenerationCountdown } from "@/components/templates/generation-countdown";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import type { TemplateListItem } from "@/lib/resume-templates/types";
@@ -64,12 +65,35 @@ export function TemplateCard({
 							/>
 						</div>
 					) : (
-						<div className="flex aspect-210/297 items-center justify-center bg-white p-4 text-center text-xs text-muted-foreground">
-							{drafting ? "Generating…" : failed ? "Failed" : "No preview"}
+						<div className="flex aspect-210/297 flex-col items-center justify-center gap-4 bg-white p-4 text-center text-xs text-muted-foreground">
+							{drafting ? (
+								<>
+									<GenerationCountdown
+										startedAt={template.createdAt}
+										onLightSurface
+									/>
+									{canUse ? (
+										<Button
+											type="button"
+											size="lg"
+											disabled={busy}
+											className="h-11 w-[min(100%,13.5rem)] cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
+											onClick={onUse}
+										>
+											{busy ? <Spinner className="size-4" /> : null}
+											{chooseLabel}
+										</Button>
+									) : null}
+								</>
+							) : failed ? (
+								"Failed"
+							) : (
+								"No preview"
+							)}
 						</div>
 					)}
 
-					{showActions ? (
+					{showActions && !drafting ? (
 						<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-all max-md:bg-black/35 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
 							<div className="flex w-[min(100%,13.5rem)] flex-col gap-2.5 px-4">
 								{canUse ? (
@@ -99,12 +123,6 @@ export function TemplateCard({
 						</div>
 					) : null}
 				</div>
-
-				{drafting ? (
-					<div className="absolute inset-0 flex items-center justify-center rounded-[28px] bg-pastel-blush/70">
-						<CircleNotchIcon size={24} className="animate-spin text-foreground" />
-					</div>
-				) : null}
 
 				{selected ? (
 					<span className="absolute top-3 right-3 z-10 flex size-6 items-center justify-center rounded-full bg-brand text-white shadow-sm">
@@ -138,9 +156,9 @@ export function TemplateCard({
 					<span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
 						{template.category}
 					</span>
-					{template.status !== "ready" ? (
-						<span className="text-[10px] text-muted-foreground capitalize">
-							{template.status}
+					{template.status === "failed" ? (
+						<span className="text-[10px] text-muted-foreground">
+							Failed
 						</span>
 					) : null}
 				</div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/app/app-sidebar";
 import {
@@ -18,6 +19,7 @@ import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/s
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
 import type { ChatThreadListItem } from "@/lib/chats";
+import { discardPendingResume } from "@/lib/onboarding/client";
 
 type AppShellProps = {
 	user: SidebarUser;
@@ -69,6 +71,10 @@ export function AppShell({
 	children,
 }: AppShellProps) {
 	useVisualViewportHeight();
+
+	useEffect(() => {
+		void discardPendingResume();
+	}, []);
 
 	return (
 		<QueryProvider>

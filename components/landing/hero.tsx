@@ -1,5 +1,5 @@
+import { HeroResumeDropzone } from "@/components/landing/hero-resume-dropzone";
 import { ProductPreview } from "@/components/landing/product-preview";
-import { SlideButton } from "@/components/landing/slide-button";
 import { SITE_NAME } from "@/lib/site";
 
 export function Hero() {
@@ -19,11 +19,8 @@ export function Hero() {
 							post in chat and get a CV written for that role,
 							plus an ATS read.
 						</p>
-						<div className="animate-fade-rise delay-3 mt-8 flex flex-wrap gap-3">
-							<SlideButton href="/sign-up">Get Started</SlideButton>
-							<SlideButton href="#how-it-works" variant="outline">
-								See how it works
-							</SlideButton>
+						<div className="animate-fade-rise delay-3 mt-8">
+							<HeroResumeDropzone />
 						</div>
 					</div>
 

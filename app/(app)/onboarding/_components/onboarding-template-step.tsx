@@ -1,8 +1,9 @@
 "use client";
 
-import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
+import { CheckIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { GenerationCountdown } from "@/components/templates/generation-countdown";
 import {
 	openTemplatePdf,
 	TemplateCard,
@@ -327,28 +328,16 @@ function YourResumePlaceholder({
 				)}
 			>
 				<div className="relative overflow-hidden rounded-2xl bg-card product-shadow">
-					<div className="flex aspect-210/297 flex-col items-center justify-center gap-3 p-6 text-center">
-						<CircleNotchIcon size={24} className="animate-spin text-muted-foreground" />
-						<div>
-							<p className="text-sm font-medium text-foreground">
-								Building from your resume
-							</p>
-							<p className="mt-1 text-xs text-muted-foreground">
-								This usually finishes while you complete the earlier steps.
-							</p>
-						</div>
-					</div>
-					<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-all max-md:bg-black/35 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
-						<div className="flex w-[min(100%,13.5rem)] flex-col gap-2.5 px-4">
-							<Button
-								type="button"
-								size="lg"
-								className="h-11 w-full cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
-								onClick={onChoose}
-							>
-								Choose
-							</Button>
-						</div>
+					<div className="flex aspect-210/297 flex-col items-center justify-center gap-4 p-6 text-center">
+						<GenerationCountdown />
+						<Button
+							type="button"
+							size="lg"
+							className="h-11 w-[min(100%,13.5rem)] cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
+							onClick={onChoose}
+						>
+							Choose
+						</Button>
 					</div>
 				</div>
 				{selected ? (

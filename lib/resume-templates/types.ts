@@ -37,6 +37,7 @@ export type TemplateListItem = {
 	formats: string[];
 	styleLabel: string;
 	sourceFileId?: string | null;
+	createdAt?: string | null;
 };
 
 export type BuiltinTemplateDefinition = {
