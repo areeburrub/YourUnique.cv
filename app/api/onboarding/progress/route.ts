@@ -108,7 +108,7 @@ export async function POST(req: Request) {
 			userId,
 			sourceFileIds: [resumeFileId],
 		});
-		void ensureCustomTemplateFromFile({
+		await ensureCustomTemplateFromFile({
 			userId,
 			fileId: resumeFileId,
 			name: "Your resume",

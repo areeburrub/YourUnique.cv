@@ -1,5 +1,4 @@
 import { auth } from "@clerk/nextjs/server";
-import { tasks } from "@trigger.dev/sdk";
 import { NextResponse } from "next/server";
 
 import { getUserFileForUser } from "@/lib/db/files";
@@ -7,9 +6,11 @@ import {
 	getResumeTemplateForUser,
 	updateResumeTemplateForUser,
 } from "@/lib/db/templates";
-import { ensureCustomTemplateFromFile } from "@/lib/resume-templates/ensure-from-file";
+import {
+	ensureCustomTemplateFromFile,
+	triggerResumeTemplateJob,
+} from "@/lib/resume-templates/ensure-from-file";
 import { customRef } from "@/lib/resume-templates/refs";
-import type { generateResumeTemplate } from "@/trigger/generate-resume-template";
 
 export async function POST(req: Request) {
 	const { userId } = await auth();
@@ -56,18 +57,15 @@ export async function POST(req: Request) {
 			error: null,
 		});
 		try {
-			const handle = await tasks.trigger<typeof generateResumeTemplate>(
-				"generate-resume-template",
-				{
-					templateId: retryTemplateId,
-					userId,
-				},
-			);
+			const triggered = await triggerResumeTemplateJob({
+				templateId: retryTemplateId,
+				userId,
+			});
 			return NextResponse.json({
 				ok: true,
 				templateId: retryTemplateId,
 				templateRef: customRef(retryTemplateId),
-				runId: handle.id,
+				runId: triggered.started ? triggered.runId : undefined,
 				status: "drafting",
 			});
 		} catch (error) {

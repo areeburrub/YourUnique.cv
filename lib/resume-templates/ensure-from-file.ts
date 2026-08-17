@@ -1,4 +1,4 @@
-import { tasks } from "@trigger.dev/sdk";
+import { runs, tasks } from "@trigger.dev/sdk";
 
 import { getUserFileForUser } from "@/lib/db/files";
 import {
@@ -9,6 +9,55 @@ import {
 import { customRef } from "@/lib/resume-templates/refs";
 import type { TemplateRef } from "@/lib/resume-templates/types";
 import type { generateResumeTemplate } from "@/trigger/generate-resume-template";
+
+const ACTIVE_RUN_STATUSES = [
+	"PENDING_VERSION",
+	"QUEUED",
+	"DEQUEUED",
+	"EXECUTING",
+	"WAITING",
+	"DELAYED",
+] as const;
+
+function templateRunTag(templateId: string) {
+	return `template:${templateId}`;
+}
+
+async function hasActiveTemplateRun(templateId: string) {
+	try {
+		const page = await runs.list({
+			taskIdentifier: "generate-resume-template",
+			tag: templateRunTag(templateId),
+			status: [...ACTIVE_RUN_STATUSES],
+			limit: 1,
+		});
+		return page.data.length > 0;
+	} catch {
+		return false;
+	}
+}
+
+export async function triggerResumeTemplateJob(input: {
+	templateId: string;
+	userId: string;
+}) {
+	if (await hasActiveTemplateRun(input.templateId)) {
+		return { started: false as const };
+	}
+
+	const handle = await tasks.trigger<typeof generateResumeTemplate>(
+		"generate-resume-template",
+		{
+			templateId: input.templateId,
+			userId: input.userId,
+		},
+		{
+			tags: [templateRunTag(input.templateId)],
+		},
+	);
+
+	return { started: true as const, runId: handle.id };
+}
 
 function isTemplateSourceMediaType(contentType: string) {
 	return (
@@ -36,7 +85,7 @@ export async function ensureCustomTemplateFromFile(input: {
 		input.fileId,
 	);
 
-	if (existing?.status === "ready" || existing?.status === "drafting") {
+	if (existing?.status === "ready") {
 		return {
 			templateId: existing.id,
 			templateRef: customRef(existing.id),
@@ -46,7 +95,7 @@ export async function ensureCustomTemplateFromFile(input: {
 	}
 
 	let templateId = existing?.id;
-	if (existing?.status === "failed") {
+	if (existing) {
 		await updateResumeTemplateForUser(existing.id, input.userId, {
 			status: "drafting",
 			error: null,
@@ -64,18 +113,15 @@ export async function ensureCustomTemplateFromFile(input: {
 	}
 
 	try {
-		await tasks.trigger<typeof generateResumeTemplate>(
-			"generate-resume-template",
-			{
-				templateId,
-				userId: input.userId,
-			},
-		);
+		const triggered = await triggerResumeTemplateJob({
+			templateId,
+			userId: input.userId,
+		});
 		return {
 			templateId,
 			templateRef: customRef(templateId),
 			status: "drafting",
-			started: true,
+			started: triggered.started,
 		};
 	} catch (error) {
 		const message =
