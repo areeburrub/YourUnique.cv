@@ -1,8 +1,16 @@
 import Handlebars from "handlebars";
 
-import { hrefForHostPath, stripUrlScheme } from "@/lib/resume-templates/escape";
+import {
+	escapeHtml,
+	hrefForHostPath,
+	stripUrlScheme,
+} from "@/lib/resume-templates/escape";
 import { formatInlineMarkup } from "@/lib/resume-templates/inline-format";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
+
+function safePlain(value: string) {
+	return new Handlebars.SafeString(escapeHtml(value));
+}
 
 function escapeExpression(value: unknown) {
 	if (
@@ -41,10 +49,10 @@ runtime.registerHelper("len", (value: unknown) =>
 	Array.isArray(value) ? value.length : 0,
 );
 runtime.registerHelper("hostPath", (value: unknown) =>
-	stripUrlScheme(String(value ?? "")),
+	safePlain(stripUrlScheme(String(value ?? ""))),
 );
 runtime.registerHelper("href", (value: unknown) =>
-	hrefForHostPath(String(value ?? "")),
+	safePlain(hrefForHostPath(String(value ?? ""))),
 );
 runtime.registerHelper("dateRange", (start: unknown, end: unknown) =>
 	`${String(start ?? "")} to ${String(end ?? "")}`,

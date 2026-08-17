@@ -153,7 +153,14 @@
 		@apply bg-background text-foreground;
 	}
 	html {
-		@apply font-sans;
+		@apply font-sans scroll-smooth;
+		scroll-padding-top: 5.5rem;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		html {
+			scroll-behavior: auto;
+		}
 	}
 }
 
@@ -331,7 +338,8 @@
 	@media (prefers-reduced-motion: reduce) {
 		.feature-fade,
 		.feature-line,
-		.feature-pulse {
+		.feature-pulse,
+		.animate-marquee {
 			animation: none !important;
 			opacity: 1;
 			stroke-dashoffset: 0;

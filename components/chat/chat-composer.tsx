@@ -246,7 +246,7 @@ function AttachmentPreviews({
 				return (
 					<div
 						key={file.id}
-						className="group relative flex max-w-64 items-center gap-2.5 rounded-xl border border-border bg-background px-2.5 py-2 shadow-sm"
+						className="group relative flex max-w-64 items-center gap-2.5 rounded-md border border-border bg-background py-2 pr-7 pl-2.5 shadow-sm"
 					>
 						{isUploading ? (
 							<CircularProgress
@@ -257,12 +257,12 @@ function AttachmentPreviews({
 							<img
 								src={file.url}
 								alt={displayName}
-								className="size-9 rounded-md object-cover"
+								className="size-9 shrink-0 rounded-md object-cover"
 							/>
 						) : (
 							<FileTypeIcon label={typeLabel} />
 						)}
-						<div className="min-w-0 flex-1 pr-3">
+						<div className="min-w-0 flex-1">
 							<p className="truncate text-sm font-medium text-foreground">
 								{displayName}
 							</p>
@@ -278,7 +278,7 @@ function AttachmentPreviews({
 						</div>
 						<button
 							type="button"
-							className="absolute top-1.5 right-1.5 flex size-5 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
+							className="absolute top-1 right-1 flex size-5 items-center justify-center rounded-full text-muted-foreground opacity-70 transition-opacity hover:bg-muted hover:text-foreground group-hover:opacity-100"
 							onClick={() => attachments.remove(file.id)}
 							aria-label="Remove attachment"
 						>

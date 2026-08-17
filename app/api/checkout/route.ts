@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
 
 	const user = await currentUser();
 	const email = user?.primaryEmailAddress?.emailAddress;
+	const firstName = user?.firstName?.trim() || "";
+	const lastName = user?.lastName?.trim() || "";
+	const fullName =
+		user?.fullName?.trim() ||
+		[firstName, lastName].filter(Boolean).join(" ");
 	const url = req.nextUrl.clone();
 
 	const productId = PLANS.PRO.dodoProductId;
@@ -34,6 +39,15 @@ export async function GET(req: NextRequest) {
 	url.searchParams.set("metadata_userId", userId);
 	if (email && !url.searchParams.get("email")) {
 		url.searchParams.set("email", email);
+	}
+	if (firstName && !url.searchParams.get("firstName")) {
+		url.searchParams.set("firstName", firstName);
+	}
+	if (lastName && !url.searchParams.get("lastName")) {
+		url.searchParams.set("lastName", lastName);
+	}
+	if (fullName && !url.searchParams.get("fullName")) {
+		url.searchParams.set("fullName", fullName);
 	}
 
 	const response = await dodoCheckout(

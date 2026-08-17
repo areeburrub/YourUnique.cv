@@ -42,6 +42,7 @@ Start free at https://yourunique.cv/sign-up, or choose Pro there or during onboa
 ## Links
 
 - [Home](https://yourunique.cv/): overview, how it works, and pricing
+- [Templates](https://yourunique.cv/templates): built-in resume layouts
 - [Sign up](https://yourunique.cv/sign-up)
 - [Sign in](https://yourunique.cv/sign-in)
 - [GitHub](https://github.com/areeburrub/YourUnique.cv): source

@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { listChatThreads } from "@/lib/mastra-chats";
 import { CHATS_PAGE_SIZE } from "@/lib/chats";
 
-import { ChatsIndex } from "./_components/chats-index";
+import { ChatsIndex } from "../_components/chats-index";
 
 export default async function ChatsPage() {
 	const { userId } = await auth();

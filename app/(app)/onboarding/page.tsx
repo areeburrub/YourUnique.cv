@@ -4,14 +4,20 @@ import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { HeaderUserMenu } from "@/components/landing/header-user-menu";
 import { ModeToggle } from "@/components/mode-toggle";
+import { isProSignupIntent } from "@/lib/auth-redirect";
 import { getUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { getUserById } from "@/lib/db/users";
 import { resolveOnboardingStep } from "@/lib/onboarding/progress";
+import { PlanId, isProPlan } from "@/lib/plans";
 
 import { OnboardingWizard } from "./_components/onboarding-wizard";
 
-export default async function OnboardingPage() {
+export default async function OnboardingPage({
+	searchParams,
+}: {
+	searchParams: Promise<{ plan?: string }>;
+}) {
 	const { userId } = await auth();
 	await auth.protect();
 
@@ -19,10 +25,15 @@ export default async function OnboardingPage() {
 		redirect("/sign-in");
 	}
 
+	const { plan } = await searchParams;
 	const [dbUser, context] = await Promise.all([
 		getUserById(userId),
 		getUserContext(userId),
 	]);
+
+	if (isProSignupIntent(plan) && !isProPlan(dbUser?.planId ?? PlanId.FREE)) {
+		redirect("/api/checkout");
+	}
 
 	if (dbUser?.onboardedAt) {
 		redirect("/new-chat");

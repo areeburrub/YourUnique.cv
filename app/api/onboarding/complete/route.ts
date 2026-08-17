@@ -2,12 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
 import { getUserContext } from "@/lib/db/contexts";
-import { markUserOnboarded } from "@/lib/db/users";
+import { getUserById, markUserOnboarded } from "@/lib/db/users";
 import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
 } from "@/lib/onboarding/progress";
-import { PlanId, isPlanId } from "@/lib/plans";
+import { PlanId, isPlanId, isProPlan } from "@/lib/plans";
 
 export async function POST(req: Request) {
 	const { userId } = await auth();
@@ -46,10 +46,13 @@ export async function POST(req: Request) {
 		);
 	}
 
+	const dbUser = await getUserById(userId);
 	await markUserOnboarded(userId);
 
 	const redirectUrl =
-		planId === PlanId.PRO ? "/api/checkout" : "/new-chat";
+		planId === PlanId.PRO && !isProPlan(dbUser?.planId ?? PlanId.FREE)
+			? "/api/checkout"
+			: "/new-chat";
 
 	return NextResponse.json({ redirectUrl });
 }

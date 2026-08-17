@@ -7,19 +7,10 @@ import {
 	DownloadSimpleIcon,
 	FileTextIcon,
 } from "@phosphor-icons/react";
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useSoftNav } from "@/components/app/soft-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
 import {
 	groupResumesByDate,
 	isResumeCompiling,
@@ -61,38 +52,16 @@ type ResumesIndexProps = {
 	initialResumes: ResumeListItem[];
 };
 
-function ResumePreviewSync({
-	resumes,
-	onOpen,
-}: {
-	resumes: ResumeListItem[];
-	onOpen: (resume: ResumeListItem) => void;
-}) {
-	const searchParams = useSearchParams();
-	const previewId = searchParams.get("preview");
-
-	useEffect(() => {
-		if (!previewId) {
-			return;
-		}
-		const resume = resumes.find((item) => item.id === previewId);
-		if (resume) {
-			onOpen(resume);
-		}
-	}, [onOpen, previewId, resumes]);
-
-	return null;
+function openResumePdf(resume: ResumeListItem) {
+	if (resume.compileStatus !== "ready" || !resume.hasPdf) {
+		return;
+	}
+	window.open(resumeDownloadPath(resume.id), "_blank", "noopener,noreferrer");
 }
 
 export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 	const { openNewChat } = useSoftNav();
-	const router = useRouter();
-	const pathname = usePathname();
 	const [resumes, setResumes] = useState(initialResumes);
-	const [preview, setPreview] = useState<ResumeListItem | null>(null);
-	const openPreview = useCallback((resume: ResumeListItem) => {
-		setPreview(resume);
-	}, []);
 
 	const groups = useMemo(() => groupResumesByDate(resumes), [resumes]);
 
@@ -123,22 +92,8 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 		return () => window.clearInterval(id);
 	}, [hasInFlight, refresh]);
 
-	const closePreview = useCallback(() => {
-		setPreview(null);
-		const params = new URLSearchParams(window.location.search);
-		if (!params.has("preview")) {
-			return;
-		}
-		params.delete("preview");
-		const qs = params.toString();
-		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-	}, [pathname, router]);
-
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-			<Suspense fallback={null}>
-				<ResumePreviewSync resumes={resumes} onOpen={openPreview} />
-			</Suspense>
 			<div className="shrink-0 border-b border-border px-4 py-5 sm:px-6">
 				<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
@@ -203,7 +158,6 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 											<ResumeCard
 												key={resume.id}
 												resume={resume}
-												onPreview={() => setPreview(resume)}
 											/>
 										))}
 									</div>
@@ -218,82 +172,14 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 					) : null}
 				</div>
 			</div>
-
-			<Dialog
-				open={Boolean(preview)}
-				onOpenChange={(nextOpen) => {
-					if (!nextOpen) {
-						closePreview();
-					}
-				}}
-			>
-				<DialogContent
-					className="flex max-h-[min(92vh,56rem)] w-[min(960px,calc(100%-2rem))] max-w-none flex-col gap-0 overflow-hidden p-0 sm:max-w-none"
-					showCloseButton
-				>
-					{preview ? (
-						<>
-							<DialogHeader className="border-b border-border px-4 py-3">
-								<DialogTitle className="truncate pr-8">
-									{preview.roleTitle && preview.companyName
-										? `${preview.roleTitle} @ ${preview.companyName}`
-										: preview.name}
-								</DialogTitle>
-								<DialogDescription>
-									Preview of your compiled PDF resume.
-								</DialogDescription>
-							</DialogHeader>
-							<iframe
-								title={`${preview.name} preview`}
-								src={`${resumeDownloadPath(preview.id)}#toolbar=0&navpanes=0`}
-								className="min-h-0 w-full flex-1 bg-white"
-								style={{ height: "min(72vh, 44rem)" }}
-							/>
-							<DialogFooter className="sm:justify-between">
-								<div className="flex flex-wrap gap-2">
-									<a
-										href={resumeDownloadPath(preview.id)}
-										target="_blank"
-										rel="noreferrer"
-										className={buttonVariants({ variant: "outline" })}
-									>
-										Open in new tab
-									</a>
-									{preview.jobLink ? (
-										<a
-											href={preview.jobLink}
-											target="_blank"
-											rel="noreferrer"
-											className={buttonVariants({ variant: "outline" })}
-										>
-											<ArrowSquareOutIcon data-icon="inline-start" weight="bold" />
-											Job posting
-										</a>
-									) : null}
-								</div>
-								<a
-									href={resumeDownloadPath(preview.id, { download: true })}
-									download
-									className={buttonVariants()}
-								>
-									<DownloadSimpleIcon data-icon="inline-start" weight="bold" />
-									Download PDF
-								</a>
-							</DialogFooter>
-						</>
-					) : null}
-				</DialogContent>
-			</Dialog>
 		</div>
 	);
 }
 
 function ResumeCard({
 	resume,
-	onPreview,
 }: {
 	resume: ResumeListItem;
-	onPreview: () => void;
 }) {
 	const compiling = isResumeCompiling(resume.compileStatus);
 	const canPreview = resume.compileStatus === "ready" && resume.hasPdf;
@@ -312,9 +198,7 @@ function ResumeCard({
 						: "",
 				)}
 				onClick={() => {
-					if (canPreview) {
-						onPreview();
-					}
+					openResumePdf(resume);
 				}}
 				onKeyDown={(event) => {
 					if (
@@ -322,7 +206,7 @@ function ResumeCard({
 						(event.key === "Enter" || event.key === " ")
 					) {
 						event.preventDefault();
-						onPreview();
+						openResumePdf(resume);
 					}
 				}}
 				role={canPreview ? "button" : undefined}
@@ -356,17 +240,18 @@ function ResumeCard({
 					{canPreview ? (
 						<div className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-100 transition-all max-md:bg-black/35 md:opacity-0 md:group-hover:bg-black/40 md:group-hover:opacity-100">
 							<div className="flex w-[min(100%,13.5rem)] flex-col gap-2.5 px-4">
-								<Button
-									type="button"
-									size="lg"
-									className="h-11 w-full cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
-									onClick={(event) => {
-										event.stopPropagation();
-										onPreview();
-									}}
+								<a
+									href={resumeDownloadPath(resume.id)}
+									target="_blank"
+									rel="noopener noreferrer"
+									onClick={(event) => event.stopPropagation()}
+									className={cn(
+										buttonVariants({ size: "lg" }),
+										"h-11 w-full cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90",
+									)}
 								>
 									Preview
-								</Button>
+								</a>
 								<a
 									href={resumeDownloadPath(resume.id, { download: true })}
 									download

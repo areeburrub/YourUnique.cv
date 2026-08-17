@@ -15,20 +15,27 @@ export function SlideButton({
 	variant = "primary",
 	className,
 }: SlideButtonProps) {
+	const classNames = cn(
+		"inline-flex h-12 items-center justify-center rounded-full border px-7 text-base font-medium transition-all duration-200 hover:-translate-y-px",
+		variant === "primary" &&
+			"border-brand bg-brand text-brand-foreground hover:bg-brand/90",
+		variant === "outline" &&
+			"border-border bg-card text-foreground hover:bg-muted",
+		variant === "on-brand" &&
+			"border-white bg-white text-brand hover:bg-white/90",
+		className,
+	);
+
+	if (href.startsWith("#")) {
+		return (
+			<a href={href} className={classNames}>
+				{children}
+			</a>
+		);
+	}
+
 	return (
-		<Link
-			href={href}
-			className={cn(
-				"inline-flex h-12 items-center justify-center rounded-full border px-7 text-base font-medium transition-all duration-200 hover:-translate-y-px",
-				variant === "primary" &&
-					"brand-shadow border-brand bg-brand text-brand-foreground hover:bg-brand/90",
-				variant === "outline" &&
-					"border-border bg-card text-foreground hover:bg-muted",
-				variant === "on-brand" &&
-					"border-white bg-white text-brand hover:bg-white/90",
-				className,
-			)}
-		>
+		<Link href={href} className={classNames}>
 			{children}
 		</Link>
 	);

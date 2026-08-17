@@ -10,6 +10,7 @@ Plans (same product; volume differs):
 - Free: $0, about 10–15 resumes a month
 - Pro: $10/month, about 100+ resumes a month, for heavy application weeks
 
+- Templates: https://yourunique.cv/templates
 - Sign up: https://yourunique.cv/sign-up
 - GitHub: https://github.com/areeburrub/YourUnique.cv
 - Author: Areeb ur Rub, https://areeburrub.dev

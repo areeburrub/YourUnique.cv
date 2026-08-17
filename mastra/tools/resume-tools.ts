@@ -230,7 +230,7 @@ export const getResumeTemplateNotesTool = createTool({
 export const createResumeTool = createTool({
 	id: "create_resume",
 	description:
-		"Create a resume from structured document JSON matching the selected template's inputSchema, and queue the PDF. Never send HTML, Typst, or LaTeX. Inline **bold**, *italic*, and [label](https://url) in string fields is OK. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
+		"Create a resume from structured document JSON matching the selected template's inputSchema, and queue the PDF. Never send HTML, Typst, or LaTeX. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only (summary, bullets, skills). website/github/linkedin/url/companyUrl must be a plain host/path or https URL. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
 	inputSchema: z.object({
 		name: z
 			.string()
@@ -354,7 +354,7 @@ export const createResumeTool = createTool({
 export const updateResumeDocumentTool = createTool({
 	id: "update_resume_document",
 	description:
-		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match that resume's template inputSchema. Send the full updated document. Inline **bold**, *italic*, and [label](https://url) in string fields is OK; do not send HTML.",
+		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match that resume's template inputSchema. Send the full updated document. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only; website/github/linkedin/url/companyUrl must be a plain host/path or https URL. Do not send HTML.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 		document: z.record(z.string(), z.unknown()),

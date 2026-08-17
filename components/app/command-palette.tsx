@@ -43,7 +43,10 @@ import {
 	flatChatThreads,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
-import type { ResumeListItem } from "@/lib/resumes";
+import {
+	resumeDownloadPath,
+	type ResumeListItem,
+} from "@/lib/resumes";
 
 type CommandPaletteContextValue = {
 	open: boolean;
@@ -276,11 +279,17 @@ function CommandPaletteDialog({
 											const canPreview =
 												resume.compileStatus === "ready" &&
 												resume.hasPdf;
-											go(
-												canPreview
-													? `/resumes?preview=${resume.id}`
-													: "/resumes",
-											);
+											if (canPreview) {
+												run(() => {
+													window.open(
+														resumeDownloadPath(resume.id),
+														"_blank",
+														"noopener,noreferrer",
+													);
+												});
+												return;
+											}
+											go("/resumes");
 										}}
 									/>
 								))}

@@ -7,8 +7,9 @@ const columns = [
 	{
 		title: "Product",
 		links: [
-			{ href: "#features", label: "Features" },
-			{ href: "#pricing", label: "Pricing" },
+			{ href: "/#how-it-works", label: "How it works" },
+			{ href: "/templates", label: "Templates" },
+			{ href: "/#pricing", label: "Pricing" },
 		],
 	},
 	{
@@ -45,16 +46,24 @@ export function SiteFooter() {
 									{column.title}
 								</p>
 								<ul className="mt-4 space-y-3">
-									{column.links.map((link) => (
-										<li key={link.href}>
-											<Link
-												href={link.href}
-												className="text-base text-muted-foreground transition-colors duration-200 hover:text-foreground"
-											>
-												{link.label}
-											</Link>
-										</li>
-									))}
+									{column.links.map((link) => {
+										const className =
+											"text-base text-muted-foreground transition-colors duration-200 hover:text-foreground";
+
+										return (
+											<li key={link.href}>
+												{link.href.startsWith("#") ? (
+													<a href={link.href} className={className}>
+														{link.label}
+													</a>
+												) : (
+													<Link href={link.href} className={className}>
+														{link.label}
+													</Link>
+												)}
+											</li>
+										);
+									})}
 								</ul>
 							</div>
 						))}

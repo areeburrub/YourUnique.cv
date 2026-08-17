@@ -261,7 +261,7 @@ a {
 			<div>
 				<h3 class="company">
 					{{#if companyUrl}}
-					<a href="{{companyUrl}}">{{company}}</a>
+					<a href="{{href companyUrl}}">{{company}}</a>
 					{{else}}
 					{{company}}
 					{{/if}}
@@ -308,7 +308,7 @@ a {
 			<ul class="project-list">
 				{{#each projects}}
 				<li>
-					<strong>{{name}}:</strong> {{projectBody this}}{{#if (or (gt (len links) 0) url)}} Links: {{#each links}}{{#unless @first}}, {{/unless}}<a href="{{url}}">{{label}}</a>{{/each}}{{#if url}}{{#if (gt (len links) 0)}}, {{/if}}<a href="{{href url}}">Website</a>{{/if}}{{/if}}
+					<strong>{{name}}:</strong> {{projectBody this}}{{#if (or (gt (len links) 0) url)}} Links: {{#each links}}{{#unless @first}}, {{/unless}}<a href="{{href url}}">{{label}}</a>{{/each}}{{#if url}}{{#if (gt (len links) 0)}}, {{/if}}<a href="{{href url}}">Website</a>{{/if}}{{/if}}
 				</li>
 				{{/each}}
 			</ul>

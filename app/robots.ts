@@ -19,7 +19,7 @@ export default function robots(): MetadataRoute.Robots {
 					"/profile",
 					"/resumes",
 					"/settings",
-					"/templates",
+					"/template-library",
 				],
 			},
 		],

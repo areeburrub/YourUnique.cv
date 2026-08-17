@@ -1,6 +1,7 @@
 import { CheckIcon } from "@phosphor-icons/react/ssr";
 
 import { SlideButton } from "@/components/landing/slide-button";
+import { authPageHref, SIGNUP_PLAN_PRO } from "@/lib/auth-redirect";
 import { cn } from "@/lib/utils";
 
 const plans = [
@@ -32,7 +33,7 @@ const plans = [
 			"100+ resumes / month",
 		],
 		cta: "Start with Pro",
-		href: "/sign-up",
+		href: authPageHref("/sign-up", SIGNUP_PLAN_PRO),
 		featured: true,
 	},
 ] as const;

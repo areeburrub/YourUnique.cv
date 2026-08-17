@@ -3,9 +3,12 @@
 import {
 	CheckIcon,
 	DownloadSimpleIcon,
+	LayoutIcon,
 	LinkedinLogoIcon,
+	SwatchesIcon,
 	UserIcon,
 } from "@phosphor-icons/react";
+import Link from "next/link";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
@@ -55,7 +58,7 @@ function FeatureRow({
 }: {
 	eyebrow: string;
 	title: string;
-	body: string;
+	body: ReactNode;
 	graphic: ReactNode;
 	flip?: boolean;
 }) {
@@ -160,31 +163,85 @@ function OnboardingGraph() {
 	);
 }
 
-function MiniPage({
-	tone,
-	label,
+function Spine({ className }: { className?: string }) {
+	return (
+		<svg
+			className="h-9 w-4 text-border"
+			viewBox="0 0 16 36"
+			fill="none"
+			aria-hidden
+		>
+			<path
+				className={cn("feature-line", className)}
+				d="M8 0 V36"
+				stroke="currentColor"
+				strokeWidth="1.5"
+			/>
+		</svg>
+	);
+}
+
+function FileChip({
+	name,
 	className,
 }: {
-	tone: string;
-	label: string;
+	name: string;
 	className?: string;
 }) {
 	return (
-		<div className={cn("feature-fade overflow-hidden rounded-md p-2", tone, className)}>
-			<div className="rounded-sm bg-card px-2.5 py-3">
-				<div className="h-1.5 w-10 rounded-sm bg-foreground/80" />
-				<div className="mt-2 space-y-1">
-					<div className="h-1 w-full rounded-sm bg-border" />
-					<div className="h-1 w-5/6 rounded-sm bg-border" />
-					<div className="h-1 w-2/3 rounded-sm bg-border" />
-				</div>
-				<div className="mt-3 space-y-1">
-					<div className="h-1 w-full rounded-sm bg-border" />
-					<div className="h-1 w-4/5 rounded-sm bg-border" />
-				</div>
-				<p className="mt-3 text-[10px] font-medium text-muted-foreground">
-					{label}
-				</p>
+		<div
+			className={cn(
+				"flex w-full items-center gap-2 rounded-md bg-secondary py-1.5 pr-3 pl-1.5",
+				className,
+			)}
+		>
+			<span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-[#e53935] text-[8px] font-semibold text-white">
+				PDF
+			</span>
+			<span className="truncate text-[12px] font-medium text-foreground">
+				{name}
+			</span>
+		</div>
+	);
+}
+
+const LIBRARY_TEMPLATES = ["Classic", "Serif", "Plain"] as const;
+
+function LibraryCycle() {
+	const [index, setIndex] = useState(0);
+
+	useEffect(() => {
+		const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
+		if (reduce.matches) {
+			return;
+		}
+		const timer = window.setInterval(() => {
+			setIndex((current) => (current + 1) % LIBRARY_TEMPLATES.length);
+		}, 2000);
+		return () => window.clearInterval(timer);
+	}, []);
+
+	return (
+		<div className="flex items-center gap-2 rounded-md border border-border bg-secondary px-3 py-2">
+			<span className="flex size-7 items-center justify-center rounded-sm bg-muted text-muted-foreground">
+				<LayoutIcon size={14} weight="bold" />
+			</span>
+			<div className="relative h-8 w-[4.25rem] overflow-hidden">
+				{LIBRARY_TEMPLATES.map((name, itemIndex) => (
+					<span
+						key={name}
+						className={cn(
+							"absolute inset-0 flex flex-col justify-center text-[12px] font-medium text-foreground transition-all duration-300 ease-out",
+							itemIndex === index
+								? "translate-x-0 opacity-100"
+								: itemIndex === (index + 1) % LIBRARY_TEMPLATES.length
+									? "translate-x-6 opacity-0"
+									: "-translate-x-6 opacity-0",
+						)}
+					>
+						{name}
+					</span>
+				))}
 			</div>
 		</div>
 	);
@@ -195,47 +252,49 @@ function TemplateGraphic() {
 		<InView className="rounded-2xl bg-pastel-sage p-4 sm:p-6">
 			<div
 				aria-hidden="true"
-				className="rounded-xl border border-border bg-card p-4 sm:p-5"
+				className="flex flex-col items-center rounded-xl border border-border bg-card px-5 py-6"
 			>
-				<div className="feature-fade feature-d1 flex items-start justify-between gap-3">
-					<div>
-						<p className="text-[13px] font-medium text-foreground">
-							Your resume look
-						</p>
-						<p className="mt-0.5 text-[12px] text-muted-foreground">
-							Extracted from the file you uploaded
-						</p>
-					</div>
-					<span className="feature-pulse shrink-0 rounded-md bg-brand px-2 py-1 text-[11px] font-medium text-brand-foreground">
-						Bring your own
-					</span>
+				<div className="feature-fade feature-d1 w-[15.5rem]">
+					<FileChip name="Alex_Rivera_Resume.pdf" />
 				</div>
 
-				<div className="feature-fade feature-d2 mt-4 overflow-hidden rounded-md bg-pastel-blush p-3">
-					<div className="rounded-sm bg-card px-3 py-4">
-						<div className="flex items-center justify-between">
-							<div className="h-2 w-24 rounded-sm bg-foreground/80" />
-							<span className="text-[10px] text-muted-soft">v1</span>
-						</div>
-						<div className="mt-3 space-y-1.5">
-							<div className="h-1.5 w-full rounded-sm bg-border" />
-							<div className="h-1.5 w-11/12 rounded-sm bg-border" />
-							<div className="h-1.5 w-4/5 rounded-sm bg-border" />
-						</div>
-						<div className="mt-4 grid grid-cols-2 gap-2">
-							<div className="h-10 rounded-sm bg-muted" />
-							<div className="h-10 rounded-sm bg-muted" />
-						</div>
+				<Spine className="feature-d2" />
+
+				<div className="feature-fade feature-d3 flex flex-wrap items-center justify-center gap-2">
+					<div className="feature-pulse flex items-center gap-2 rounded-md border border-brand/20 bg-pastel-sage px-3 py-2">
+						<span className="flex size-7 items-center justify-center rounded-sm bg-brand text-brand-foreground">
+							<SwatchesIcon size={14} weight="bold" />
+						</span>
+						<span className="flex flex-col gap-1">
+							<span className="text-[12px] font-medium text-foreground">
+								Alex&apos;s design
+							</span>
+							<span className="flex gap-1">
+								<span className="size-1.5 rounded-full bg-brand" />
+								<span className="size-1.5 rounded-full bg-foreground/70" />
+								<span className="size-1.5 rounded-full bg-border" />
+							</span>
+						</span>
 					</div>
+					<span className="text-[11px] text-muted-soft">or</span>
+					<LibraryCycle />
 				</div>
 
-				<p className="feature-fade feature-d3 mt-4 text-[12px] text-muted-foreground">
-					Or pick a library layout
-				</p>
-				<div className="mt-2 grid grid-cols-3 gap-2">
-					<MiniPage className="feature-d4" tone="bg-pastel-butter" label="Classic" />
-					<MiniPage className="feature-d5" tone="bg-pastel-lilac" label="Serif" />
-					<MiniPage className="feature-d6" tone="bg-muted" label="Plain" />
+				<Spine className="feature-d4" />
+
+				<div className="flex w-[15.5rem] flex-col gap-1.5">
+					<FileChip
+						className="feature-fade feature-d5"
+						name="Product Engineer - Northline.pdf"
+					/>
+					<FileChip
+						className="feature-fade feature-d6"
+						name="Platform Lead - Orbit.pdf"
+					/>
+					<FileChip
+						className="feature-fade feature-d6"
+						name="Staff Engineer - Fieldnote.pdf"
+					/>
 				</div>
 			</div>
 		</InView>
@@ -376,7 +435,7 @@ function AtsGraphic() {
 
 export function FeaturesSection() {
 	return (
-		<section id="features">
+		<section id="how-it-works">
 			<div className="rail px-5 py-20 sm:px-8 md:px-10 md:py-28">
 				<div className="mx-auto max-w-[560px] text-center">
 					<p className="eyebrow !text-brand">How it works</p>
@@ -395,7 +454,20 @@ export function FeaturesSection() {
 					<FeatureRow
 						eyebrow="02 · Your layout"
 						title="Bring your own template"
-						body="We extract the look of the resume you uploaded, so new drafts can stay in your design. The library is there if you want a cleaner page instead."
+						body={
+							<>
+								We extract the look of the resume you uploaded,
+								so new drafts can stay in your design. Or pick
+								one of the{" "}
+								<Link
+									href="/templates"
+									className="font-medium text-brand underline-offset-4 hover:underline"
+								>
+									built-in templates
+								</Link>
+								.
+							</>
+						}
 						graphic={<TemplateGraphic />}
 						flip
 					/>

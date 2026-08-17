@@ -13,8 +13,8 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 
 ## Field rules
 
-- \`github\`, \`linkedin\`, \`website\`, project \`url\`: **host/path only** (no \`https://\`)
-- \`companyUrl\`, \`projects[].links[].url\`: **full https URLs** when known; omit if unknown
+- \`github\`, \`linkedin\`, \`website\`, project \`url\`: **host/path only** (no \`https://\`, no markdown, no HTML)
+- \`companyUrl\`, \`projects[].links[].url\`: **full https URLs** when known; omit if unknown. Never wrap these in \`[label](url)\`
 - \`employment\`: only \`"Full-time"\`, \`"Part-time"\`, \`"Internship"\`, \`"Contract"\`, or similar real values from the profile
 - If employment type is unknown, **omit** \`employment\` — never use placeholders
 - \`location\` on roles: real city / \`"Remote"\` from the profile

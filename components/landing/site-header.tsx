@@ -1,4 +1,5 @@
 import { Show } from "@clerk/nextjs";
+import Link from "next/link";
 
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { HeaderUserMenu } from "@/components/landing/header-user-menu";
@@ -6,8 +7,9 @@ import { ModeToggle } from "@/components/mode-toggle";
 import { SlideButton } from "@/components/landing/slide-button";
 
 const navLinks = [
-	{ href: "#features", label: "Features" },
-	{ href: "#pricing", label: "Pricing" },
+	{ href: "/#how-it-works", label: "How it works" },
+	{ href: "/templates", label: "Templates" },
+	{ href: "/#pricing", label: "Pricing" },
 ];
 
 export function SiteHeader() {
@@ -18,13 +20,13 @@ export function SiteHeader() {
 				<div className="flex shrink-0 items-center gap-2 sm:gap-2.5">
 					<nav className="mr-1 hidden items-center gap-6 md:flex">
 						{navLinks.map((link) => (
-							<a
+							<Link
 								key={link.href}
 								href={link.href}
 								className="text-[15px] font-medium text-muted-foreground transition-colors duration-200 hover:text-foreground"
 							>
 								{link.label}
-							</a>
+							</Link>
 						))}
 					</nav>
 					<ModeToggle />
