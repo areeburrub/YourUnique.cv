@@ -4,7 +4,7 @@ import { playwright } from "@trigger.dev/build/extensions/playwright";
 
 export default defineConfig({
 	project: "proj_cldbvyftqkvnjngyjhlp",
-	runtime: "node",
+	runtime: "node-22",
 	logLevel: "log",
 	maxDuration: 3600,
 	legacyDevProcessCwdBehaviour: false,

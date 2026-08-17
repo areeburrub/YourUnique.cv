@@ -1,5 +1,3 @@
-import { pdf } from "pdf-to-img";
-
 const MAX_PAGES = 2;
 const PDF_SCALE = 2.5;
 
@@ -35,6 +33,7 @@ export async function rasterizeSourceFile(input: {
 		);
 	}
 
+	const { pdf } = await import("pdf-to-img");
 	const document = await pdf(input.bytes, { scale: PDF_SCALE });
 	try {
 		const pageCount = Math.min(document.length, MAX_PAGES);
