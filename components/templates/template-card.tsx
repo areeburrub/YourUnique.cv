@@ -31,7 +31,7 @@ export function TemplateCard({
 	allowChooseWhileDrafting?: boolean;
 	chooseLabel?: string;
 }) {
-	const drafting = template.status === "drafting";
+	const drafting = template.status === "drafting" && !template.previewUrl;
 	const failed = template.status === "failed";
 	const canPreview =
 		Boolean(template.previewPdfUrl) && template.status === "ready";
@@ -53,16 +53,18 @@ export function TemplateCard({
 						: "hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)]",
 				)}
 			>
-				<div className="relative overflow-hidden rounded-2xl bg-card product-shadow">
+				<div className="relative overflow-hidden rounded-2xl bg-white product-shadow">
 					{template.previewUrl ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img
-							src={template.previewUrl}
-							alt={`${template.name} preview`}
-							className="aspect-210/297 h-auto w-full object-cover object-top"
-						/>
+						<div className="flex aspect-210/297 items-center justify-center bg-white">
+							{/* eslint-disable-next-line @next/next/no-img-element */}
+							<img
+								src={template.previewUrl}
+								alt={`${template.name} preview`}
+								className="max-h-full max-w-full object-contain"
+							/>
+						</div>
 					) : (
-						<div className="flex aspect-210/297 items-center justify-center p-4 text-center text-xs text-muted-foreground">
+						<div className="flex aspect-210/297 items-center justify-center bg-white p-4 text-center text-xs text-muted-foreground">
 							{drafting ? "Generating…" : failed ? "Failed" : "No preview"}
 						</div>
 					)}
@@ -110,20 +112,22 @@ export function TemplateCard({
 					</span>
 				) : null}
 
-				<div className="mt-2.5 flex items-center gap-2 px-0.5">
-					<div className="flex items-center gap-1">
-						{template.colors.slice(0, 5).map((color) => (
-							<span
-								key={color}
-								className="size-2.5 rounded-full ring-1 ring-black/10"
-								style={{ backgroundColor: color }}
-							/>
-						))}
+				{template.kind === "builtin" ? (
+					<div className="mt-2.5 flex items-center gap-2 px-0.5">
+						<div className="flex items-center gap-1">
+							{template.colors.slice(0, 5).map((color) => (
+								<span
+									key={color}
+									className="size-2.5 rounded-full ring-1 ring-black/10"
+									style={{ backgroundColor: color }}
+								/>
+							))}
+						</div>
+						<span className="truncate text-xs text-muted-foreground">
+							{template.styleLabel}
+						</span>
 					</div>
-					<span className="truncate text-xs text-muted-foreground">
-						{template.styleLabel}
-					</span>
-				</div>
+				) : null}
 			</div>
 
 			<div className="mt-3 space-y-1 px-0.5">

@@ -3,18 +3,12 @@ import path from "node:path";
 
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import { builtinTemplateSources } from "@/templates/resume";
-import {
-	compileHtmlToPdf,
-	compileHtmlToPng,
-} from "@/trigger/lib/playwright-html";
+import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
 async function main() {
 	for (const source of builtinTemplateSources) {
 		const rendered = renderHandlebarsHtml(source.html, source.sampleData);
-		const [png, pdf] = await Promise.all([
-			compileHtmlToPng(rendered),
-			compileHtmlToPdf(rendered),
-		]);
+		const { png, pdf } = await compileHtmlToPdfAndPng(rendered);
 
 		const folder = path.join(process.cwd(), "templates/resume", source.folder);
 		const publicDir = path.join(

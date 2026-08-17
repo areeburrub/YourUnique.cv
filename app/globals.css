@@ -353,6 +353,14 @@
 		line-height: 1.65;
 	}
 
+	.profile-editor-content h1 {
+		font-family: var(--font-display), sans-serif;
+		font-size: 1.75rem;
+		font-weight: 600;
+		letter-spacing: -0.03em;
+		line-height: 1.2;
+	}
+
 	.profile-editor-content > * + * {
 		margin-top: 0.75rem;
 	}

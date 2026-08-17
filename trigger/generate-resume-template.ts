@@ -3,7 +3,7 @@ import { generateText, Output, type FilePart } from "ai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
-import { OPENROUTER_CHAT_MODEL, openrouter } from "@/lib/ai/openrouter";
+import { openrouter } from "@/lib/ai/openrouter";
 import { getUserFileForUser, insertUserFileRow } from "@/lib/db/files";
 import {
 	getResumeTemplateForUser,
@@ -15,13 +15,11 @@ import { customTemplatePreviewPdfKey } from "@/lib/resume-templates/registry";
 import { rasterizeSourceFile } from "@/lib/resume-templates/rasterize-source";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
 import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
-import {
-	compileHtmlToPdf,
-	compileHtmlToPng,
-} from "@/trigger/lib/playwright-html";
+import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
-const MAX_REFINE_ROUNDS = 2;
+const TEMPLATE_VISION_MODEL = "google/gemini-3.7-flash";
 const EARLY_STOP_SCORE = 90;
+const REFINE_ATTEMPTS = 2;
 
 const generatedTemplateSchema = z.object({
 	name: z.string().min(1).max(80),
@@ -54,7 +52,7 @@ type Draft = {
 };
 
 function visionModel() {
-	return openrouter(OPENROUTER_CHAT_MODEL);
+	return openrouter(TEMPLATE_VISION_MODEL);
 }
 
 function pageImageParts(
@@ -87,7 +85,7 @@ async function loadSourcePageImages(input: {
 		throw new Error("Could not read source file");
 	}
 	const bytes = Buffer.from(await body.transformToByteArray());
-	const pages = await rasterizeSourceFile({
+	const rasterized = await rasterizeSourceFile({
 		bytes,
 		mediaType: file.contentType,
 		filename: file.filename,
@@ -96,33 +94,53 @@ async function loadSourcePageImages(input: {
 	return {
 		filename: file.filename,
 		mediaType: file.contentType,
-		pages,
+		pages: rasterized.pages,
+		sourcePageCount: rasterized.sourcePageCount,
 	};
+}
+
+function sourceLayoutBrief(input: {
+	sourcePageCount: number;
+	attachedPages: number;
+}) {
+	const attached =
+		input.attachedPages < input.sourcePageCount
+			? ` (${input.attachedPages} page image(s) attached)`
+			: "";
+	return `Source page count: ${input.sourcePageCount} A4 page${input.sourcePageCount === 1 ? "" : "s"}${attached}.
+Read the page image(s) for density before writing CSS:
+- How full is each page? How much empty space is left at the bottom?
+- How tight are section gaps, header padding, line-height, and bullet spacing?
+- Infer font sizes from the page (name, headings, body, meta) — do not use generic resume sizes.
+Match that page count and density. If the source is one full page, stay on one page with similar fill. If it is airy, keep the air. Do not overflow to an extra page or leave a large empty lower half the source does not have.`;
 }
 
 async function draftTemplate(input: {
 	filename: string;
 	pageParts: FilePart[];
+	sourcePageCount: number;
 }) {
 	const { output } = await generateText({
 		model: visionModel(),
 		output: Output.json(),
 		instructions: `You reverse-engineer a printable A4 resume HTML/CSS template from page image(s) of a user's uploaded resume.
 
-Reproduce the uploaded design closely: same section order, header layout, columns, rules/dividers, colors, and overall spacing rhythm. Aim for a faithful HTML/CSS clone, not a generic resume.
+Reproduce the uploaded design closely: same section order, header layout, columns, rules/dividers, colors, font sizes, and spacing rhythm. Aim for a faithful HTML/CSS clone, not a generic resume.
 
 Return a single JSON object (not a string, not markdown) with these keys:
 - name: short template name (string)
 - description: one sentence (string)
 - notes: markdown instructions for a resume agent filling THIS template's inputSchema (field rules, nesting, what to omit). No global schema assumptions. Tell the agent that prose fields (summary, bullets, descriptions) may use inline **bold**, *italic*, and [label](https://url); the renderer turns those into emphasis and links. Do not allow HTML, Typst, or LaTeX in JSON strings. Do not say "plain text only". Do not use triple-stash {{{value}}} for user text.
 - inputSchema: a JSON Schema object (draft 2020-12 style) describing ONLY the fields this layout needs. Must be a nested object, not a string.
-- html: a complete HTML document (DOCTYPE + html) with embedded CSS for A4 print (@page size A4; margin 0). Use Handlebars mustache tags bound to inputSchema paths. No JavaScript, no Tailwind CDN, no external scripts. Prefer Google Fonts / jsDelivr font links matching the uploaded look.
+- html: a complete HTML document (DOCTYPE + html) with embedded CSS for A4 print (@page size A4; margin at least 12mm on every side). Use Handlebars mustache tags bound to inputSchema paths. No JavaScript, no Tailwind CDN, no external scripts. Prefer Google Fonts / jsDelivr font links matching the uploaded look.
 - sampleData: fixture document matching inputSchema. Copy the original resume's visible text, bullet counts, and section density so the preview lines up with the source.
 
 Rules:
-- Match structure first: margins, columns, header, section order, dividers, colors.
-- Keep vertical spacing tight and intentional — avoid extra padding that pushes later sections down the page.
-- One A4 page target unless the source clearly has more pages.
+- First count source pages and judge leftover whitespace, then set type scale and vertical rhythm so the clone fills the same number of A4 pages the same way.
+- Match structure: columns, header, section order, dividers, colors, font sizes.
+- Every printed page needs at least 12mm inset on all sides via @page margin (not body padding alone — padding does not apply after a page break). Content, rules, and headings must not touch the paper edge.
+- Keep vertical spacing intentional — match the source. Do not invent extra padding that pushes later sections onto another page, and do not cram a spacious source.
+- Target exactly the source page count.
 - print CSS only. No script tags or event handlers.
 - Handlebars {{value}} interpolations HTML-escape first, then render inline **bold**, *italic*, and [label](url) from JSON strings. Use {{value}}, not triple-stash, for user text.`,
 		messages: [
@@ -132,6 +150,11 @@ Rules:
 					{
 						type: "text",
 						text: `Source file: ${input.filename}
+
+${sourceLayoutBrief({
+	sourcePageCount: input.sourcePageCount,
+	attachedPages: input.pageParts.length,
+})}
 
 Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sampleData so spacing can be judged fairly.`,
 					},
@@ -161,45 +184,50 @@ function applyDraft(generated: GeneratedTemplate): Draft {
 	};
 }
 
-async function renderPreviewPng(input: {
+async function renderPreview(input: {
 	html: string;
 	sampleData: Record<string, unknown>;
 }) {
 	const previewHtml = renderHandlebarsHtml(input.html, input.sampleData);
-	return compileHtmlToPng(previewHtml);
+	return compileHtmlToPdfAndPng(previewHtml);
 }
 
 async function evaluateAndRevise(input: {
 	pageParts: FilePart[];
 	draft: Draft;
 	previewPng: Buffer;
-	round: number;
+	sourcePageCount: number;
 }) {
 	const { output } = await generateText({
 		model: visionModel(),
 		output: Output.json(),
 		instructions: `You QA a resume HTML template against the original page image(s).
 
-Focus on high-impact layout fixes only (max ${MAX_REFINE_ROUNDS} refine rounds — this is round ${input.round}).
+This is the only refine pass — return your best revisedHtml now if anything high-impact is off.
 Ignore tiny pixel nits (a few px of font/weight drift). Fix real structure problems:
+- wrong page count vs the source
+- leftover whitespace or overflow that does not match how full the source pages are
+- font sizes that are clearly larger or smaller than the source
 - wrong columns / section order
 - missing or extra dividers
 - big margin/spacing drift that shifts whole sections
 - header structure mismatches
 - color / rule mistakes
 
-Especially fix cumulative vertical spacing: if later sections sit too low, tighten section gaps, header padding, and line-height — do not leave progressive downward drift.
+Especially fix cumulative vertical spacing: if later sections sit too low or spill onto an extra page, tighten section gaps, header padding, font sizes, and line-height to match the source density.
 
 Return a single JSON object:
 - matchScore: 0-100 overall visual fidelity (90+ = clearly the same design with only minor polish left)
 - done: true if the design is close enough (same structure/look; small spacing/font variance OK)
 - differences: up to 5 highest-impact mismatches (short strings)
 - revisedHtml: full HTML document with the best practical fixes, or null if nothing worth changing
-- revisedNotes / revisedInputSchema / revisedSampleData: only when needed for the layout; otherwise null
+- revisedNotes / revisedSampleData: only when needed for the layout; otherwise null
+- revisedInputSchema: always null — do not change the schema or Handlebars paths
 
 Rules:
-- Prefer one solid CSS spacing/layout pass over endless micro-edits.
-- Keep Handlebars bindings. No JS/Tailwind CDN/scripts. A4 print CSS.
+- Prefer one solid CSS spacing/type-scale pass over endless micro-edits.
+- Keep the existing Handlebars bindings and inputSchema paths. No JS/Tailwind CDN/scripts. A4 print CSS.
+- Keep @page margin at least 12mm on every side. Do not set @page margin to 0. Body/page padding is not enough for page 2+.
 - If you revise, return the complete html document.`,
 		messages: [
 			{
@@ -207,7 +235,12 @@ Rules:
 				content: [
 					{
 						type: "text",
-						text: `ORIGINAL page image(s) first, then GENERATED preview. Current HTML:\n\n${input.draft.html.slice(0, 60_000)}`,
+						text: `${sourceLayoutBrief({
+	sourcePageCount: input.sourcePageCount,
+	attachedPages: input.pageParts.length,
+})}
+
+ORIGINAL page image(s) first, then GENERATED preview. Current HTML:\n\n${input.draft.html.slice(0, 60_000)}`,
 					},
 					...input.pageParts,
 					{
@@ -232,6 +265,66 @@ Rules:
 	return evaluationSchema.parse(output);
 }
 
+async function publishReadyTemplate(input: {
+	templateId: string;
+	userId: string;
+	draft: Draft;
+	previewPng: Buffer;
+	previewPdf: Buffer;
+}) {
+	const safeName =
+		input.draft.name.replace(/[^\w\s.-]+/g, "").trim() || "template";
+	const previewKey = `users/${input.userId}/templates/${input.templateId}/preview.png`;
+	const previewPdfKey = customTemplatePreviewPdfKey(
+		input.userId,
+		input.templateId,
+	);
+
+	await Promise.all([
+		putR2Object({
+			key: previewKey,
+			body: input.previewPng,
+			contentType: "image/png",
+		}),
+		putR2Object({
+			key: previewPdfKey,
+			body: input.previewPdf,
+			contentType: "application/pdf",
+		}),
+	]);
+
+	const [previewFile, previewPdfFile] = await Promise.all([
+		insertUserFileRow({
+			id: nanoid(),
+			userId: input.userId,
+			key: previewKey,
+			filename: `${safeName}-preview.png`,
+			contentType: "image/png",
+			size: input.previewPng.byteLength,
+		}),
+		insertUserFileRow({
+			id: nanoid(),
+			userId: input.userId,
+			key: previewPdfKey,
+			filename: `${safeName}-preview.pdf`,
+			contentType: "application/pdf",
+			size: input.previewPdf.byteLength,
+		}),
+	]);
+
+	return updateResumeTemplateForUser(input.templateId, input.userId, {
+		name: input.draft.name,
+		description: input.draft.description,
+		notes: input.draft.notes,
+		inputSchema: input.draft.inputSchema,
+		html: input.draft.html,
+		previewFileId: previewFile.id,
+		previewPdfFileId: previewPdfFile.id,
+		status: "ready",
+		error: null,
+	});
+}
+
 export const generateResumeTemplate = schemaTask({
 	id: "generate-resume-template",
 	schema: z.object({
@@ -253,10 +346,17 @@ export const generateResumeTemplate = schemaTask({
 			throw new Error("Template is missing a source file");
 		}
 
-		await updateResumeTemplateForUser(payload.templateId, payload.userId, {
-			status: "drafting",
-			error: null,
-		});
+		let published = row.status === "ready" && Boolean(row.html);
+		if (!published) {
+			await updateResumeTemplateForUser(payload.templateId, payload.userId, {
+				status: "drafting",
+				error: null,
+			});
+		} else {
+			await updateResumeTemplateForUser(payload.templateId, payload.userId, {
+				error: null,
+			});
+		}
 
 		try {
 			const source = await loadSourcePageImages({
@@ -270,154 +370,128 @@ export const generateResumeTemplate = schemaTask({
 				filename: source.filename,
 				mediaType: source.mediaType,
 				pageCount: source.pages.length,
+				sourcePageCount: source.sourcePageCount,
 			});
 
 			let draft = applyDraft(
 				await draftTemplate({
 					filename: source.filename,
 					pageParts,
+					sourcePageCount: source.sourcePageCount,
 				}),
 			);
-			let previewPng = await renderPreviewPng(draft);
+			let preview = await renderPreview(draft);
 
-			let best = {
-				draft,
-				previewPng,
-				matchScore: 0,
-				differences: [] as string[],
-			};
-
-			for (let round = 1; round <= MAX_REFINE_ROUNDS; round++) {
-				const evaluation = await evaluateAndRevise({
-					pageParts,
-					draft,
-					previewPng,
-					round,
-				});
-
-				logger.log("template refine evaluation", {
-					templateId: payload.templateId,
-					round,
-					matchScore: evaluation.matchScore,
-					done: evaluation.done,
-					differences: evaluation.differences,
-				});
-
-				if (evaluation.matchScore >= best.matchScore) {
-					best = {
-						draft,
-						previewPng,
-						matchScore: evaluation.matchScore,
-						differences: evaluation.differences,
-					};
-				}
-
-				const stopEarly =
-					evaluation.done || evaluation.matchScore >= EARLY_STOP_SCORE;
-				const revisedHtml = evaluation.revisedHtml;
-				const canRevise = revisedHtml != null && round < MAX_REFINE_ROUNDS;
-
-				if (stopEarly || !canRevise) {
-					break;
-				}
-
-				const nextInputSchema =
-					evaluation.revisedInputSchema ?? draft.inputSchema;
-				draft = {
-					...draft,
-					html: sanitizeTemplateHtml(revisedHtml),
-					inputSchema: nextInputSchema,
-					sampleData: validateAgainstJsonSchema(
-						nextInputSchema,
-						evaluation.revisedSampleData ?? draft.sampleData,
-					),
-					notes: evaluation.revisedNotes ?? draft.notes,
-				};
-				previewPng = await renderPreviewPng(draft);
-			}
-
-			draft = best.draft;
-			previewPng = best.previewPng;
-
-			logger.log("keeping best template draft", {
+			await publishReadyTemplate({
 				templateId: payload.templateId,
-				matchScore: best.matchScore,
-				differences: best.differences,
+				userId: payload.userId,
+				draft,
+				previewPng: preview.png,
+				previewPdf: preview.pdf,
+			});
+			published = true;
+
+			logger.log("published first draft for selection", {
+				templateId: payload.templateId,
 			});
 
-			const safeName =
-				draft.name.replace(/[^\w\s.-]+/g, "").trim() || "template";
-			const previewHtml = renderHandlebarsHtml(draft.html, draft.sampleData);
-			const previewPdf = await compileHtmlToPdf(previewHtml);
+			let matchScore = 0;
+			let differences: string[] = [];
+			let appliedRevision = false;
 
-			const previewKey = `users/${payload.userId}/templates/${payload.templateId}/preview.png`;
-			const previewPdfKey = customTemplatePreviewPdfKey(
-				payload.userId,
-				payload.templateId,
-			);
-			await Promise.all([
-				putR2Object({
-					key: previewKey,
-					body: previewPng,
-					contentType: "image/png",
-				}),
-				putR2Object({
-					key: previewPdfKey,
-					body: previewPdf,
-					contentType: "application/pdf",
-				}),
-			]);
+			for (let attempt = 1; attempt <= REFINE_ATTEMPTS; attempt++) {
+				try {
+					const evaluation = await evaluateAndRevise({
+						pageParts,
+						draft,
+						previewPng: preview.png,
+						sourcePageCount: source.sourcePageCount,
+					});
 
-			const [previewFile, previewPdfFile] = await Promise.all([
-				insertUserFileRow({
-					id: nanoid(),
-					userId: payload.userId,
-					key: previewKey,
-					filename: `${safeName}-preview.png`,
-					contentType: "image/png",
-					size: previewPng.byteLength,
-				}),
-				insertUserFileRow({
-					id: nanoid(),
-					userId: payload.userId,
-					key: previewPdfKey,
-					filename: `${safeName}-preview.pdf`,
-					contentType: "application/pdf",
-					size: previewPdf.byteLength,
-				}),
-			]);
+					logger.log("template refine evaluation", {
+						templateId: payload.templateId,
+						attempt,
+						matchScore: evaluation.matchScore,
+						done: evaluation.done,
+						differences: evaluation.differences,
+					});
 
-			const updated = await updateResumeTemplateForUser(
-				payload.templateId,
-				payload.userId,
-				{
-					name: draft.name,
-					description: draft.description,
-					notes: draft.notes,
-					inputSchema: draft.inputSchema,
-					html: draft.html,
-					previewFileId: previewFile.id,
-					previewPdfFileId: previewPdfFile.id,
-					status: "ready",
-					error: null,
-				},
-			);
+					matchScore = evaluation.matchScore;
+					differences = evaluation.differences;
+
+					const stopEarly =
+						evaluation.done || evaluation.matchScore >= EARLY_STOP_SCORE;
+					const revisedHtml = evaluation.revisedHtml;
+
+					if (!stopEarly && revisedHtml != null) {
+						let sampleData = draft.sampleData;
+						if (evaluation.revisedSampleData) {
+							try {
+								sampleData = validateAgainstJsonSchema(
+									draft.inputSchema,
+									evaluation.revisedSampleData,
+								);
+							} catch {
+								sampleData = draft.sampleData;
+							}
+						}
+						draft = {
+							...draft,
+							html: sanitizeTemplateHtml(revisedHtml),
+							sampleData,
+							notes: evaluation.revisedNotes ?? draft.notes,
+						};
+						preview = await renderPreview(draft);
+						appliedRevision = true;
+					}
+
+					await publishReadyTemplate({
+						templateId: payload.templateId,
+						userId: payload.userId,
+						draft,
+						previewPng: preview.png,
+						previewPdf: preview.pdf,
+					});
+
+					logger.log("keeping best template draft", {
+						templateId: payload.templateId,
+						matchScore,
+						differences,
+						appliedRevision,
+					});
+					break;
+				} catch (error) {
+					logger.log("template refine attempt failed", {
+						templateId: payload.templateId,
+						attempt,
+						error: error instanceof Error ? error.message : "unknown",
+					});
+					if (attempt === REFINE_ATTEMPTS) {
+						logger.log("refine exhausted, keeping first draft", {
+							templateId: payload.templateId,
+						});
+					}
+				}
+			}
 
 			return {
 				templateId: payload.templateId,
-				status: updated?.status ?? "ready",
-				matchScore: best.matchScore,
-				differences: best.differences,
+				status: "ready",
+				matchScore,
+				differences,
+				appliedRevision,
 			};
 		} catch (error) {
-			const message =
-				error instanceof Error
-					? error.message.slice(0, 2000)
-					: "Template generation failed";
-			await updateResumeTemplateForUser(payload.templateId, payload.userId, {
-				status: "failed",
-				error: message,
-			});
+			if (!published) {
+				const message =
+					error instanceof Error
+						? error.message.slice(0, 2000)
+						: "Template generation failed";
+				await updateResumeTemplateForUser(payload.templateId, payload.userId, {
+					status: "failed",
+					error: message,
+				});
+			}
 			throw error;
 		}
 	},

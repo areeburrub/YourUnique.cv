@@ -1,4 +1,4 @@
-import { runs, tasks } from "@trigger.dev/sdk";
+import { idempotencyKeys, runs, tasks } from "@trigger.dev/sdk";
 
 import { getUserFileForUser } from "@/lib/db/files";
 import {
@@ -45,6 +45,10 @@ export async function triggerResumeTemplateJob(input: {
 		return { started: false as const };
 	}
 
+	const idempotencyKey = await idempotencyKeys.create(
+		`generate-resume-template:${input.templateId}`,
+		{ scope: "global" },
+	);
 	const handle = await tasks.trigger<typeof generateResumeTemplate>(
 		"generate-resume-template",
 		{
@@ -53,6 +57,8 @@ export async function triggerResumeTemplateJob(input: {
 		},
 		{
 			tags: [templateRunTag(input.templateId)],
+			idempotencyKey,
+			idempotencyKeyTTL: "10m",
 		},
 	);
 

@@ -24,6 +24,14 @@ export async function insertUserFileRow(input: {
 			contentType: input.contentType,
 			size: input.size,
 		})
+		.onConflictDoUpdate({
+			target: userFiles.key,
+			set: {
+				filename: input.filename,
+				contentType: input.contentType,
+				size: input.size,
+			},
+		})
 		.returning();
 
 	return {

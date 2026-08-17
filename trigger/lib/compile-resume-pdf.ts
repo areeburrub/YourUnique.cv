@@ -16,10 +16,7 @@ import { userFiles } from "@/lib/db/schema";
 import { putR2Object } from "@/lib/r2";
 import { resolveTemplate } from "@/lib/resume-templates/registry";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
-import {
-	compileHtmlToPdf,
-	compileHtmlToPng,
-} from "@/trigger/lib/playwright-html";
+import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
 function resumePdfKey(userId: string, resumeId: string) {
 	return `users/${userId}/resumes/${resumeId}.pdf`;
@@ -106,10 +103,8 @@ export async function compileResumePdf(input: {
 		const template = await resolveTemplate(templateRef, input.userId);
 		const document = template.validate(getResumeDocument(resume));
 		const html = template.render(document);
-		const [pdfBuffer, pngBuffer] = await Promise.all([
-			compileHtmlToPdf(html),
-			compileHtmlToPng(html),
-		]);
+		const { pdf: pdfBuffer, png: pngBuffer } =
+			await compileHtmlToPdfAndPng(html);
 
 		const pdfFileId = await upsertResumeBinaryFile({
 			userId: input.userId,

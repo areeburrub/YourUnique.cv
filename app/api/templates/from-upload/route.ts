@@ -52,10 +52,17 @@ export async function POST(req: Request) {
 				{ status: 400 },
 			);
 		}
-		await updateResumeTemplateForUser(retryTemplateId, userId, {
-			status: "drafting",
-			error: null,
-		});
+		const keepReady = existing.status === "ready" && Boolean(existing.html);
+		if (!keepReady) {
+			await updateResumeTemplateForUser(retryTemplateId, userId, {
+				status: "drafting",
+				error: null,
+			});
+		} else {
+			await updateResumeTemplateForUser(retryTemplateId, userId, {
+				error: null,
+			});
+		}
 		try {
 			const triggered = await triggerResumeTemplateJob({
 				templateId: retryTemplateId,
@@ -66,17 +73,19 @@ export async function POST(req: Request) {
 				templateId: retryTemplateId,
 				templateRef: customRef(retryTemplateId),
 				runId: triggered.started ? triggered.runId : undefined,
-				status: "drafting",
+				status: keepReady ? "ready" : "drafting",
 			});
 		} catch (error) {
 			const message =
 				error instanceof Error
 					? error.message
 					: "Failed to start template generation";
-			await updateResumeTemplateForUser(retryTemplateId, userId, {
-				status: "failed",
-				error: message.slice(0, 2000),
-			});
+			if (!keepReady) {
+				await updateResumeTemplateForUser(retryTemplateId, userId, {
+					status: "failed",
+					error: message.slice(0, 2000),
+				});
+			}
 			return NextResponse.json({ error: message }, { status: 500 });
 		}
 	}

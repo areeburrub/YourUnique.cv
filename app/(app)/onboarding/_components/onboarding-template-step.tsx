@@ -74,16 +74,6 @@ export function OnboardingTemplateStep({
 	useEffect(() => {
 		void (async () => {
 			try {
-				if (resumeFileId && canUseResumeLook) {
-					await fetch("/api/templates/from-upload", {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({
-							fileId: resumeFileId,
-							name: "Your resume",
-						}),
-					}).catch(() => undefined);
-				}
 				await refresh();
 			} catch (err) {
 				setError(
@@ -93,7 +83,7 @@ export function OnboardingTemplateStep({
 				setLoading(false);
 			}
 		})();
-	}, [refresh, resumeFileId, canUseResumeLook]);
+	}, [refresh]);
 
 	useEffect(() => {
 		const drafting = templates.some((template) => template.status === "drafting");
@@ -258,11 +248,9 @@ export function OnboardingTemplateStep({
 									...resumeTemplate,
 									name: "Your resume",
 									description:
-										resumeTemplate.status === "ready"
-											? "Matched to the resume you uploaded"
-											: resumeTemplate.status === "failed"
-												? "Could not finish this layout — pick a library template instead"
-												: "Finishing your layout in the background…",
+										resumeTemplate.status === "failed"
+											? "Could not finish this layout — pick a library template instead"
+											: "Matched to the resume you uploaded",
 									category: "Your upload",
 									styleLabel: "From your file",
 								}}

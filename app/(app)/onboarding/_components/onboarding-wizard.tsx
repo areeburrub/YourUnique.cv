@@ -21,6 +21,7 @@ import {
 } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
 
+import { OnboardingGenerateStep } from "./onboarding-generate-step";
 import { OnboardingTemplateStep } from "./onboarding-template-step";
 
 type WizardStep =
@@ -444,96 +445,12 @@ export function OnboardingWizard({
 	}
 
 	if (step === "generate") {
-		const stages: Array<{
-			id: GenerateStage;
-			label: string;
-			visible: boolean;
-		}> = [
-			{ id: "analyzing", label: "Analyzing resume…", visible: true },
-			{
-				id: "linkedin",
-				label: "Checking LinkedIn…",
-				visible: Boolean(linkedinUrl.trim()),
-			},
-			{
-				id: "writing",
-				label: "Writing your profile…",
-				visible: true,
-			},
-		];
-
-		const order: GenerateStage[] = ["analyzing", "linkedin", "writing", "done"];
-		const activeIndex = order.indexOf(generateStage);
-
 		return (
-			<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col px-4 py-10 sm:px-6 sm:py-14">
-				<div className="mb-8 max-w-lg">
-					<p className="text-sm font-medium text-muted-foreground">
-						Step 4 of 6
-					</p>
-					<h1 className="font-display mt-2 text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
-						Building your profile
-					</h1>
-					<p className="mt-3 text-base leading-6 text-muted-foreground">
-						Hang tight — this usually takes a short moment.
-					</p>
-				</div>
-
-				<ul className="mb-8 flex flex-col gap-3">
-					{stages
-						.filter((stage) => stage.visible)
-						.map((stage) => {
-							const stageIndex = order.indexOf(stage.id);
-							const done =
-								generateStage === "done" ||
-								stageIndex < activeIndex;
-							const active =
-								generateStage !== "done" &&
-								stageIndex === activeIndex;
-							return (
-								<li
-									key={stage.id}
-									className={cn(
-										"flex items-center gap-3 text-sm",
-										done || active
-											? "text-foreground"
-											: "text-muted-foreground",
-									)}
-								>
-									<span
-										className={cn(
-											"flex size-7 items-center justify-center rounded-full border",
-											done
-												? "border-brand/40 bg-brand/10 text-brand"
-												: active
-													? "border-border bg-surface-subtle"
-													: "border-border",
-										)}
-									>
-										{done ? (
-											<CheckIcon size={14} weight="bold" />
-										) : active ? (
-											<Spinner className="size-3.5" />
-										) : (
-											<span className="size-1.5 rounded-full bg-muted-foreground/40" />
-										)}
-									</span>
-									{stage.label}
-								</li>
-							);
-						})}
-				</ul>
-
-				<div className="relative min-h-56 flex-1 overflow-hidden rounded-2xl border border-border bg-surface-subtle/40">
-					<pre className="absolute inset-0 overflow-auto p-4 font-mono text-[11px] leading-5 whitespace-pre-wrap text-muted-foreground sm:text-xs">
-						{profilePreview ||
-							(generateStage === "writing"
-								? "Starting…"
-								: " ")}
-					</pre>
-					<div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-linear-to-t from-background to-transparent" />
-				</div>
-			</div>
+			<OnboardingGenerateStep
+				generateStage={generateStage}
+				hasLinkedIn={Boolean(linkedinUrl.trim())}
+				profilePreview={profilePreview}
+			/>
 		);
 	}
 
