@@ -10,6 +10,7 @@ import {
 	loadResumeBriefing,
 } from "@/lib/resume-briefing";
 import {
+	RESUME_ATS_REPORT_RULES,
 	RESUME_HUMANIZER_RULES,
 	RESUME_TAILORING_RULES,
 } from "@/lib/resume-writing-rules";
@@ -82,10 +83,12 @@ ${RESUME_HUMANIZER_RULES}
 5. If a job description or target role is present:
 ${RESUME_TAILORING_RULES}
 6. Call create_resume once with name + document. When tailored to a job, always include jobDescription plus companyName, roleTitle, and jobLink when the user provided a posting URL. Prefer a name like "Role @ Company".
-7. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Share downloadUrl. Do not call compile_resume after create. Do not fetch the PDF yourself.
+7. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Do not call compile_resume after create. Do not fetch the PDF yourself.
 8. One resume per turn. If you already called create_resume, use update_resume_document on that id. Do not create a second resume.
+9. In the same text reply (no extra tool calls):
+${RESUME_ATS_REPORT_RULES}
 
-For edits to an existing resume: get_resume then update_resume_document with the full updated document. That also queues a new PDF.
+For edits to an existing resume: get_resume then update_resume_document with the full updated document. That also queues a new PDF. If that edit was for a JD, include the same ATS note in the reply.
 
 If they ask to generate a resume for a role (e.g. "full stack"), start from the profile right away — do not wait for more biography unless critical gaps force a profile-edit-agent pass.
 

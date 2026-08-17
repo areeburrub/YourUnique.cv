@@ -45,4 +45,5 @@ This template renders projects as compact one-liners: name, stack (if any), join
 - \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
 - \`update_resume_document\` — \`{ id, document }\` full replace (also queues PDF)
 - Give the user \`downloadUrl\`. Do not fetch the PDF yourself
+- If this resume was tailored to a JD, the same chat reply is an ATS Analysis: score /100, Area/Match table, biggest-gaps list. No extra tools
 `;

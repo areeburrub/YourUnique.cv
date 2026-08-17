@@ -251,26 +251,28 @@ YourUnique.cv output is a **structured JSON document** via `create_resume` / `up
 - Use reverse chronological order (most recent first)
 - Maintain clean, scannable layout with white space
 
-### 7. Provide Strategic Recommendations
+### 7. After generate, ATS Analysis in the same reply
 
-After presenting the tailored resume, offer:
+When the resume was tailored to a JD, the chat text after `create_resume` / `update_resume_document` must be an ATS Analysis. Same turn. No second rewrite pass.
 
-**Strengths Analysis**:
-- What makes this candidate competitive
-- Unique qualifications to emphasize in cover letter or interview
+```markdown
+2–3 sentences on fit and strongest matching skills (JD wording).
 
-**Gap Analysis**:
-- Requirements not fully met
-- Suggestions for addressing gaps (courses, projects, reframing experience)
+**Current ATS Score: {N}/100**
 
-**Interview Preparation Tips**:
-- Key talking points aligned with resume
-- Stories to prepare based on job requirements
-- Questions to ask that demonstrate fit
+| Area | Match |
+| --- | --- |
+| {JD-derived area} | {n}/10 |
+| JD keyword alignment | {n}/100 |
 
-**Cover Letter Hooks**:
-- Suggest 2-3 opening lines for cover letter
-- Key achievements to expand upon
+### Biggest gaps
+
+- {JD terms missing or only generic on the resume}
+```
+
+- Score is estimated coverage of this JD, not a vendor ATS number
+- 8–12 area rows from the posting; 8–15 gap terms
+- Do not invent experience. Close: do not keyword-stuff; rephrase real work in the JD's terms
 
 ### 8. Iterate and Refine
 
