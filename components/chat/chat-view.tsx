@@ -8,7 +8,7 @@ import {
 	type UIMessage,
 } from "ai";
 import { useQueryClient } from "@tanstack/react-query";
-import { FileText, MessageSquareText, Plus, Upload, XIcon } from "lucide-react";
+import { ChatTextIcon, FileTextIcon, PlusIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { nanoid } from "nanoid";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -35,6 +35,7 @@ import {
 	UserMessage,
 } from "@/components/chat/chat-message-parts";
 import { agentDataPartsFromMessage } from "@/components/chat/tool-activity";
+import { DailyUsageWarning } from "@/components/chat/daily-usage-warning";
 import { UsageLimitDialog } from "@/components/chat/usage-limit-dialog";
 import { Button } from "@/components/ui/button";
 import { useUsageStatus } from "@/hooks/use-usage-status";
@@ -725,24 +726,9 @@ export function ChatView({
 		<>
 			{usageStatus.data ? (
 				<UsageLimitDialog
-					open={usageDialogOpen && usageBlocked}
+					open={usageDialogOpen}
 					onOpenChange={setUsageDialogOpen}
 					status={usageStatus.data}
-				/>
-			) : null}
-			{usageBlocked ? (
-				<button
-					type="button"
-					onClick={() => setUsageDialogOpen(true)}
-					className="mx-auto mb-2 block w-full max-w-3xl rounded-lg border border-border bg-surface-subtle px-3 py-2 text-left text-sm text-muted-foreground hover:text-foreground"
-				>
-					Usage limit reached — tap for details
-				</button>
-			) : null}
-			{showRetry ? (
-				<ChatInterruptBanner
-					onRetry={handleRetry}
-					disabled={busy || usageBlocked}
 				/>
 			) : null}
 			<ChatComposer
@@ -767,6 +753,30 @@ export function ChatView({
 							: undefined
 				}
 				errorMessage={uploadError}
+				above={
+					<>
+						{usageBlocked ? (
+							<button
+								type="button"
+								onClick={() => setUsageDialogOpen(true)}
+								className="mb-2 block w-full rounded-lg border border-border bg-surface-subtle px-3 py-2 text-left text-sm text-muted-foreground hover:text-foreground"
+							>
+								Usage limit reached — tap for details
+							</button>
+						) : usageStatus.data ? (
+							<DailyUsageWarning
+								status={usageStatus.data}
+								onUpgrade={() => setUsageDialogOpen(true)}
+							/>
+						) : null}
+						{showRetry ? (
+							<ChatInterruptBanner
+								onRetry={handleRetry}
+								disabled={busy || usageBlocked}
+							/>
+						) : null}
+					</>
+				}
 			/>
 		</>
 	);
@@ -830,7 +840,7 @@ export function ChatView({
 							onClick={onNewChat}
 							disabled={isBusy}
 						>
-							<Plus className="size-4" />
+							<PlusIcon size={16} weight="bold" />
 						</Button>
 					) : null}
 				</div>
@@ -839,7 +849,7 @@ export function ChatView({
 					{isEmpty ? (
 						<ConversationEmptyState className="px-6">
 							<div className="flex size-12 items-center justify-center rounded-2xl border border-border bg-surface-subtle text-muted-foreground">
-								<MessageSquareText className="size-5" />
+								<ChatTextIcon size={20} weight="duotone" />
 							</div>
 							<div className="max-w-[30ch] space-y-1.5">
 								<h3 className="font-display text-lg font-semibold tracking-[-0.3px] text-foreground">
@@ -867,10 +877,10 @@ export function ChatView({
 						<button
 							type="button"
 							onClick={onOpenProfile}
-							className="mb-2 flex w-full items-center gap-2 rounded-lg border border-border bg-surface-subtle px-2.5 py-1.5 text-left transition-colors hover:bg-muted/70"
+							className="mb-2 flex w-full items-center gap-2.5 rounded-2xl bg-pastel-blush px-3 py-2 text-left transition-colors hover:bg-pastel-blush/80"
 						>
-							<span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-border bg-white text-foreground dark:bg-background">
-								<FileText className="size-3" />
+							<span className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-card text-brand">
+								<FileTextIcon size={16} weight="duotone" />
 							</span>
 							<span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
 								Your Profile
@@ -901,7 +911,7 @@ export function ChatView({
 												onRemoveSnippet(snippet.id)
 											}
 										>
-											<XIcon className="size-3" />
+											<XIcon size={12} weight="bold" />
 										</button>
 									) : null}
 								</li>
@@ -923,9 +933,9 @@ export function ChatView({
 		>
 			{isDraggingFiles ? (
 				<div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-background/80 px-6 backdrop-blur-[2px]">
-					<div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-media border border-dashed border-brand/50 bg-surface-subtle px-6 py-8 text-center shadow-sm">
-						<div className="flex size-12 items-center justify-center rounded-media border border-border bg-background text-brand">
-							<Upload className="size-5" />
+					<div className="flex w-full max-w-sm flex-col items-center gap-3 rounded-[28px] bg-pastel-blush px-6 py-8 text-center product-shadow">
+						<div className="flex size-14 items-center justify-center rounded-2xl bg-card text-brand">
+							<UploadSimpleIcon size={24} weight="duotone" />
 						</div>
 						<div className="space-y-1">
 							<p className="font-medium text-sm">Drop files to attach</p>

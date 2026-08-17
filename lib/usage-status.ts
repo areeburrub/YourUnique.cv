@@ -19,6 +19,48 @@ export type UsageStatusResponse = {
 
 export const usageStatusKey = ["usage-status"] as const;
 
+export const DAILY_USAGE_WARNING_RATIO = 0.9;
+
+export function utcDateString(date = new Date()) {
+	return date.toISOString().slice(0, 10);
+}
+
+export function nextUtcMidnight(from = new Date()) {
+	return new Date(
+		Date.UTC(
+			from.getUTCFullYear(),
+			from.getUTCMonth(),
+			from.getUTCDate() + 1,
+		),
+	);
+}
+
+export function isNearDailyLimit(status: UsageStatusResponse) {
+	if (status.blocked) {
+		return false;
+	}
+	const limit = status.plan.dailyLimitUsd;
+	if (!(limit > 0)) {
+		return false;
+	}
+	return status.usage.today / limit >= DAILY_USAGE_WARNING_RATIO;
+}
+
+export function formatDailyResetAt(date: Date) {
+	if (Number.isNaN(date.getTime())) {
+		return null;
+	}
+	return date
+		.toLocaleString(undefined, {
+			month: "short",
+			day: "numeric",
+			hour: "numeric",
+			minute: "2-digit",
+			hour12: true,
+		})
+		.replace(/\b(am|pm)\b/gi, (match) => match.toUpperCase());
+}
+
 export async function fetchUsageStatus(): Promise<UsageStatusResponse> {
 	const response = await fetch("/api/usage/status");
 	if (!response.ok) {

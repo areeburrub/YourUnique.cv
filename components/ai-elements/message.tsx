@@ -330,6 +330,10 @@ const streamdownPlugins = {
   mermaid,
 } as MessageResponseProps["plugins"];
 
+const streamdownControls = {
+  table: false,
+} as const;
+
 export const MessageResponse = memo(
   ({ className, ...props }: MessageResponseProps) => (
     <Streamdown
@@ -337,6 +341,7 @@ export const MessageResponse = memo(
         "size-full [&>*:first-child]:mt-0 [&>*:last-child]:mb-0",
         className
       )}
+      controls={streamdownControls}
       plugins={streamdownPlugins}
       {...props}
     />

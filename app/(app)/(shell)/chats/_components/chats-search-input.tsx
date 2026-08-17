@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { MagnifyingGlassIcon } from "@phosphor-icons/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useDeferredValue, useEffect, useState } from "react";
 
@@ -31,12 +31,16 @@ export function ChatsSearchInput() {
 
 	return (
 		<div className="relative">
-			<Search className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-soft" />
+			<MagnifyingGlassIcon
+				size={18}
+				weight="duotone"
+				className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-soft"
+			/>
 			<Input
 				value={query}
 				onChange={(event) => setQuery(event.currentTarget.value)}
 				placeholder="Search chats"
-				className="h-9 pl-9"
+				className="h-11 pl-10"
 				aria-label="Search chats"
 			/>
 		</div>

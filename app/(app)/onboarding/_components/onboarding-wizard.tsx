@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, FileArrowUp, Trash } from "@phosphor-icons/react";
+import { CheckIcon, FileArrowUpIcon, TrashIcon } from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import { useEffect, useRef, useState } from "react";
 
@@ -511,7 +511,7 @@ export function OnboardingWizard({
 										)}
 									>
 										{done ? (
-											<Check size={14} weight="bold" />
+											<CheckIcon size={14} weight="bold" />
 										) : active ? (
 											<Spinner className="size-3.5" />
 										) : (
@@ -586,8 +586,8 @@ export function OnboardingWizard({
 					/>
 					{fileId ? (
 						<div className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3">
-							<div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-subtle text-brand">
-								<FileArrowUp size={20} weight="duotone" />
+							<div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-pastel-blush text-brand">
+								<FileArrowUpIcon size={22} weight="duotone" />
 							</div>
 							<div className="min-w-0 flex-1">
 								<p className="truncate text-sm font-medium text-foreground">
@@ -604,7 +604,7 @@ export function OnboardingWizard({
 								onClick={clearResume}
 								aria-label="Remove resume"
 							>
-								<Trash size={16} />
+								<TrashIcon size={16} />
 							</Button>
 						</div>
 					) : (
@@ -623,9 +623,9 @@ export function OnboardingWizard({
 								</>
 							) : (
 								<>
-									<span className="flex size-12 items-center justify-center rounded-2xl bg-background text-brand shadow-sm">
-										<FileArrowUp
-											size={24}
+									<span className="flex size-16 items-center justify-center rounded-[22px] bg-pastel-blush text-brand">
+										<FileArrowUpIcon
+											size={28}
 											weight="duotone"
 										/>
 									</span>
@@ -826,7 +826,7 @@ function PlanStep({
 									{plan.name}
 								</p>
 								{plan.featured ? (
-									<span className="rounded-md bg-brand/10 px-2 py-0.5 text-[11px] font-medium tracking-wide text-brand uppercase">
+									<span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-medium tracking-wide text-brand uppercase">
 										Recommended
 									</span>
 								) : null}
@@ -854,7 +854,7 @@ function PlanStep({
 										className="flex items-start gap-2.5 text-sm leading-5 text-foreground"
 									>
 										<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand">
-											<Check size={12} weight="bold" />
+											<CheckIcon size={12} weight="bold" />
 										</span>
 										{feature}
 									</li>

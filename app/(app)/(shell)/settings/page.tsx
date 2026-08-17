@@ -32,7 +32,7 @@ export default async function SettingsPage() {
 				</h1>
 			</div>
 
-			<section className="space-y-6 rounded-xl border border-border p-5">
+			<section className="space-y-6 rounded-[28px] bg-card p-7">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<p className="text-sm text-muted-foreground">

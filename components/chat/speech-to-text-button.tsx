@@ -1,7 +1,7 @@
 "use client";
 
 import { CommitStrategy, useScribe } from "@elevenlabs/react";
-import { LoaderCircle, Mic, Square } from "lucide-react";
+import { CircleNotchIcon, MicrophoneIcon, SquareIcon } from "@phosphor-icons/react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -183,18 +183,18 @@ export function SpeechToTextButton({
 			title={active ? "Stop dictation" : "Dictate"}
 			aria-pressed={active}
 			className={cn(
-				"inline-flex size-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50",
+				"inline-flex size-10 items-center justify-center rounded-full transition-colors disabled:opacity-50",
 				active
 					? "bg-destructive/10 text-destructive hover:bg-destructive/15"
 					: "text-muted-foreground hover:bg-muted hover:text-foreground",
 			)}
 		>
 			{connecting ? (
-				<LoaderCircle className="size-4 animate-spin" />
+				<CircleNotchIcon size={20} className="animate-spin" />
 			) : active ? (
-				<Square className="size-3.5 fill-current" />
+				<SquareIcon size={16} weight="fill" />
 			) : (
-				<Mic className="size-4" />
+				<MicrophoneIcon size={20} weight="duotone" />
 			)}
 		</button>
 	);

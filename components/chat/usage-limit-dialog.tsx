@@ -10,7 +10,11 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { isProPlan } from "@/lib/plans";
-import type { UsageStatusResponse } from "@/lib/usage-status";
+import {
+	formatDailyResetAt,
+	nextUtcMidnight,
+	type UsageStatusResponse,
+} from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
 
 type UsageLimitDialogProps = {
@@ -19,50 +23,34 @@ type UsageLimitDialogProps = {
 	status: UsageStatusResponse;
 };
 
-function formatResetAt(resetAt: string | null) {
-	if (!resetAt) {
-		return null;
-	}
-	const date = new Date(resetAt);
-	if (Number.isNaN(date.getTime())) {
-		return null;
-	}
-	return date.toLocaleString(undefined, {
-		timeZone: "UTC",
-		hour: "2-digit",
-		minute: "2-digit",
-		month: "short",
-		day: "numeric",
-		timeZoneName: "short",
-	});
-}
-
 export function UsageLimitDialog({
 	open,
 	onOpenChange,
 	status,
 }: UsageLimitDialogProps) {
 	const isPro = isProPlan(status.plan.id);
-	const resetLabel = formatResetAt(status.resetAt);
+	const resetLabel = formatDailyResetAt(
+		status.resetAt ? new Date(status.resetAt) : nextUtcMidnight(),
+	);
 	const supportEmail = status.supportEmail;
 
-	const title =
-		status.scope === "daily"
-			? "Daily limit reached"
-			: "Usage limit reached";
-
-	const description =
-		status.scope === "daily"
+	const usageLine = status.blocked
+		? status.scope === "daily"
 			? resetLabel
 				? `You've hit today's limit. It resets at ${resetLabel}.`
 				: "You've hit today's limit."
-			: "You've reached your usage limit for now.";
+			: "You've reached your usage limit for now."
+		: resetLabel
+			? `You've hit 90% of today's usage. It resets at ${resetLabel}.`
+			: "You've hit 90% of today's usage.";
 
-	const actionHint = isPro
-		? supportEmail
-			? `Need more? Email ${supportEmail}.`
-			: "Need more? Contact support."
-		: "Upgrade to Pro for a higher limit.";
+	const title = isPro
+		? "You're already on Pro"
+		: status.blocked
+			? status.scope === "daily"
+				? "Daily limit reached"
+				: "Usage limit reached"
+			: "Upgrade to Pro";
 
 	const checkoutHref = !isPro ? "/api/checkout" : null;
 
@@ -76,7 +64,27 @@ export function UsageLimitDialog({
 				<DialogHeader>
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>
-						{description} {actionHint}
+						{usageLine}{" "}
+						{isPro ? (
+							<>
+								You're a power user. Ping me
+								{supportEmail ? (
+									<>
+										{" "}
+										at{" "}
+										<a
+											href={mailtoHref ?? undefined}
+											className="font-medium text-foreground underline underline-offset-2"
+										>
+											{supportEmail}
+										</a>
+									</>
+								) : null}{" "}
+								and I'll add some more.
+							</>
+						) : (
+							"Upgrade to Pro for a higher limit."
+						)}
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter className="sm:justify-end">
@@ -93,7 +101,7 @@ export function UsageLimitDialog({
 							href={mailtoHref}
 							className={cn(buttonVariants())}
 						>
-							Contact support
+							Ping me
 						</a>
 					) : null}
 					<Button

@@ -19,29 +19,17 @@ export function SlideButton({
 		<Link
 			href={href}
 			className={cn(
-				"group inline-flex items-center justify-center rounded-[8px] border px-5 py-2 text-base font-medium transition-transform duration-300 hover:scale-[0.98]",
+				"inline-flex h-12 items-center justify-center rounded-full border px-7 text-base font-medium transition-all duration-200 hover:-translate-y-px",
 				variant === "primary" &&
-					"border-primary bg-primary text-primary-foreground",
+					"brand-shadow border-brand bg-brand text-brand-foreground hover:bg-brand/90",
 				variant === "outline" &&
-					"border-border bg-background text-foreground",
+					"border-border bg-card text-foreground hover:bg-muted",
 				variant === "on-brand" &&
-					"border-white bg-white text-brand",
+					"border-white bg-white text-brand hover:bg-white/90",
 				className,
 			)}
 		>
-			<span className="relative block h-6 overflow-hidden leading-none">
-				<span className="block transition-transform duration-300 ease-out will-change-transform group-hover:-translate-y-6">
-					<span className="flex h-6 items-center leading-6">
-						{children}
-					</span>
-					<span
-						className="flex h-6 items-center leading-6"
-						aria-hidden="true"
-					>
-						{children}
-					</span>
-				</span>
-			</span>
+			{children}
 		</Link>
 	);
 }

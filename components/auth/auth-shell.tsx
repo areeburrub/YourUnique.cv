@@ -26,10 +26,10 @@ export function AuthShell({ mode, children }: AuthShellProps) {
 
 	return (
 		<div className="flex min-h-full flex-1 flex-col bg-background">
-			<header className="border-b border-border">
-				<div className="rail flex h-14 items-center justify-between px-4 sm:px-8 md:px-10">
+			<header>
+				<div className="rail flex h-16 items-center justify-between px-5 sm:px-8 md:h-[4.5rem] md:px-10">
 					<BrandLogo />
-					<div className="flex items-center gap-2">
+					<div className="flex items-center gap-3">
 						<ModeToggle />
 						<Link
 							href="/"
@@ -42,20 +42,16 @@ export function AuthShell({ mode, children }: AuthShellProps) {
 			</header>
 
 			<main className="flex flex-1 flex-col">
-				<div className="rail flex flex-1 flex-col lg:grid lg:grid-cols-2">
-					<section className="relative flex flex-col justify-center border-b border-border px-5 py-12 sm:px-8 sm:py-16 md:px-10 lg:border-r lg:border-b-0">
-						<div
-							aria-hidden="true"
-							className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,#576bff14,transparent_55%)] dark:bg-[radial-gradient(ellipse_at_top_left,#3b82ff1f,transparent_55%)]"
-						/>
+				<div className="rail flex flex-1 flex-col gap-6 px-5 pb-10 sm:px-8 md:px-10 lg:grid lg:grid-cols-2 lg:gap-8 lg:pb-14">
+					<section className="relative flex flex-col justify-center overflow-hidden rounded-[32px] bg-pastel-blush px-6 py-12 sm:px-9 sm:py-16 md:px-10">
 						<div className="relative max-w-[420px]">
 							<p className="eyebrow !text-brand">
 								{mode === "sign-up" ? "Get started" : "Sign in"}
 							</p>
-							<h1 className="font-display mt-3 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
+							<h1 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
 								{headline}
 							</h1>
-							<p className="mt-4 text-base leading-6 text-muted-foreground">
+							<p className="mt-4 text-base leading-7 text-muted-foreground">
 								{body}
 							</p>
 							<ul className="mt-8 hidden space-y-4 sm:block">
@@ -64,7 +60,7 @@ export function AuthShell({ mode, children }: AuthShellProps) {
 										key={item}
 										className="flex items-start gap-3 text-base font-medium text-foreground"
 									>
-										<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-[4px] bg-brand/10 text-[12px] text-brand">
+										<span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-card text-[13px] text-brand">
 											✓
 										</span>
 										{item}
@@ -74,7 +70,7 @@ export function AuthShell({ mode, children }: AuthShellProps) {
 						</div>
 					</section>
 
-					<section className="flex flex-1 items-center justify-center bg-surface-subtle px-4 py-12 sm:px-8 md:px-10">
+					<section className="flex flex-1 items-center justify-center rounded-[32px] bg-card px-5 py-12 sm:px-8 md:px-10">
 						<div className="w-full max-w-[400px]">{children}</div>
 					</section>
 				</div>

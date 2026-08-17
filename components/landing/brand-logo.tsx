@@ -1,6 +1,7 @@
-import { FileText } from "@phosphor-icons/react/dist/ssr";
 import Link from "next/link";
 
+import { LogoMark } from "@/components/brand/logo-mark";
+import { SITE_NAME } from "@/lib/site";
 import { cn } from "@/lib/utils";
 
 export function BrandLogo({ className }: { className?: string }) {
@@ -8,15 +9,13 @@ export function BrandLogo({ className }: { className?: string }) {
 		<Link
 			href="/"
 			className={cn(
-				"inline-flex min-w-0 items-center gap-1.5 text-foreground sm:gap-2",
+				"inline-flex min-w-0 items-center gap-3 text-foreground",
 				className,
 			)}
 		>
-			<span className="flex size-7 shrink-0 items-center justify-center rounded-[8px] bg-surface-subtle text-foreground sm:size-8">
-				<FileText size={16} weight="bold" />
-			</span>
-			<span className="font-display truncate text-[15px] font-bold tracking-[-0.4px] sm:text-lg sm:tracking-[-0.48px]">
-				YourUnique.cv
+			<LogoMark size={32} className="text-brand" />
+			<span className="font-display truncate text-xl font-semibold tracking-[-0.48px] sm:text-[22px] sm:tracking-[-0.56px]">
+				{SITE_NAME}
 			</span>
 		</Link>
 	);

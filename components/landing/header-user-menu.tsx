@@ -2,12 +2,12 @@
 
 import { useClerk, useUser } from "@clerk/nextjs";
 import {
-	LogOut,
-	Monitor,
-	Moon,
-	Sun,
-	UserRound,
-} from "lucide-react";
+	DesktopIcon,
+	MoonIcon,
+	SignOutIcon,
+	SunIcon,
+	UserIcon,
+} from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -22,6 +22,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 
 function getInitials(name: string, email: string) {
 	const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -37,10 +38,16 @@ function getInitials(name: string, email: string) {
 	return "YU";
 }
 
+const themes = [
+	{ value: "light", label: "Light", Icon: SunIcon },
+	{ value: "dark", label: "Dark", Icon: MoonIcon },
+	{ value: "system", label: "System", Icon: DesktopIcon },
+] as const;
+
 export function HeaderUserMenu() {
 	const { user } = useUser();
 	const { signOut, openUserProfile } = useClerk();
-	const { setTheme } = useTheme();
+	const { theme, setTheme } = useTheme();
 
 	if (!user) {
 		return null;
@@ -64,71 +71,62 @@ export function HeaderUserMenu() {
 					/>
 				}
 			>
-				<Avatar size="sm" className="size-8">
+				<Avatar size="lg" className="size-11">
 					{user.imageUrl ? (
 						<AvatarImage src={user.imageUrl} alt={name} />
 					) : null}
-					<AvatarFallback className="bg-muted text-[11px] font-medium">
+					<AvatarFallback className="bg-muted text-[13px] font-medium">
 						{initials}
 					</AvatarFallback>
 				</Avatar>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent
-				className="w-64 min-w-56 rounded-lg"
+				className="w-60"
 				side="bottom"
 				align="end"
 				sideOffset={8}
 			>
-				<div className="px-2 py-1.5 text-xs text-muted-foreground">
+				<div className="px-2.5 py-2 text-sm text-muted-foreground">
 					{email || name}
 				</div>
 				<DropdownMenuSeparator />
 				<DropdownMenuGroup>
-					<DropdownMenuItem
-						className="gap-2"
-						onClick={() => openUserProfile()}
-					>
-						<UserRound className="size-4" />
+					<DropdownMenuItem onClick={() => openUserProfile()}>
+						<UserIcon size={18} weight="duotone" />
 						Manage account
 					</DropdownMenuItem>
 					<DropdownMenuSub>
-						<DropdownMenuSubTrigger className="gap-2">
-							<Sun className="size-4 dark:hidden" />
-							<Moon className="hidden size-4 dark:block" />
+						<DropdownMenuSubTrigger>
+							<SunIcon size={18} weight="duotone" className="dark:hidden" />
+							<MoonIcon size={18} weight="duotone" className="hidden dark:block" />
 							Theme
 						</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent className="min-w-36">
-							<DropdownMenuItem
-								onClick={() => setTheme("light")}
-								className="gap-2"
-							>
-								<Sun className="size-4" />
-								Light
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => setTheme("dark")}
-								className="gap-2"
-							>
-								<Moon className="size-4" />
-								Dark
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => setTheme("system")}
-								className="gap-2"
-							>
-								<Monitor className="size-4" />
-								System
-							</DropdownMenuItem>
+						<DropdownMenuSubContent className="w-44">
+							{themes.map(({ value, label, Icon }) => (
+								<DropdownMenuItem
+									key={value}
+									onClick={() => setTheme(value)}
+									className={cn(
+										theme === value &&
+											"bg-accent text-accent-foreground",
+									)}
+								>
+									<Icon
+										size={18}
+										weight={theme === value ? "fill" : "duotone"}
+									/>
+									{label}
+								</DropdownMenuItem>
+							))}
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>
 				</DropdownMenuGroup>
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
 					variant="destructive"
-					className="gap-2"
 					onClick={() => signOut({ redirectUrl: "/" })}
 				>
-					<LogOut className="size-4" />
+					<SignOutIcon size={18} weight="duotone" />
 					Log out
 				</DropdownMenuItem>
 			</DropdownMenuContent>

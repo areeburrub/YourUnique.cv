@@ -6,9 +6,11 @@ Visual system for marketing pages and the app shell. Prefer shadcn/`base-nova` c
 
 ## Direction
 
-Light, modern SaaS — soft neutrals, charcoal type, electric blue accent. Calm and data-product-like: clear hierarchy, generous whitespace, product UI as the main visual, hairline frame borders instead of heavy cards.
+Warm atelier SaaS — cream canvas, matte terracotta, pastel rooms, and big rounded controls. The product should feel human and unhurried: one red doing the urgent work, everything else matte and quiet.
 
-**Not:** dark mode default, purple gradients, cream+serif, glow stacks, or pill-heavy chrome.
+Inspired by coral-on-cream resume systems (Atelier), Tedy’s single-accent pastel rooms, and Eddie’s oversized rounded cards.
+
+**Not:** electric blue, hairline wireframes, compact 8px chrome, or candy neon red.
 
 ---
 
@@ -16,28 +18,25 @@ Light, modern SaaS — soft neutrals, charcoal type, electric blue accent. Calm 
 
 | Token | Hex | Role |
 |---|---|---|
-| `primary-01` | `#202124` | Near-black. Body headings, primary filled buttons, active tab chips |
-| `primary-02` | `#025bff` | Electric blue. CTA band, links/hover emphasis, brand accents |
-| `secondary-01` | `#636466` | Muted gray. Supporting body copy, inactive nav/tabs |
-| `secondary-02` | `#b3b4bc` | Light muted. Tertiary labels, soft icons |
-| `stroke` | `#eaebf1` | Hairline borders, section rules, outline buttons, container frame |
-| `stroke-03` | `#ebebeb` | Alternate divider |
-| `white` | `#ffffff` | Page / surface |
-| `white-lilac` | `#f7f7f7` | Subtle secondary surface |
-| `white-70` | `#ffffffb3` | Text on blue CTA |
-| `primary-light` | `#576bff` | Soft blue tint / focus wash (`#576bff1a` at 10%) |
-| `blue` | `#0050e2` | Deeper blue |
-| `blue-light-02` | `#298bf6` | Mid blue highlight |
-| `sunshade` | `#f4942e` | Warm accent (sparingly — badges/hover variants) |
-| `danger` | `#e21a1a` | Errors only |
-
-**Gradient (accent plane):**  
-`linear-gradient(#5991f600, #5991f6cc 26%, #5991f6db 44%, #2471fff2 72%, #2471ff)` — use for CTA/atmosphere washes, not as the whole page background.
+| `ink` | `#1C1816` | Warm near-black. Headings, body, strong labels |
+| `brand` | `#C23B2E` | Matte terracotta. Primary buttons, links, active marks |
+| `brand-deep` | `#9A2F25` | Pressed / hover darken |
+| `cream` | `#F5F0EA` | Page canvas |
+| `paper` | `#FFFCF8` | Cards, popovers, raised surfaces |
+| `sand` | `#EDE6DC` | Secondary fills, muted wells |
+| `blush` | `#F3DDD6` | Pastel room / selected wash |
+| `sage` | `#DCE8DF` | Pastel room for calm features |
+| `butter` | `#F2E8CF` | Pastel room for highlights |
+| `lilac` | `#E5DFEC` | Pastel room for tertiary variety |
+| `stone` | `#6B635B` | Supporting copy |
+| `pebble` | `#A89F95` | Tertiary labels, soft icons |
+| `line` | `#E4D9CE` | Soft borders — used sparingly |
+| `danger` | `#9A241C` | Errors only, darker than brand |
 
 **Surfaces**
-- Default page: pure white
-- Sections: white with `#eaebf1` rules, not tinted panels
-- Product imagery sits on white with soft gray elevation shadow (see Elevation)
+- Default page: cream, not sterile white
+- Sections: pastel rooms (blush / sage / butter / paper) with generous radius, not stroked grids
+- Product imagery sits on a pastel wash with a soft warm shadow
 
 ---
 
@@ -45,26 +44,23 @@ Light, modern SaaS — soft neutrals, charcoal type, electric blue accent. Calm 
 
 | Role | Family | Weights |
 |---|---|---|
-| Display / headings | **Inter Tight** | 500 Medium, 600 SemiBold (700 rare) |
-| Body / UI / buttons | **Inter Display** | 400 Regular, 500 Medium, 600 SemiBold |
+| Display / headings | **Inter Tight** | 500 Medium, 600 SemiBold |
+| Body / UI / buttons | **Inter** | 400 Regular, 500 Medium, 600 SemiBold |
 
 Fallback: `Arial, sans-serif`.
 
 ### Scale
 
-| Style | Size / LH | Tracking | Weight | Font |
-|---|---|---|---|---|
-| Heading 01 | 56 / 64 | `-1.68px` | 600 | Inter Tight |
-| Heading 02 | 48 / 56 | `-0.96px` | 600 | Inter Tight |
-| Heading 03 | 40 / 48 | `-0.8px` | 600 | Inter Tight |
-| Heading 04 | 28 / 36 | `-0.56px` | 600 (sometimes 500) | Inter Tight |
-| Heading 05 | 24 / 32 | `-0.48px` | 500 | Inter Tight |
-| Body 01 | 20 / 28 | `-0.2px` | 500 / 600 | Inter Display |
-| Body 02 | 16 / 24 | `0` | 400 / 500 | Inter Display |
-| Tag / eyebrow | 14 / 20 | `-0.14px` | 500 | Inter Display · **UPPERCASE** |
-| Display mega (stats) | ~80px | tight | 600 | Inter Tight |
-
-Headings default to `primary-01`. Body support copy defaults to `secondary-01`. Tags/eyebrows often `secondary-01` or `primary-02`.
+| Style | Size / LH | Tracking | Weight |
+|---|---|---|---|
+| Heading 01 | 56 / 64 | `-1.68px` | 600 |
+| Heading 02 | 48 / 56 | `-0.96px` | 600 |
+| Heading 03 | 40 / 48 | `-0.8px` | 600 |
+| Heading 04 | 28 / 36 | `-0.56px` | 600 |
+| Heading 05 | 24 / 32 | `-0.48px` | 500 |
+| Body 01 | 20 / 28 | `-0.2px` | 500 |
+| Body 02 | 16 / 24 | `0` | 400 / 500 |
+| Tag / eyebrow | 14 / 20 | `0.04em` | 500 · **UPPERCASE** |
 
 ---
 
@@ -73,19 +69,19 @@ Headings default to `primary-01`. Body support copy defaults to `secondary-01`. 
 | Token | Value |
 |---|---|
 | Gap base | `4px` |
-| Content max | `1160px` (also 1280 / 1344 available) |
-| Side margin | `32px` |
-| Section vertical padding | `80px`–`140px` common |
-| Hero copy max width | ~350–420px |
-| Section title max width | ~460–494px, often centered |
+| Content max | `1160px` |
+| Side margin | `32px`–`40px` |
+| Section vertical padding | `96px`–`140px` |
+| Card padding | `28px`–`40px` |
+| Icon well | `56px`–`64px` |
 
-**Signature frame:** content sits in a centered column with **1px left + right `stroke` borders** — a vertical page rail. Use on marketing layouts (optional inside the chat app).
+**No page rail.** Content is a centered column on cream. Hierarchy comes from pastel rooms and whitespace, not left/right stroke frames.
 
 **Grid habits**
-- Hero: split row — copy left, product chrome right
-- Feature rows: asymmetric (wide media + copy, or 2-up media cards)
-- Mid-page: 4 feature callouts flanking a center product image
-- Stats / quotes: bento-like blocks with shared stroke borders, not floating card shadows as the main structure
+- Hero: split row with breathing room — copy left, floating product card right
+- Features: two large rounded rooms, not a shared hairline grid
+- Pricing: two cards with a real gap
+- Stats / proof: icon-first tiles, one idea each
 
 ---
 
@@ -93,68 +89,56 @@ Headings default to `primary-01`. Body support copy defaults to `secondary-01`. 
 
 | Use | Radius |
 |---|---|
-| Buttons | `8px` |
-| Tabs / small chips | `6px` |
-| Product screenshots / media | `10px` |
-| Larger panels | `12px`–`16px` |
-| Avoid | `rounded-full` pills as the default control shape |
+| Buttons / chips | `999px` (full pill) |
+| Icon wells | `20px`–`24px` |
+| Cards / rooms | `28px`–`32px` |
+| Media / previews | `24px` |
+| Inputs | `16px` |
+
+Nothing sharp. Compact 6–8px corners are out.
 
 ---
 
 ## Buttons
 
-**Primary (filled)**  
-- BG + border: `primary-01` (`#202124`)  
-- Text: white, Body 02, Inter Display, medium  
-- Padding: `8px 20px`  
-- Radius: `8px`
+**Primary (filled)**
+- BG: `brand` (`#C23B2E`)
+- Text: cream, medium
+- Padding: `14px 28px`
+- Height: `48px`–`56px` on marketing, `40px` in-app
+- Radius: full pill
+- Soft terracotta shadow on hover
 
-**Secondary (outline)**  
-- Border: `stroke` (`#eaebf1`)  
-- Text: `primary-01`  
-- Same padding/radius as primary  
+**Secondary (outline / paper)**
+- Paper fill, sand border, ink text
+- Same size and radius as primary
 
-**Nav compact**  
-- Same styles, tighter padding `4px 16px`, Tag-sized type  
-
-**CTA band**  
-- Full-bleed `primary-02` (`#025bff`) with subtle pattern background  
-- Centered Heading 02 (white) + Body 02 (`white-70`) + primary-style light button  
-
-**Motion on buttons:** duplicate label lines inside a clipped `24px` (nav `20px`) window and slide vertically on hover — short, mechanical, not bouncy.
+**Icon buttons**
+- Minimum `40px` hit target
+- Large glyphs (`20px`–`24px`)
 
 ---
 
 ## Components & patterns
 
-1. **Eyebrow** — uppercase Tag text; muted or brand color, no accent bar.
-2. **Hero** — left: eyebrow → H1 → short body → primary + outline CTAs → optional rating row. Right: product screenshot in a framed window chrome (top/side bars + stroke).
-3. **Logo marquee** — grayscale partner marks, infinite horizontal scroll, soft edge fade shadows.
-4. **Feature media** — soft gray UI mockups, `10px` radius, deep soft shadow (see Elevation).
-5. **Checklist rows** — small mark icon + Body 02 medium line.
-6. **Pill tabs** — uppercase Tag labels; inactive `secondary-01` on transparent; active `primary-01` fill + white text; radius `6px`; `8px 20px` padding.
-7. **Stat flip** — large Inter Tight digits with stacked number animation; caption in muted Body.
-8. **Quote** — medium Body/Heading quote + attribution; optional avatar; sits inside stroke-framed cells.
-9. **Blog teaser** — image thumb + dual tags + Heading 05 title + author line in `secondary-01`.
-10. **Footer** — logo + short blurb, contact rows, 4 link columns with uppercase small headers and underline-on-hover link lines.
+1. **Eyebrow** — uppercase tag in brand or stone. No accent bar.
+2. **Hero** — eyebrow → H1 → short body → big pill CTAs. Product card floats on a blush wash.
+3. **Icon tile** — 56–64px rounded well, big glyph, short title, one sentence.
+4. **Pastel room** — large rounded card with a solid pastel fill. No inner wireframe.
+5. **Checklist** — brand mark in a blush circle + one line of copy.
+6. **Empty state** — oversized icon well, short title, one sentence, one big button.
 
 ---
 
-## Elevation & imagery
+## Elevation
 
-**Product image shadow:**
 ```css
 box-shadow:
-	0 255px 71px #bababa00,
-	0 163px 65px #bababa03,
-	0 92px 55px #bababa0d,
-	0 41px 41px #bababa17,
-	0 10px 22px #bababa1a;
+	0 24px 48px rgba(28, 24, 22, 0.06),
+	0 8px 16px rgba(28, 24, 22, 0.04);
 ```
 
-Supporting shadows stay soft gray (`#2f2f2f1a`, `#0000001f`) — never neon glow.
-
-Imagery should show **real product UI** (resume editor, chat thread, PDF preview) — not abstract blobs. Prefer light UI chrome, blue accent highlights inside screenshots to match `primary-02`.
+Brand actions may use a terracotta glow: `0 10px 28px rgba(194, 59, 46, 0.22)`.
 
 ---
 
@@ -162,65 +146,24 @@ Imagery should show **real product UI** (resume editor, chat thread, PDF preview
 
 | Pattern | Behavior |
 |---|---|
-| Section enter | `translateY(20–60px)` + `blur(5px)` + `opacity: 0` → settle; ease ~300ms |
-| Button label | Vertical slide of duplicated text |
-| Hover (select CTAs) | `scale(0.98)` + color swap ~0.3s |
-| Tabs | Crossfade / swap panel ~300ms in / 100ms out |
-| Marquee | Continuous horizontal loop |
-| Stats | Digit reel / flip |
+| Section enter | `translateY(16px)` + fade; ease ~400ms |
+| Button | Soft lift / press, not a mechanical text reel |
+| Hover | `translateY(-1px)` + shadow, ~200ms |
 
-Keep motion purposeful and sparse: entrance, CTA, and one delight (stats or marquee). No ambient particle/glow loops.
-
----
-
-## CSS variables
-
-```css
-:root {
-	--background: #ffffff;
-	--foreground: #202124;
-	--muted: #636466;
-	--muted-soft: #b3b4bc;
-	--accent: #025bff;
-	--accent-soft: #576bff1a;
-	--border: #eaebf1;
-	--surface-subtle: #f7f7f7;
-	--radius-control: 8px;
-	--radius-media: 10px;
-	--container: 1160px;
-	--font-display: "Inter Tight", Arial, sans-serif;
-	--font-body: "Inter Display", Arial, sans-serif;
-}
-```
-
-Wire into `globals.css` and shadcn theme tokens (`background`, `foreground`, `primary`, `muted`, `border`, `ring`).
-
----
-
-## Application
-
-| Surface | Apply |
-|---|---|
-| Marketing landing | Brand + one headline + one sentence + CTA pair + product hero; stroke rails; logo/social proof strip; feature + stats; blue CTA band |
-| Auth | White surfaces, charcoal primary buttons, stroke inputs, Inter Display |
-| App shell / chat | White + stroke sidebars; charcoal active states; blue only for accent actions (Send, Generate PDF); avoid purple AI clichés |
-| AI Elements | Match tool-call chips to Tag style; keep streaming UI on `white` / `stroke` frames |
-| PDF preview | Soft-elevated media frame matching product imagery treatment |
+Keep motion quiet. No dashed-rail decorations, no blueprint marks.
 
 ---
 
 ## Do / Don’t
 
 **Do**
-- Charcoal filled CTAs + blue for emphasis bands/accents
+- One matte red for every primary action
+- Cream canvas + pastel rooms
+- Big pills, big icons, lots of air
 - Inter Tight headings with negative tracking
-- Hairline `#eaebf1` frames and section rules
-- Product UI as the visual anchor
-- 8px controls, 10px media radii
 
 **Don’t**
-- Default to dark theme or purple/indigo washes
-- Overuse orange (`sunshade`) or full-round pills
-- Center everything into a generic dashboard grid on the first viewport
-- Overlay floating badges/stickers on the hero
-- Use Inter/Roboto/system as the display face — keep Inter Tight + Inter Display
+- Electric blue, indigo, or purple AI chrome
+- Hairline page rails or diamond corner marks
+- Tiny 8px buttons or 14px icon wells
+- Saturated candy red or neon glow stacks

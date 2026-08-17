@@ -7,7 +7,7 @@ import {
 	type ToolUIPart,
 	type UIMessage,
 } from "ai";
-import { Check, ChevronDown, LoaderCircle, XIcon } from "lucide-react";
+import { CaretDownIcon, CheckIcon, CircleNotchIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
 
 import {
@@ -430,6 +430,60 @@ type ToolActivityProps = {
 	startCollapsed?: boolean;
 };
 
+function ActivityStepRow({
+	step,
+	showLine = false,
+}: {
+	step: ActivityStep;
+	showLine?: boolean;
+}) {
+	const running = step.state === "running";
+	const failed = step.state === "failed";
+	const text = step.label || toolStepLabel(step.name);
+
+	return (
+		<div className="relative flex gap-2.5 pb-2.5 last:pb-0">
+			{showLine ? (
+				<span
+					aria-hidden
+					className="absolute top-5 bottom-0 left-[9px] w-px bg-border"
+				/>
+			) : null}
+			<span
+				className={cn(
+					"relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border bg-background",
+					failed
+						? "border-destructive/40 text-destructive"
+						: running
+							? "border-border text-muted-foreground"
+							: "border-border text-foreground",
+				)}
+			>
+				{running ? (
+					<CircleNotchIcon size={10} className="animate-spin" />
+				) : failed ? (
+					<XIcon size={10} weight="bold" />
+				) : (
+					<CheckIcon size={10} weight="bold" />
+				)}
+			</span>
+			<span
+				className={cn(
+					"min-w-0 pt-px text-[13px] leading-5",
+					failed
+						? "text-destructive"
+						: running
+							? "text-foreground"
+							: "text-muted-foreground",
+				)}
+			>
+				{text}
+				{running ? "…" : ""}
+			</span>
+		</div>
+	);
+}
+
 export function ToolActivity({
 	steps,
 	label = "Working on it",
@@ -459,12 +513,16 @@ export function ToolActivity({
 		return null;
 	}
 
+	if (steps.length === 1 && steps[0]) {
+		return <ActivityStepRow step={steps[0]} />;
+	}
+
 	const triggerLabel = anyRunning
 		? activeLabel || label
 		: allSettled
 			? hasFailure
 				? "Some steps failed"
-				: `${steps.length} step${steps.length === 1 ? "" : "s"} completed`
+				: `${steps.length} steps completed`
 			: label;
 
 	return (
@@ -475,72 +533,28 @@ export function ToolActivity({
 		>
 			<CollapsibleTrigger className="flex items-center gap-1.5 text-[13px] leading-5 text-muted-foreground transition-colors hover:text-foreground">
 				{anyRunning ? (
-					<LoaderCircle className="size-3.5 animate-spin" />
+					<CircleNotchIcon size={14} className="animate-spin" />
 				) : null}
 				<span>{triggerLabel}</span>
-				<ChevronDown
+				<CaretDownIcon
+					size={14}
+					weight="bold"
 					className={cn(
-						"size-3.5 transition-transform",
+						"transition-transform",
 						open && "rotate-180",
 					)}
 				/>
 			</CollapsibleTrigger>
 			<CollapsibleContent className="overflow-hidden">
 				<ol className="mt-2 flex flex-col">
-					{steps.map((step, index) => {
-						const running = step.state === "running";
-						const failed = step.state === "failed";
-						const showLine = index < steps.length - 1;
-						const text = step.label || toolStepLabel(step.name);
-
-						return (
-							<li
-								key={step.id}
-								className="relative flex gap-2.5 pb-2.5 last:pb-0"
-							>
-								{showLine ? (
-									<span
-										aria-hidden
-										className="absolute top-5 bottom-0 left-[9px] w-px bg-border"
-									/>
-								) : null}
-								<span
-									className={cn(
-										"relative z-10 mt-0.5 flex size-[18px] shrink-0 items-center justify-center rounded-full border bg-background",
-										failed
-											? "border-destructive/40 text-destructive"
-											: running
-												? "border-border text-muted-foreground"
-												: "border-border text-foreground",
-									)}
-								>
-									{running ? (
-										<LoaderCircle className="size-2.5 animate-spin" />
-									) : failed ? (
-										<XIcon className="size-2.5" />
-									) : (
-										<Check
-											className="size-2.5"
-											strokeWidth={2.5}
-										/>
-									)}
-								</span>
-								<span
-									className={cn(
-										"min-w-0 pt-px text-[13px] leading-5",
-										failed
-											? "text-destructive"
-											: running
-												? "text-foreground"
-												: "text-muted-foreground",
-									)}
-								>
-									{text}
-									{running ? "…" : ""}
-								</span>
-							</li>
-						);
-					})}
+					{steps.map((step, index) => (
+						<li key={step.id}>
+							<ActivityStepRow
+								step={step}
+								showLine={index < steps.length - 1}
+							/>
+						</li>
+					))}
 				</ol>
 			</CollapsibleContent>
 		</Collapsible>

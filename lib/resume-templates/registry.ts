@@ -82,7 +82,7 @@ export async function listTemplatesForUser(userId: string): Promise<{
 				status: row.status,
 				error: row.error,
 				category: "Custom",
-				colors: ["#111111", "#025bff"],
+				colors: ["#111111", "#C23B2E"],
 				formats: ["PDF"],
 				styleLabel: "Custom",
 				sourceFileId: row.sourceFileId,

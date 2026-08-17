@@ -1,7 +1,7 @@
 "use client";
 
 import type { UIMessage } from "ai";
-import { FileText } from "lucide-react";
+import { FileTextIcon } from "@phosphor-icons/react";
 import { useRouter } from "nextjs-toploader/app";
 import {
 	useCallback,
@@ -62,10 +62,12 @@ function ProfileArtifactHeader({
 	trailing?: ReactNode;
 }) {
 	return (
-		<div className="flex shrink-0 items-center gap-3 border-b border-border/70 px-3 py-2">
-			<div className="flex min-w-0 flex-1 items-center gap-2">
-				<FileText className="size-3.5 shrink-0 text-muted-foreground" />
-				<p className="truncate text-sm text-foreground">Your Profile</p>
+		<div className="flex shrink-0 items-center gap-3 px-4 py-3">
+			<div className="flex min-w-0 flex-1 items-center gap-2.5">
+				<span className="flex size-8 items-center justify-center rounded-xl bg-pastel-blush text-brand">
+					<FileTextIcon size={16} weight="duotone" className="shrink-0" />
+				</span>
+				<p className="truncate text-sm font-medium text-foreground">Your Profile</p>
 			</div>
 			{lastEditedLabel ? (
 				<p className="hidden min-w-0 shrink truncate text-xs text-muted-foreground sm:block">

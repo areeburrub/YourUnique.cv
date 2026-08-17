@@ -2,18 +2,19 @@
 
 import Link from "next/link";
 import {
-	FileText,
-	LayoutTemplate,
-	MessageSquare,
-	MoreHorizontal,
-	Pencil,
-	Plus,
-	Search,
-	SlidersHorizontal,
-	Sparkles,
-	Trash2,
-	UserRound,
-} from "lucide-react";
+	ChatCircleIcon,
+	DotsThreeIcon,
+	FileTextIcon,
+	LayoutIcon,
+	MagnifyingGlassIcon,
+	PencilSimpleIcon,
+	PlusIcon,
+	SidebarSimpleIcon,
+	SlidersHorizontalIcon,
+	SparkleIcon,
+	TrashIcon,
+	UserIcon,
+} from "@phosphor-icons/react";
 import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -52,9 +53,10 @@ import {
 	SidebarMenuButton,
 	SidebarMenuItem,
 	SidebarRail,
-	SidebarTrigger,
 	useSidebar,
 } from "@/components/ui/sidebar";
+import { LogoMark } from "@/components/brand/logo-mark";
+import { useCommandPalette } from "@/components/app/command-palette";
 import { SidebarUserMenu, type SidebarUser } from "@/components/app/sidebar-user-menu";
 import { useSoftNav, useSoftPathname } from "@/components/app/soft-nav";
 import {
@@ -71,13 +73,54 @@ import {
 	renameThreadInCache,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
+import { cn } from "@/lib/utils";
+
+const navIconSlot =
+	"flex w-9 shrink-0 items-center justify-center";
+
+function BrandSidebarTrigger() {
+	const { toggleSidebar, state } = useSidebar();
+	const expanded = state === "expanded";
+
+	return (
+		<Button
+			data-sidebar="trigger"
+			data-slot="sidebar-trigger"
+			variant="ghost"
+			size="icon-sm"
+			className="group/brand relative size-9 text-muted-foreground"
+			onClick={toggleSidebar}
+		>
+			<LogoMark
+				size={20}
+				className={cn(
+					"text-brand transition-opacity",
+					expanded
+						? "opacity-100 group-hover/brand:opacity-0"
+						: "opacity-0",
+				)}
+			/>
+			<SidebarSimpleIcon
+				size={18}
+				weight="duotone"
+				className={cn(
+					"absolute transition-opacity",
+					expanded
+						? "opacity-0 group-hover/brand:opacity-100"
+						: "opacity-100",
+				)}
+			/>
+			<span className="sr-only">Toggle Sidebar</span>
+		</Button>
+	);
+}
 
 const primaryNav = [
-	{ title: "New chat", href: "/new-chat", icon: Plus, exact: true },
-	{ title: "Chats", href: "/chats", icon: MessageSquare, exact: true },
-	{ title: "Profile", href: "/profile", icon: UserRound },
-	{ title: "Resumes", href: "/resumes", icon: FileText },
-	{ title: "Templates", href: "/templates", icon: LayoutTemplate },
+	{ title: "New chat", href: "/new-chat", icon: PlusIcon, exact: true },
+	{ title: "Chats", href: "/chats", icon: ChatCircleIcon, exact: true },
+	{ title: "Profile", href: "/profile", icon: UserIcon },
+	{ title: "Resumes", href: "/resumes", icon: FileTextIcon },
+	{ title: "Templates", href: "/templates", icon: LayoutIcon },
 ] as const;
 
 const GROUP_BY_KEY = "yourunique:recents-group-by";
@@ -220,7 +263,7 @@ function ThreadLink({
 				}
 				isActive={isActive}
 				tooltip={thread.title}
-				className="text-muted-foreground"
+				className="px-2 text-muted-foreground"
 			>
 				<span className="truncate">{thread.title}</span>
 			</SidebarMenuButton>
@@ -234,12 +277,12 @@ function ThreadLink({
 						/>
 					}
 				>
-					<MoreHorizontal />
+					<DotsThreeIcon size={16} weight="bold" />
 				</DropdownMenuTrigger>
-				<DropdownMenuContent align="start" side="right" className="min-w-40">
+				<DropdownMenuContent align="start" side="right" className="w-44">
 					<DropdownMenuGroup>
 						<DropdownMenuItem onClick={() => handleRenameOpenChange(true)}>
-							<Pencil />
+							<PencilSimpleIcon size={18} weight="duotone" />
 							Rename
 						</DropdownMenuItem>
 						<DropdownMenuSeparator />
@@ -247,7 +290,7 @@ function ThreadLink({
 							variant="destructive"
 							onClick={() => setDeleteOpen(true)}
 						>
-							<Trash2 />
+							<TrashIcon size={18} weight="duotone" />
 							Delete
 						</DropdownMenuItem>
 					</DropdownMenuGroup>
@@ -328,6 +371,7 @@ export function AppSidebar({
 }: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
+	const { setOpen: setCommandOpen } = useCommandPalette();
 	const { state, setOpenMobile } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
@@ -397,39 +441,54 @@ export function AppSidebar({
 
 	return (
 		<Sidebar collapsible="icon">
-			<SidebarHeader className="h-14 p-0">
-				{collapsed ? (
-					<div className="flex size-full items-center justify-center p-2">
-						<SidebarTrigger className="size-8 text-muted-foreground" />
+			<SidebarHeader className="h-12 overflow-hidden px-1.5 py-0">
+				<div className="flex h-full w-full items-center">
+					<div className={navIconSlot}>
+						<BrandSidebarTrigger />
 					</div>
-				) : (
-					<div className="flex h-full w-full items-center gap-1 px-3">
-						<button
-							type="button"
-							onClick={handleOpenNewChat}
-							className="flex min-w-0 flex-1 items-center overflow-hidden rounded-control px-1 text-left"
-						>
-							<span className="truncate font-display text-[18px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
-								YourUnique.cv
-							</span>
-						</button>
-						<Button
-							variant="ghost"
-							size="icon-sm"
-							className="shrink-0 text-muted-foreground"
-							aria-label="Search"
-						>
-							<Search className="size-4" />
-						</Button>
-						<SidebarTrigger className="shrink-0 text-muted-foreground" />
-					</div>
-				)}
+					<button
+						type="button"
+						onClick={handleOpenNewChat}
+						className="flex min-w-0 flex-1 items-center overflow-hidden rounded-xl px-1 text-left group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none"
+					>
+						<span className="truncate font-display text-[16px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
+							YourUnique.cv
+						</span>
+					</button>
+					<Button
+						variant="ghost"
+						size="icon-sm"
+						className="mr-1 shrink-0 text-muted-foreground group-data-[collapsible=icon]:hidden"
+						aria-label="Search"
+						aria-keyshortcuts="Meta+K Control+K"
+						title="Search (⌘K)"
+						onClick={() => {
+							setOpenMobile(false);
+							setCommandOpen(true);
+						}}
+					>
+						<MagnifyingGlassIcon size={16} weight="duotone" />
+					</Button>
+				</div>
 			</SidebarHeader>
 
-			<SidebarContent className="gap-1 pb-3">
-				<SidebarGroup>
+			<SidebarContent className="gap-2 pb-4">
+				<SidebarGroup className="px-1.5">
 					<SidebarGroupContent>
-						<SidebarMenu className="gap-0.5">
+						<SidebarMenu className="gap-1">
+							<SidebarMenuItem className="hidden group-data-[collapsible=icon]:block">
+								<SidebarMenuButton
+									tooltip="Search"
+									onClick={() => setCommandOpen(true)}
+								>
+									<span className={navIconSlot}>
+										<MagnifyingGlassIcon size={16} weight="duotone" />
+									</span>
+									<span className="min-w-0 truncate pr-2">
+										Search
+									</span>
+								</SidebarMenuButton>
+							</SidebarMenuItem>
 							{primaryNav.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton
@@ -454,14 +513,18 @@ export function AppSidebar({
 										)}
 										tooltip={item.title}
 									>
-										{item.title === "New chat" ? (
-											<span className="flex size-5 items-center justify-center rounded-full border border-sidebar-border group-data-[collapsible=icon]:size-4 group-data-[collapsible=icon]:border-0">
-												<item.icon className="size-3.5 group-data-[collapsible=icon]:size-4" />
-											</span>
-										) : (
-											<item.icon />
-										)}
-										<span>{item.title}</span>
+										<span className={navIconSlot}>
+											{item.title === "New chat" ? (
+												<span className="flex size-6 items-center justify-center rounded-full bg-brand text-brand-foreground">
+													<item.icon size={14} weight="bold" />
+												</span>
+											) : (
+												<item.icon size={16} weight="duotone" />
+											)}
+										</span>
+										<span className="min-w-0 truncate pr-2">
+											{item.title}
+										</span>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}
@@ -485,7 +548,7 @@ export function AppSidebar({
 									/>
 								}
 							>
-								<SlidersHorizontal className="size-3.5" />
+								<SlidersHorizontalIcon size={16} weight="duotone" />
 							</DropdownMenuTrigger>
 							<DropdownMenuContent align="end" className="min-w-36">
 								<DropdownMenuGroup>
@@ -555,15 +618,17 @@ export function AppSidebar({
 				</SidebarGroup>
 			</SidebarContent>
 
-			<SidebarFooter className="border-t border-sidebar-border p-2">
+			<SidebarFooter className="overflow-hidden px-1.5 py-2">
 				{showUpgrade ? (
 					<a
 						href={upgradeHref}
 						onClick={() => setOpenMobile(false)}
-						className="mb-1 flex h-9 items-center gap-2 rounded-lg bg-brand px-2.5 text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+						className="mb-1 flex h-9 items-center overflow-hidden rounded-full bg-brand text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90"
 					>
-						<Sparkles className="size-4 shrink-0" />
-						<span className="group-data-[collapsible=icon]:hidden">
+						<span className={navIconSlot}>
+							<SparkleIcon size={16} weight="fill" />
+						</span>
+						<span className="truncate pr-2">
 							Upgrade to Pro
 						</span>
 					</a>

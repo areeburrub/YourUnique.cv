@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { HeaderUserMenu } from "@/components/landing/header-user-menu";
+import { ModeToggle } from "@/components/mode-toggle";
 import { getUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { getUserById } from "@/lib/db/users";
@@ -40,9 +41,12 @@ export default async function OnboardingPage() {
 	return (
 		<div className="flex min-h-full flex-1 flex-col bg-background">
 			<header className="sticky top-0 z-50 border-b border-border bg-background">
-				<div className="rail flex h-14 items-center justify-between px-4 sm:px-8 md:px-10">
+				<div className="rail flex h-16 items-center justify-between px-5 sm:px-8 md:h-[4.5rem] md:px-10">
 					<BrandLogo />
-					<HeaderUserMenu />
+					<div className="flex items-center gap-2.5">
+						<ModeToggle />
+						<HeaderUserMenu />
+					</div>
 				</div>
 			</header>
 			<OnboardingWizard

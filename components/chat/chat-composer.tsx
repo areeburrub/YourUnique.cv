@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import type { ChatStatus, FileUIPart } from "ai";
-import { Paperclip, XIcon } from "lucide-react";
+import { PaperclipIcon, XIcon } from "@phosphor-icons/react";
 
 import {
 	PromptInput,
@@ -44,6 +44,7 @@ type ChatComposerProps = {
 	canSubmit: boolean;
 	disabled?: boolean;
 	errorMessage?: string | null;
+	above?: ReactNode;
 	variant?: "docked" | "centered";
 	accept?: string;
 	maxFiles?: number;
@@ -281,7 +282,7 @@ function AttachmentPreviews({
 							onClick={() => attachments.remove(file.id)}
 							aria-label="Remove attachment"
 						>
-							<XIcon className="size-3" />
+							<XIcon size={12} weight="bold" />
 						</button>
 					</div>
 				);
@@ -317,15 +318,15 @@ function AttachFilesButton({ disabled }: { disabled?: boolean }) {
 			onClick={() => attachments.openFileDialog()}
 			aria-label="Attach files"
 			title="Attach files"
-			className="inline-flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
+			className="inline-flex size-10 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-50"
 		>
-			<Paperclip className="size-4" />
+			<PaperclipIcon size={20} weight="duotone" />
 		</button>
 	);
 }
 
 const INPUT_GROUP_STYLE =
-	"**:data-[slot=input-group]:rounded-2xl **:data-[slot=input-group]:border-border/70 **:data-[slot=input-group]:bg-surface-subtle **:data-[slot=input-group]:shadow-lg";
+	"**:data-[slot=input-group]:rounded-[28px] **:data-[slot=input-group]:border-border/70 **:data-[slot=input-group]:bg-card **:data-[slot=input-group]:shadow-lg";
 
 export function ChatComposer({
 	text,
@@ -341,6 +342,7 @@ export function ChatComposer({
 	canSubmit,
 	disabled = false,
 	errorMessage,
+	above,
 	variant = "docked",
 	accept = UPLOAD_ACCEPT,
 	maxFiles = MAX_UPLOAD_FILES,
@@ -361,6 +363,7 @@ export function ChatComposer({
 			}
 		>
 			<div className="mx-auto w-full max-w-3xl">
+				{above}
 				{errorMessage ? (
 					<p className="mb-2 text-sm text-destructive">{errorMessage}</p>
 				) : null}

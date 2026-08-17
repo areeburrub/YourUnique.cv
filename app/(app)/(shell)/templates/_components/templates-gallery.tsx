@@ -1,6 +1,6 @@
 "use client";
 
-import { Upload } from "lucide-react";
+import { UploadSimpleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -195,7 +195,6 @@ export function TemplatesGallery({
 							/>
 							<Button
 								type="button"
-								size="sm"
 								className="shrink-0"
 								onClick={() => fileInputRef.current?.click()}
 								disabled={uploading}
@@ -203,7 +202,7 @@ export function TemplatesGallery({
 								{uploading ? (
 									<Spinner className="size-4" />
 								) : (
-									<Upload data-icon="inline-start" />
+									<UploadSimpleIcon data-icon="inline-start" weight="bold" />
 								)}
 								Create from your format
 							</Button>

@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageSquarePlus } from "lucide-react";
+import { ChatCircleDotsIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 
@@ -42,7 +42,7 @@ export function SelectionToChat({
 					onAdd(text);
 				}}
 			>
-				<MessageSquarePlus className="size-3.5" />
+				<ChatCircleDotsIcon size={14} weight="fill" />
 				Add to chat
 			</Button>
 		</div>

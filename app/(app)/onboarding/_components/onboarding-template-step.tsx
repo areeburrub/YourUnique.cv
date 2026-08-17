@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, LoaderCircle } from "lucide-react";
+import { CheckIcon, CircleNotchIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
@@ -332,15 +332,15 @@ function YourResumePlaceholder({
 		<article className="group flex flex-col">
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-2xl bg-[#e8ebef] p-2.5 transition-shadow sm:p-3",
+					"relative overflow-hidden rounded-[28px] bg-pastel-blush p-3 transition-shadow sm:p-3.5",
 					selected
 						? "ring-2 ring-brand/50 ring-offset-2 ring-offset-background"
 						: "hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)]",
 				)}
 			>
-				<div className="relative overflow-hidden rounded-lg bg-white shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+				<div className="relative overflow-hidden rounded-2xl bg-card product-shadow">
 					<div className="flex aspect-210/297 flex-col items-center justify-center gap-3 p-6 text-center">
-						<LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+						<CircleNotchIcon size={24} className="animate-spin text-muted-foreground" />
 						<div>
 							<p className="text-sm font-medium text-foreground">
 								Building from your resume
@@ -355,7 +355,7 @@ function YourResumePlaceholder({
 							<Button
 								type="button"
 								size="lg"
-								className="h-10 w-full cursor-pointer rounded-xl bg-brand text-sm font-semibold text-brand-foreground shadow-[0_8px_24px_rgba(2,91,255,0.35)] hover:bg-brand/90"
+								className="h-11 w-full cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
 								onClick={onChoose}
 							>
 								Choose
@@ -365,7 +365,7 @@ function YourResumePlaceholder({
 				</div>
 				{selected ? (
 					<span className="absolute top-3 right-3 z-10 flex size-6 items-center justify-center rounded-full bg-brand text-white shadow-sm">
-						<Check className="size-3.5" strokeWidth={2.5} />
+						<CheckIcon size={14} weight="bold" />
 					</span>
 				) : null}
 				<div className="mt-2.5 flex items-center gap-2 px-0.5">

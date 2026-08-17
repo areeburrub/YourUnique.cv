@@ -1,13 +1,14 @@
 "use client";
 
 import {
-	Download,
-	ExternalLink,
-	FileText,
-	LoaderCircle,
-	MessageSquare,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+	ArrowSquareOutIcon,
+	ChatCircleIcon,
+	CircleNotchIcon,
+	DownloadSimpleIcon,
+	FileTextIcon,
+} from "@phosphor-icons/react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { useSoftNav } from "@/components/app/soft-nav";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -60,10 +61,38 @@ type ResumesIndexProps = {
 	initialResumes: ResumeListItem[];
 };
 
+function ResumePreviewSync({
+	resumes,
+	onOpen,
+}: {
+	resumes: ResumeListItem[];
+	onOpen: (resume: ResumeListItem) => void;
+}) {
+	const searchParams = useSearchParams();
+	const previewId = searchParams.get("preview");
+
+	useEffect(() => {
+		if (!previewId) {
+			return;
+		}
+		const resume = resumes.find((item) => item.id === previewId);
+		if (resume) {
+			onOpen(resume);
+		}
+	}, [onOpen, previewId, resumes]);
+
+	return null;
+}
+
 export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 	const { openNewChat } = useSoftNav();
+	const router = useRouter();
+	const pathname = usePathname();
 	const [resumes, setResumes] = useState(initialResumes);
 	const [preview, setPreview] = useState<ResumeListItem | null>(null);
+	const openPreview = useCallback((resume: ResumeListItem) => {
+		setPreview(resume);
+	}, []);
 
 	const groups = useMemo(() => groupResumesByDate(resumes), [resumes]);
 
@@ -94,8 +123,22 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 		return () => window.clearInterval(id);
 	}, [hasInFlight, refresh]);
 
+	const closePreview = useCallback(() => {
+		setPreview(null);
+		const params = new URLSearchParams(window.location.search);
+		if (!params.has("preview")) {
+			return;
+		}
+		params.delete("preview");
+		const qs = params.toString();
+		router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+	}, [pathname, router]);
+
 	return (
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+			<Suspense fallback={null}>
+				<ResumePreviewSync resumes={resumes} onOpen={openPreview} />
+			</Suspense>
 			<div className="shrink-0 border-b border-border px-4 py-5 sm:px-6">
 				<div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
 					<div className="flex items-start justify-between gap-3">
@@ -109,11 +152,10 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 						</div>
 						<Button
 							type="button"
-							size="sm"
 							className="shrink-0"
 							onClick={openNewChat}
 						>
-							<MessageSquare data-icon="inline-start" />
+							<ChatCircleIcon data-icon="inline-start" weight="bold" />
 							New chat
 						</Button>
 					</div>
@@ -123,9 +165,9 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 			<div className="min-h-0 flex-1 overflow-auto">
 				<div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">
 					{resumes.length === 0 ? (
-						<div className="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
-							<div className="flex size-12 items-center justify-center rounded-media border border-border bg-surface-subtle text-brand">
-								<FileText className="size-5" />
+						<div className="flex flex-col items-center justify-center gap-4 px-4 py-20 text-center">
+							<div className="flex size-16 items-center justify-center rounded-[22px] bg-pastel-blush text-brand">
+								<FileTextIcon size={28} weight="duotone" />
 							</div>
 							<div className="space-y-1">
 								<h2 className="font-medium text-sm">No resumes yet</h2>
@@ -136,11 +178,10 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 							</div>
 							<Button
 								type="button"
-								size="sm"
 								className="mt-1"
 								onClick={openNewChat}
 							>
-								<MessageSquare data-icon="inline-start" />
+								<ChatCircleIcon data-icon="inline-start" weight="bold" />
 								New chat
 							</Button>
 						</div>
@@ -180,9 +221,9 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 
 			<Dialog
 				open={Boolean(preview)}
-				onOpenChange={(open) => {
-					if (!open) {
-						setPreview(null);
+				onOpenChange={(nextOpen) => {
+					if (!nextOpen) {
+						closePreview();
 					}
 				}}
 			>
@@ -225,7 +266,7 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 											rel="noreferrer"
 											className={buttonVariants({ variant: "outline" })}
 										>
-											<ExternalLink data-icon="inline-start" />
+											<ArrowSquareOutIcon data-icon="inline-start" weight="bold" />
 											Job posting
 										</a>
 									) : null}
@@ -235,7 +276,7 @@ export function ResumesIndex({ initialResumes }: ResumesIndexProps) {
 									download
 									className={buttonVariants()}
 								>
-									<Download data-icon="inline-start" />
+									<DownloadSimpleIcon data-icon="inline-start" weight="bold" />
 									Download PDF
 								</a>
 							</DialogFooter>
@@ -265,7 +306,7 @@ function ResumeCard({
 		<article className="group flex flex-col">
 			<div
 				className={cn(
-					"relative overflow-hidden rounded-2xl bg-[#e8ebef] p-2.5 transition-shadow sm:p-3",
+					"relative overflow-hidden rounded-[28px] bg-pastel-blush p-3 transition-shadow sm:p-3.5",
 					canPreview
 						? "cursor-pointer hover:shadow-[0_10px_30px_rgba(15,23,42,0.08)]"
 						: "",
@@ -287,7 +328,7 @@ function ResumeCard({
 				role={canPreview ? "button" : undefined}
 				tabIndex={canPreview ? 0 : undefined}
 			>
-				<div className="relative overflow-hidden rounded-lg bg-white shadow-[0_8px_24px_rgba(15,23,42,0.12)]">
+				<div className="relative overflow-hidden rounded-2xl bg-card product-shadow">
 					{resume.previewUrl ? (
 						// eslint-disable-next-line @next/next/no-img-element
 						<img
@@ -298,9 +339,9 @@ function ResumeCard({
 					) : (
 						<div className="flex aspect-210/297 flex-col items-center justify-center gap-2 p-6 text-center">
 							{compiling ? (
-								<LoaderCircle className="size-6 animate-spin text-muted-foreground" />
+								<CircleNotchIcon size={24} className="animate-spin text-muted-foreground" />
 							) : (
-								<FileText className="size-6 text-muted-foreground" />
+								<FileTextIcon size={24} weight="duotone" className="text-muted-foreground" />
 							)}
 							<p className="text-xs text-muted-foreground">
 								{compiling
@@ -318,7 +359,7 @@ function ResumeCard({
 								<Button
 									type="button"
 									size="lg"
-									className="h-10 w-full cursor-pointer rounded-xl bg-brand text-sm font-semibold text-brand-foreground shadow-[0_8px_24px_rgba(2,91,255,0.35)] hover:bg-brand/90"
+									className="h-11 w-full cursor-pointer rounded-full bg-brand text-sm font-semibold text-brand-foreground brand-shadow hover:bg-brand/90"
 									onClick={(event) => {
 										event.stopPropagation();
 										onPreview();
@@ -335,7 +376,7 @@ function ResumeCard({
 										"h-10 w-full cursor-pointer rounded-xl border border-zinc-200 bg-white text-sm font-semibold text-zinc-900 shadow-[0_8px_24px_rgba(0,0,0,0.18)] hover:bg-zinc-50 hover:text-zinc-900",
 									)}
 								>
-									<Download data-icon="inline-start" />
+									<DownloadSimpleIcon data-icon="inline-start" weight="bold" />
 									Download
 								</a>
 							</div>
@@ -374,7 +415,7 @@ function ResumeCard({
 						onClick={(event) => event.stopPropagation()}
 					>
 						Job posting
-						<ExternalLink className="size-3" />
+						<ArrowSquareOutIcon size={12} weight="bold" />
 					</a>
 				) : null}
 				{resume.compileStatus === "failed" && resume.compileError ? (

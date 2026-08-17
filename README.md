@@ -1,36 +1,74 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YourUnique.cv
 
-## Getting Started
+![YourUnique.cv](./public/og-2x.png)
 
-First, run the development server:
+Open-source resume agent at [yourunique.cv](https://yourunique.cv). Every job is different, so you should not send the same CV to every posting.
+
+Start from your resume and LinkedIn. Share a job in chat and get a CV written for that role, plus an ATS read. It is not a job board and it does not apply for you.
+
+Built by [Areeb ur Rub](https://areeburrub.dev).
+
+## Features
+
+Available on Free and Pro:
+
+- Career persona from a resume upload and an optional LinkedIn URL (roles, skills, wins)
+- Chat with memory: paste a JD, share a LinkedIn job link or JD PDF, ask what to emphasize, or mention something new
+- Job-aware drafts for the role in front of you
+- Visible agent tool calls (fetch a posting, read the profile, write the resume, update the profile)
+- Profile updates in chat: a new cert, job, or win is saved and used next time
+- Bring your own template (extracted from the upload) or pick one from the library
+- ATS analysis after a tailored draft: score /100, Area / Match table, and biggest gaps. Do not invent experience; rephrase real work in the JD's words
+- PDF export and a tailored file per role
+
+## How it works
+
+1. Upload a current resume and, if you want, a LinkedIn URL. That becomes the persona.
+2. Keep the extracted layout, or pick one from the library.
+3. In chat, send a JD, ask a question, or add a new fact. The agent writes the CV and updates the profile when you tell it something new.
+4. Read the ATS score, area table, and gaps before you send the file.
+
+## Plans
+
+Same product on both plans. The difference is volume.
+
+| Plan | Price | Volume |
+| --- | --- | --- |
+| Free | $0 | About 10–15 resumes a month |
+| Pro | $10/month | About 100+ resumes a month, for heavy application weeks |
+
+Start at [yourunique.cv/sign-up](https://yourunique.cv/sign-up).
+
+## Stack
+
+Next.js, Clerk, Postgres (Drizzle), Mastra + OpenRouter, Trigger.dev (Playwright PDFs), Cloudflare R2, Dodo Payments.
+
+## Local setup
+
+Needs [Bun](https://bun.sh), Docker, and Chromium for PDF compile.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
+cp .env.example .env
+bun install
+bun db:up
+bun db:migrate
+bunx playwright install chromium
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+App: [http://localhost:6700](http://localhost:6700)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Fill `.env` from `.env.example` (Clerk, OpenRouter, R2, and the rest). For resume compile and LinkedIn job fetches, run Trigger locally or set `TRIGGER_SECRET_KEY` and deploy workers with `bun deploy:trigger`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+bun mastra:dev   # agent studio
+bun db:studio    # Drizzle Studio
+```
 
-## Learn More
+## Links
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Site: https://yourunique.cv
+- Source: https://github.com/areeburrub/YourUnique.cv
+- Author: https://areeburrub.dev
+- Contact: contact@areeburrub.dev
+- For language models: [llms.txt](https://yourunique.cv/llms.txt), [llm.txt](https://yourunique.cv/llm.txt)

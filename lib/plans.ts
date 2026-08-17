@@ -18,14 +18,14 @@ export const PLANS: Record<PlanId, PlanConfig> = {
 		id: PlanId.FREE,
 		name: "Free",
 		monthlyLimitUsd: 1,
-		dailyLimitUsd: 0.05,
+		dailyLimitUsd: 0.2,
 		dodoProductId: null,
 	},
 	PRO: {
 		id: PlanId.PRO,
 		name: "Pro",
 		monthlyLimitUsd: 8,
-		dailyLimitUsd: 0.4,
+		dailyLimitUsd: 1.6,
 		dodoProductId: process.env.DODO_PRO_PRODUCT_ID ?? null,
 	},
 };

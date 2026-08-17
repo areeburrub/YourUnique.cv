@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageSquare, Plus } from "lucide-react";
+import { ChatCircleIcon, PlusIcon } from "@phosphor-icons/react";
 import { Suspense, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 
@@ -114,11 +114,10 @@ export function ChatsIndex({
 						</div>
 						<Button
 							type="button"
-							size="sm"
 							className="shrink-0"
 							onClick={openNewChat}
 						>
-							<Plus data-icon="inline-start" />
+							<PlusIcon data-icon="inline-start" weight="bold" />
 							New chat
 						</Button>
 					</div>
@@ -128,7 +127,7 @@ export function ChatsIndex({
 								<div className="relative">
 									<Input
 										placeholder="Search chats"
-										className="h-9 pl-9"
+										className="h-11 pl-10"
 										disabled
 										aria-label="Search chats"
 									/>
@@ -144,9 +143,9 @@ export function ChatsIndex({
 			<div className="min-h-0 flex-1 overflow-auto">
 				<div className="mx-auto w-full max-w-3xl px-4 py-2 sm:px-6">
 					{filtered.length === 0 ? (
-						<div className="flex flex-col items-center justify-center gap-3 px-4 py-20 text-center">
-							<div className="flex size-12 items-center justify-center rounded-media border border-border bg-surface-subtle text-brand">
-								<MessageSquare className="size-5" />
+						<div className="flex flex-col items-center justify-center gap-4 px-4 py-20 text-center">
+							<div className="flex size-16 items-center justify-center rounded-[22px] bg-pastel-blush text-brand">
+								<ChatCircleIcon size={28} weight="duotone" />
 							</div>
 							<div className="space-y-1">
 								<h2 className="font-medium text-sm">
@@ -163,11 +162,10 @@ export function ChatsIndex({
 							{!query.trim() ? (
 								<Button
 									type="button"
-									size="sm"
 									className="mt-1"
 									onClick={openNewChat}
 								>
-									<Plus data-icon="inline-start" />
+									<PlusIcon data-icon="inline-start" weight="bold" />
 									New chat
 								</Button>
 							) : null}
@@ -184,8 +182,8 @@ export function ChatsIndex({
 											"-mx-2 rounded-control px-2 sm:-mx-3 sm:px-3",
 										)}
 									>
-										<div className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-media border border-border bg-background text-muted-foreground transition-colors group-hover:border-brand/25 group-hover:text-brand">
-											<MessageSquare className="size-4" />
+										<div className="mt-0.5 flex size-11 shrink-0 items-center justify-center rounded-2xl bg-pastel-blush text-brand transition-colors group-hover:bg-brand group-hover:text-brand-foreground">
+											<ChatCircleIcon size={20} weight="duotone" />
 										</div>
 										<div className="min-w-0 flex-1">
 											<div className="flex items-baseline justify-between gap-3">

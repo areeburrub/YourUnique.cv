@@ -1,10 +1,11 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { LoaderCircle } from "lucide-react";
+import { CircleNotchIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
 
 import {
 	isResumeCompiling,
+	resumeDownloadPath,
 	resumeIdFromDownloadUrl,
 	resumeStatusKey,
 	type ResumeListItem,
@@ -31,6 +32,7 @@ async function fetchResumeStatus(resumeId: string) {
 export function ResumePdfCard({
 	name,
 	previewUrl,
+	downloadUrl,
 	compileStatus,
 	className,
 }: ResumePdfCardProps) {
@@ -68,6 +70,11 @@ export function ResumePdfCard({
 		? data?.name || name
 		: `${data?.name || name}.pdf`;
 	const href = pending || failed ? undefined : previewUrl;
+	const downloadHref = pending || failed
+		? undefined
+		: resumeId
+			? resumeDownloadPath(resumeId, { download: true })
+			: downloadUrl;
 	const subtitle = failed
 		? "PDF failed"
 		: pending
@@ -78,7 +85,7 @@ export function ResumePdfCard({
 		<>
 			<span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#e53935] text-white">
 				{pending ? (
-					<LoaderCircle className="size-4 animate-spin" />
+					<CircleNotchIcon size={16} className="animate-spin" />
 				) : (
 					<span className="text-[9px] font-semibold tracking-wide">PDF</span>
 				)}
@@ -94,7 +101,7 @@ export function ResumePdfCard({
 		</>
 	);
 
-	if (!href) {
+	if (!href || !downloadHref) {
 		return (
 			<div
 				className={cn(
@@ -108,16 +115,28 @@ export function ResumePdfCard({
 	}
 
 	return (
-		<a
-			href={href}
-			target="_blank"
-			rel="noreferrer"
+		<div
 			className={cn(
-				"inline-flex max-w-[min(100%,20rem)] items-center gap-2.5 rounded-3xl bg-secondary px-3 py-2.5 text-foreground transition-opacity hover:opacity-90",
+				"inline-flex w-fit max-w-[min(100%,20rem)] items-center gap-1 rounded-3xl bg-secondary py-1.5 pl-3 pr-1.5 text-foreground",
 				className,
 			)}
 		>
-			{inner}
-		</a>
+			<a
+				href={href}
+				target="_blank"
+				rel="noreferrer"
+				className="flex min-w-0 items-center gap-2.5 py-1 transition-opacity hover:opacity-90"
+			>
+				{inner}
+			</a>
+			<a
+				href={downloadHref}
+				download={fileName}
+				className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-background/70"
+				aria-label={`Download ${fileName}`}
+			>
+				<DownloadSimpleIcon size={18} weight="bold" />
+			</a>
+		</div>
 	);
 }
