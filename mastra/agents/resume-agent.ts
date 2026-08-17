@@ -1,6 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 
 import {
+	OPENROUTER_CHAT_MODEL,
 	openrouter,
 	openrouterFileParserPlugins,
 } from "@/lib/ai/openrouter";
@@ -101,7 +102,7 @@ If they ask to generate a resume for a role (e.g. "full stack"), start from the 
 - Keep to roughly one A4 page unless the template notes say otherwise.
 - When the user attaches a resume PDF or image, read it carefully before giving advice — still use the saved profile, and send any new durable facts to profile-edit-agent to persist.`;
 	},
-	model: openrouter("openai/gpt-5.6-luna", {
+	model: openrouter(OPENROUTER_CHAT_MODEL, {
 		plugins: openrouterFileParserPlugins,
 	}),
 	tools: {

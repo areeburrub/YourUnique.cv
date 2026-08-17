@@ -1,6 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 
-import { FAST_OPENROUTER_MODEL, openrouter } from "@/lib/ai/openrouter";
+import { OPENROUTER_CHAT_MODEL, openrouter } from "@/lib/ai/openrouter";
 import { profileEditAgent } from "@/mastra/agents/profile-edit-agent";
 import { resumeAgent } from "@/mastra/agents/resume-agent";
 import { chatMemory } from "@/mastra/memory/chat-memory";
@@ -35,7 +35,7 @@ ${
 		: "Default to resume-agent when the user clearly wants a resume/PDF; otherwise prefer profile-edit-agent when they are talking about themselves or their background so missing details keep getting filled in."
 }`;
 	},
-	model: openrouter(FAST_OPENROUTER_MODEL),
+	model: openrouter(OPENROUTER_CHAT_MODEL),
 	agents: {
 		resumeAgent,
 		profileEditAgent,

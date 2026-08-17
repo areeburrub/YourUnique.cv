@@ -3,7 +3,7 @@ import { generateText, Output, type FilePart } from "ai";
 import { nanoid } from "nanoid";
 import { z } from "zod";
 
-import { openrouter } from "@/lib/ai/openrouter";
+import { OPENROUTER_CHAT_MODEL, openrouter } from "@/lib/ai/openrouter";
 import { getUserFileForUser, insertUserFileRow } from "@/lib/db/files";
 import {
 	getResumeTemplateForUser,
@@ -54,7 +54,7 @@ type Draft = {
 };
 
 function visionModel() {
-	return openrouter("openai/gpt-5.6-luna");
+	return openrouter(OPENROUTER_CHAT_MODEL);
 }
 
 function pageImageParts(

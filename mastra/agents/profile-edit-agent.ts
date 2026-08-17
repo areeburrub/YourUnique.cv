@@ -2,8 +2,8 @@ import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 
 import {
-	FAST_OPENROUTER_MEMORY_MODEL,
-	FAST_OPENROUTER_MODEL,
+	OPENROUTER_CHAT_MODEL,
+	OPENROUTER_MEMORY_MODEL,
 	openrouter,
 } from "@/lib/ai/openrouter";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
@@ -49,7 +49,7 @@ On every turn:
 - If the user pastes [Profile context] blocks, treat them as the selected passages they want you to focus on.
 - After a successful patch, briefly confirm what you saved (1–2 sentences), then ask the next gap question when more is needed. Do not dump the whole document unless asked.
 - If they say they do not have or do not want to share something, note that mentally and move to the next gap — do not nag.`,
-	model: openrouter(FAST_OPENROUTER_MODEL),
+	model: openrouter(OPENROUTER_CHAT_MODEL),
 	tools: {
 		get_profile: getProfileTool,
 		patch_profile: patchProfileTool,
@@ -58,7 +58,7 @@ On every turn:
 		options: {
 			lastMessages: 30,
 			generateTitle: {
-				model: FAST_OPENROUTER_MEMORY_MODEL,
+				model: OPENROUTER_MEMORY_MODEL,
 				instructions: `You write a short sidebar title (3–7 words) for a profile-editing chat.
 
 Rules:

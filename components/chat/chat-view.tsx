@@ -719,7 +719,7 @@ export function ChatView({
 	const thinkingLabel =
 		runningToolLabel ||
 		(lastUserHadFiles ? "Reading your documents…" : "Thinking");
-	const isEmpty = messages.length === 0 && !showThinking;
+	const isEmpty = messages.length === 0;
 
 	const composer = (
 		<>
@@ -780,16 +780,26 @@ export function ChatView({
 
 				const streamActive =
 					isBusy && lastMessage?.id === message.id;
+				const parts = renderAssistantParts(message, { streamActive });
+				const showThinkingHere =
+					showThinking && lastMessage?.id === message.id;
+
+				if (parts.length === 0 && !showThinkingHere) {
+					return null;
+				}
 
 				return (
 					<Message from={message.role} key={message.id}>
 						<MessageContent>
-							{renderAssistantParts(message, { streamActive })}
+							{parts}
+							{showThinkingHere ? (
+								<ChatThinking label={thinkingLabel} />
+							) : null}
 						</MessageContent>
 					</Message>
 				);
 			})}
-			{showThinking ? (
+			{showThinking && !lastIsAssistant ? (
 				<Message from="assistant">
 					<MessageContent>
 						<ChatThinking label={thinkingLabel} />
@@ -927,7 +937,7 @@ export function ChatView({
 				</div>
 			) : null}
 			{isEmpty ? (
-				<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-16 sm:px-6">
+				<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-4 sm:px-6 sm:pb-16">
 					<div className="flex w-full max-w-3xl flex-col items-center gap-10">
 						<h1 className="text-center font-display text-[36px] font-bold leading-[1.1] tracking-[-1.2px] text-foreground sm:text-[44px]">
 							How can I help you today?
@@ -939,15 +949,7 @@ export function ChatView({
 				<>
 					<Conversation className="min-h-0 flex-1 overflow-hidden">
 						<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
-							{messages.length === 0 && showThinking ? (
-								<Message from="assistant">
-									<MessageContent>
-										<ChatThinking label={thinkingLabel} />
-									</MessageContent>
-								</Message>
-							) : (
-								messageList
-							)}
+							{messageList}
 						</ConversationContent>
 						<ConversationScrollButton />
 					</Conversation>

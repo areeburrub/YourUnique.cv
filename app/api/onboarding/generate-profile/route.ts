@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { streamText, type FilePart, type TextPart } from "ai";
 
 import {
+	OPENROUTER_CHAT_MODEL,
 	openrouter,
 	openrouterFileParserPlugins,
 } from "@/lib/ai/openrouter";
@@ -187,7 +188,7 @@ export async function POST(req: Request) {
 	].join("\n\n");
 
 	const result = streamText({
-		model: openrouter("openai/gpt-5.6-luna", {
+		model: openrouter(OPENROUTER_CHAT_MODEL, {
 			plugins: openrouterFileParserPlugins,
 		}),
 		system: SYSTEM_PROMPT,

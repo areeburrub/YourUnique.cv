@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
 import { Inter, Inter_Tight } from "next/font/google";
@@ -23,6 +23,12 @@ export const metadata: Metadata = {
 	title: "YourUnique.cv | Resumes that match the job",
 	description:
 		"Chat with an agent that knows your career story. Paste a job description, get a tailored professional resume PDF.",
+};
+
+export const viewport: Viewport = {
+	width: "device-width",
+	initialScale: 1,
+	interactiveWidget: "resizes-content",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

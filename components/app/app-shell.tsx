@@ -9,6 +9,7 @@ import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
 import type { ChatThreadListItem } from "@/lib/chats";
 
 type AppShellProps = {
@@ -42,11 +43,13 @@ export function AppShell({
 	upgradeHref = "/settings",
 	children,
 }: AppShellProps) {
+	useVisualViewportHeight();
+
 	return (
 		<QueryProvider>
 			<SoftNavProvider>
 				<TooltipProvider>
-					<SidebarProvider className="h-svh overflow-hidden">
+					<SidebarProvider className="h-[var(--app-height,100dvh)] min-h-0 overflow-hidden">
 						<AppSidebar
 							user={user}
 							initialThreads={recentThreads}

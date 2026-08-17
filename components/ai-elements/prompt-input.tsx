@@ -78,6 +78,10 @@ import {
 // Helpers
 // ============================================================================
 
+const isTouchPrimary = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+
 const convertBlobUrlToDataUrl = async (url: string): Promise<string | null> => {
   try {
     const response = await fetch(url);
@@ -1008,7 +1012,7 @@ export const PromptInputTextarea = ({
         if (isComposing || e.nativeEvent.isComposing) {
           return;
         }
-        if (e.shiftKey) {
+        if (e.shiftKey || isTouchPrimary()) {
           return;
         }
         e.preventDefault();
@@ -1086,6 +1090,7 @@ export const PromptInputTextarea = ({
   return (
     <InputGroupTextarea
       className={cn("field-sizing-content max-h-48 min-h-16", className)}
+      enterKeyHint="enter"
       name="message"
       onCompositionEnd={handleCompositionEnd}
       onCompositionStart={handleCompositionStart}
