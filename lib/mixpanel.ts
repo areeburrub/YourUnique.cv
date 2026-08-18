@@ -73,6 +73,10 @@ export function initMixpanel() {
 				mixpanel.init(MIXPANEL_TOKEN, {
 					autocapture: true,
 					record_sessions_percent: 100,
+					record_mask_all_text: false,
+					record_mask_all_inputs: false,
+					record_inline_images: true,
+					record_block_selector: "[data-mp-block]",
 				});
 				client = mixpanel;
 				return mixpanel;
