@@ -248,6 +248,10 @@ export const schema = {
 					"endDate": {
 						"type": "string",
 						"minLength": 1
+					},
+					"gpa": {
+						"type": "string",
+						"description": "GPA or CGPA score only, e.g. \"CGPA 8.72\" or \"GPA 3.8\". No /10 or /4.0. Omit if unknown."
 					}
 				},
 				"required": [

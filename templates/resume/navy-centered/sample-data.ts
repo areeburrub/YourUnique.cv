@@ -180,6 +180,7 @@ export const sampleData = {
             degree: "B.S. Computer Science",
             startDate: "Aug 2016",
             endDate: "May 2020",
+            gpa: "CGPA 3.82",
         },
     ],
 } as const satisfies Record<string, unknown>;

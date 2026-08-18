@@ -58,6 +58,14 @@ runtime.registerHelper("href", (value: unknown) =>
 runtime.registerHelper("dateRange", (...args: unknown[]) =>
 	dateRangeFromHelperArgs(args),
 );
+runtime.registerHelper("gpaScore", (value: unknown) => {
+	if (value == null || typeof value === "object") {
+		return "";
+	}
+	return String(value)
+		.replace(/\s*(?:\/|out\s+of)\s*[\d.]+/gi, "")
+		.trim();
+});
 runtime.registerHelper("employment", (value: unknown) => {
 	const trimmed = String(value ?? "").trim();
 	if (!trimmed || /not specified|unknown|n\/a|^none$/i.test(trimmed)) {

@@ -29,6 +29,7 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - \`skills[].items\`: one comma-separated string
 - \`projects[].stack\`: comma-separated tech stack for that project when known
 - Dates: \`"Mon YYYY"\` / \`"Present"\` — always strings
+- \`education[].gpa\`: score with label only, e.g. \`"CGPA 8.72"\` or \`"GPA 3.8"\`. No /10, /4.0, or "out of". Omit if unknown — do not invent a score
 - This layout is **one A4 page by design**. Stay on one page: ~3–5 bullets on the current role, 2–3 on older roles, 1–2 project bullets, a short summary. Cut older or weaker items before overflowing.
 - Prose fields (\`summary\`, bullet \`text\`, skill \`items\`) may use inline \`**bold**\`, \`*italic*\`, and \`[label](https://url)\`. Bold a few metrics and technologies, not whole sentences. No HTML, Typst, or LaTeX in strings.
 

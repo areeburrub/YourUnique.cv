@@ -384,7 +384,7 @@ a {
                     <p class="meta">{{location}}</p>
                 </div>
                 <div class="split">
-                    <p class="degree">{{degree}}</p>
+                    <p class="degree">{{degree}}{{#if gpa}}, {{gpaScore gpa}}{{/if}}</p>
                     <p class="meta">{{dateRange startDate endDate}}</p>
                 </div>
             </article>

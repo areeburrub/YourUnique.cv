@@ -45,7 +45,8 @@ Projects (if the layout has them):
 - url is host/path only (github.com/org/repo). links[].url is a full https URL
 
 Education:
-- { school, location, degree, startDate, endDate }
+- { school, location, degree, startDate, endDate, gpa? }
+- gpa is an optional string with label and score only, e.g. "CGPA 8.72" or "GPA 3.8". No /10 or /4.0
 
 Contact / URLs:
 - name, email, phone, location, github, linkedin, website are strings
