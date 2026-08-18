@@ -22,6 +22,7 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MixpanelEvent, resetMixpanel, trackEvent } from "@/lib/mixpanel";
 import { cn } from "@/lib/utils";
 
 function getInitials(name: string, email: string) {
@@ -124,7 +125,13 @@ export function HeaderUserMenu() {
 				<DropdownMenuSeparator />
 				<DropdownMenuItem
 					variant="destructive"
-					onClick={() => signOut({ redirectUrl: "/" })}
+					onClick={() => {
+						trackEvent(MixpanelEvent.SignedOut, undefined, {
+							sendImmediately: true,
+						});
+						resetMixpanel();
+						void signOut({ redirectUrl: "/" });
+					}}
 				>
 					<SignOutIcon size={18} weight="duotone" />
 					Log out

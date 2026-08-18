@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { CircleNotchIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
+import { useEffect, useRef } from "react";
 
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import {
 	isResumeCompiling,
 	resumeDownloadPath,
@@ -66,6 +68,16 @@ export function ResumePdfCard({
 	const status = data?.compileStatus ?? compileStatus ?? "ready";
 	const pending = isResumeCompiling(status);
 	const failed = status === "failed";
+	const wasPending = useRef(pending);
+
+	useEffect(() => {
+		if (wasPending.current && !pending && !failed) {
+			trackEvent(MixpanelEvent.ResumePdfReady, {
+				resume_id: resumeId ?? "",
+			});
+		}
+		wasPending.current = pending;
+	}, [failed, pending, resumeId]);
 	const fileName = (data?.name || name).toLowerCase().endsWith(".pdf")
 		? data?.name || name
 		: `${data?.name || name}.pdf`;
@@ -126,6 +138,11 @@ export function ResumePdfCard({
 				target="_blank"
 				rel="noreferrer"
 				className="flex min-w-0 items-center gap-2.5 py-1 transition-opacity hover:opacity-90"
+				onClick={() => {
+					trackEvent(MixpanelEvent.ResumePdfOpened, {
+						resume_id: resumeId ?? "",
+					});
+				}}
 			>
 				{inner}
 			</a>
@@ -134,6 +151,11 @@ export function ResumePdfCard({
 				download={fileName}
 				className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-background/70"
 				aria-label={`Download ${fileName}`}
+				onClick={() => {
+					trackEvent(MixpanelEvent.ResumePdfDownloaded, {
+						resume_id: resumeId ?? "",
+					});
+				}}
 			>
 				<DownloadSimpleIcon size={18} weight="bold" />
 			</a>

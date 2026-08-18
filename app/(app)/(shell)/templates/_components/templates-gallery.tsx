@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { uploadChatFile } from "@/lib/client-uploads";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import type { TemplateListItem, TemplateRef } from "@/lib/resume-templates/types";
 import {
 	mediaTypeFromFilename,
@@ -86,6 +87,9 @@ export function TemplatesGallery({
 				throw new Error(data.error || "Could not select template");
 			}
 			setSelectedRef((data.templateRef as TemplateRef) || templateRef);
+			trackEvent(MixpanelEvent.TemplateSelected, {
+				template_ref: (data.templateRef as TemplateRef) || templateRef,
+			});
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Could not select template");
 		} finally {
@@ -116,6 +120,7 @@ export function TemplatesGallery({
 	async function startFromUpload(file: File) {
 		setError(null);
 		setUploading(true);
+		trackEvent(MixpanelEvent.CustomTemplateUploadStarted);
 		const objectUrl = URL.createObjectURL(file);
 		try {
 			const mediaType =

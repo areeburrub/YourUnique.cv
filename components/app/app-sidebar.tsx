@@ -73,6 +73,7 @@ import {
 	renameThreadInCache,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import { cn } from "@/lib/utils";
 
 const navIconSlot =
@@ -622,7 +623,16 @@ export function AppSidebar({
 				{showUpgrade ? (
 					<a
 						href={upgradeHref}
-						onClick={() => setOpenMobile(false)}
+						onClick={() => {
+							trackEvent(
+								MixpanelEvent.CheckoutStarted,
+								{
+									source: "sidebar",
+								},
+								{ sendImmediately: true },
+							);
+							setOpenMobile(false);
+						}}
 						className="mb-1 flex h-9 items-center overflow-hidden rounded-full bg-brand text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90"
 					>
 						<span className={navIconSlot}>

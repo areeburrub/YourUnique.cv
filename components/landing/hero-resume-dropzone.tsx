@@ -13,6 +13,7 @@ import {
 	saveOnboardingProgress,
 	uploadOnboardingResume,
 } from "@/lib/onboarding/client";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import { savePendingResume } from "@/lib/pending-resume";
 import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,14 @@ export function HeroResumeDropzone() {
 			if (!isSignedIn) {
 				setStatus("saving");
 				await savePendingResume(resume);
+				trackEvent(
+					MixpanelEvent.LandingResumeUploaded,
+					{
+						signed_in: false,
+						destination: "sign-up",
+					},
+					{ sendImmediately: true },
+				);
 				window.location.href = "/sign-up";
 				return;
 			}
@@ -58,6 +67,14 @@ export function HeroResumeDropzone() {
 			if (progress?.onboarded) {
 				setStatus("opening");
 				await discardPendingResume();
+				trackEvent(
+					MixpanelEvent.LandingResumeUploaded,
+					{
+						signed_in: true,
+						destination: "new-chat",
+					},
+					{ sendImmediately: true },
+				);
 				window.location.href = "/new-chat";
 				return;
 			}
@@ -69,6 +86,14 @@ export function HeroResumeDropzone() {
 				resumeFileId: uploaded.id,
 			});
 			await discardPendingResume();
+			trackEvent(
+				MixpanelEvent.LandingResumeUploaded,
+				{
+					signed_in: true,
+					destination: "onboarding",
+				},
+				{ sendImmediately: true },
+			);
 			window.location.href = "/onboarding";
 		} catch (err) {
 			setStatus("idle");

@@ -43,6 +43,7 @@ import {
 	flatChatThreads,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
+import { MixpanelEvent, resetMixpanel, trackEvent } from "@/lib/mixpanel";
 import {
 	resumeDownloadPath,
 	type ResumeListItem,
@@ -353,7 +354,16 @@ function CommandPaletteDialog({
 						{showUpgrade ? (
 							<CommandItem
 								value="upgrade pro plan billing"
-								onSelect={() => go(upgradeHref)}
+								onSelect={() => {
+									trackEvent(
+										MixpanelEvent.CheckoutStarted,
+										{
+											source: "command_palette",
+										},
+										{ sendImmediately: true },
+									);
+									go(upgradeHref);
+								}}
 							>
 								<SparkleIcon size={16} weight="fill" />
 								<span>Upgrade to Pro</span>
@@ -363,6 +373,10 @@ function CommandPaletteDialog({
 							value="log out sign out"
 							onSelect={() => {
 								run(() => {
+									trackEvent(MixpanelEvent.SignedOut, undefined, {
+										sendImmediately: true,
+									});
+									resetMixpanel();
 									void signOut({ redirectUrl: "/" });
 								});
 							}}

@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react";
 import { useTheme } from "next-themes";
 
+import { MixpanelEvent, resetMixpanel, trackEvent } from "@/lib/mixpanel";
 import { cn } from "@/lib/utils";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -135,7 +136,13 @@ export function SidebarUserMenu({ user, compact = false }: SidebarUserMenuProps)
 			<DropdownMenuSeparator />
 			<DropdownMenuItem
 				variant="destructive"
-				onClick={() => signOut({ redirectUrl: "/" })}
+				onClick={() => {
+					trackEvent(MixpanelEvent.SignedOut, undefined, {
+						sendImmediately: true,
+					});
+					resetMixpanel();
+					void signOut({ redirectUrl: "/" });
+				}}
 			>
 				<SignOutIcon size={18} weight="duotone" />
 				Log out

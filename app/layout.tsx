@@ -4,6 +4,7 @@ import { ui } from "@clerk/ui";
 import { Inter, Inter_Tight } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 
+import { MixpanelProvider } from "@/components/mixpanel-provider";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND } from "@/lib/brand";
 import { clerkAppearance } from "@/lib/clerk-appearance";
@@ -194,6 +195,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 						signUpFallbackRedirectUrl="/onboarding"
 					>
 						{children}
+						<MixpanelProvider />
 					</ClerkProvider>
 				</ThemeProvider>
 			</body>

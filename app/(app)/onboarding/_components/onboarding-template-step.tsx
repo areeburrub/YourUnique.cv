@@ -10,6 +10,7 @@ import {
 } from "@/components/templates/template-card";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import type { TemplateListItem, TemplateRef } from "@/lib/resume-templates/types";
 import { cn } from "@/lib/utils";
 
@@ -41,6 +42,7 @@ export function OnboardingTemplateStep({
 	const [selectingRef, setSelectingRef] = useState<string | null>(null);
 	const [continuing, setContinuing] = useState(false);
 	const userChoseRef = useRef(false);
+	const lastTrackedRef = useRef<string | null>(null);
 
 	const library = useMemo(
 		() => templates.filter((template) => template.kind === "builtin"),
@@ -119,6 +121,14 @@ export function OnboardingTemplateStep({
 			setSelectedRef(
 				(data.context?.templateRef as TemplateRef) || templateRef,
 			);
+			const selected =
+				(data.context?.templateRef as TemplateRef) || templateRef;
+			if (lastTrackedRef.current !== selected) {
+				lastTrackedRef.current = selected;
+				trackEvent(MixpanelEvent.OnboardingTemplateSelected, {
+					template_ref: selected,
+				});
+			}
 		} catch (err) {
 			setError(err instanceof Error ? err.message : "Could not select template");
 			throw err;

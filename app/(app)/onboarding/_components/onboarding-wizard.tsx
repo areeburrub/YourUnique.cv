@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { MixpanelEvent, setMixpanelPeople, trackEvent } from "@/lib/mixpanel";
 import {
 	consumePendingOnboardingResume,
 	saveOnboardingProgress,
@@ -147,6 +148,10 @@ export function OnboardingWizard({
 	const pendingStartedRef = useRef(false);
 
 	useEffect(() => {
+		trackEvent(MixpanelEvent.OnboardingStepViewed, { step });
+	}, [step]);
+
+	useEffect(() => {
 		if (pendingStartedRef.current) {
 			return;
 		}
@@ -164,6 +169,9 @@ export function OnboardingWizard({
 					setFileId(uploaded.id);
 					setFilename(uploaded.filename);
 					setMediaType(uploaded.mediaType);
+					trackEvent(MixpanelEvent.OnboardingResumeUploaded, {
+						source: "pending",
+					});
 					setStep("linkedin");
 					return;
 				}
@@ -211,6 +219,7 @@ export function OnboardingWizard({
 				step: "resume",
 				resumeFileId: uploaded.id,
 			});
+			trackEvent(MixpanelEvent.OnboardingResumeUploaded);
 		} catch (err) {
 			setError(
 				err instanceof Error ? err.message : "Could not upload resume",
@@ -265,6 +274,9 @@ export function OnboardingWizard({
 				step: "linkedin",
 				linkedinUrl: nextUrl,
 			});
+			trackEvent(MixpanelEvent.OnboardingLinkedInSaved, {
+				skipped: skip,
+			});
 			setStep("notes");
 		} catch (err) {
 			setError(
@@ -299,6 +311,9 @@ export function OnboardingWizard({
 				step: "notes",
 				introduction,
 			});
+			trackEvent(MixpanelEvent.OnboardingNotesSaved, {
+				skipped: skipNotes,
+			});
 		} catch (err) {
 			setError(
 				err instanceof Error
@@ -320,6 +335,10 @@ export function OnboardingWizard({
 		setError(null);
 		setGenerateStage("analyzing");
 		setProfilePreview("");
+		trackEvent(MixpanelEvent.OnboardingProfileGenerationStarted, {
+			has_linkedin: Boolean(linkedinUrl.trim()),
+			has_notes: Boolean(notes.trim()),
+		});
 
 		const hasLinkedIn = Boolean(linkedinUrl.trim());
 		let linkedinTimer: ReturnType<typeof setTimeout> | null = null;
@@ -396,6 +415,7 @@ export function OnboardingWizard({
 			});
 
 			setGenerateStage("done");
+			trackEvent(MixpanelEvent.OnboardingProfileGenerationCompleted);
 			fireConfetti();
 			window.setTimeout(() => {
 				setStep("template");
@@ -405,6 +425,10 @@ export function OnboardingWizard({
 				clearTimeout(linkedinTimer);
 			}
 			generateStartedRef.current = false;
+			trackEvent(MixpanelEvent.OnboardingProfileGenerationFailed, {
+				error:
+					err instanceof Error ? err.message : "Something went wrong",
+			});
 			setError(
 				err instanceof Error ? err.message : "Something went wrong",
 			);
@@ -415,6 +439,8 @@ export function OnboardingWizard({
 	async function completeOnboarding(planId: PlanIdType) {
 		setError(null);
 		setSubmittingPlan(planId);
+		trackEvent(MixpanelEvent.OnboardingPlanSelected, { plan: planId });
+		setMixpanelPeople({ plan: planId });
 		try {
 			const response = await fetch("/api/onboarding/complete", {
 				method: "POST",
@@ -431,6 +457,18 @@ export function OnboardingWizard({
 					setStep(data.nextStep);
 				}
 				throw new Error(data.error || "Could not finish plan selection");
+			}
+			trackEvent(MixpanelEvent.OnboardingCompleted, { plan: planId }, {
+				sendImmediately: true,
+			});
+			if (data.redirectUrl.includes("checkout")) {
+				trackEvent(
+					MixpanelEvent.CheckoutStarted,
+					{
+						source: "onboarding",
+					},
+					{ sendImmediately: true },
+				);
 			}
 			window.location.href = data.redirectUrl;
 		} catch (err) {

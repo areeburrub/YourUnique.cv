@@ -9,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/components/ui/dialog";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import { isProPlan } from "@/lib/plans";
 import {
 	formatDailyResetAt,
@@ -92,6 +93,15 @@ export function UsageLimitDialog({
 						<a
 							href={checkoutHref}
 							className={cn(buttonVariants())}
+							onClick={() => {
+								trackEvent(
+									MixpanelEvent.CheckoutStarted,
+									{
+										source: "usage_limit",
+									},
+									{ sendImmediately: true },
+								);
+							}}
 						>
 							Upgrade to Pro
 						</a>

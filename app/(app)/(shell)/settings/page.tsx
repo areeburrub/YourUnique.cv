@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
+import { MixpanelCheckoutLink } from "@/components/mixpanel-checkout-link";
 import { getUsageSummary } from "@/lib/db/usage";
 import { isProPlan } from "@/lib/plans";
 import { cn } from "@/lib/utils";
@@ -53,12 +54,13 @@ export default async function SettingsPage() {
 								Manage subscription
 							</a>
 						) : (
-							<a
+							<MixpanelCheckoutLink
 								href="/api/checkout"
+								source="settings"
 								className={cn(buttonVariants())}
 							>
 								Upgrade
-							</a>
+							</MixpanelCheckoutLink>
 						)}
 					</div>
 				</div>

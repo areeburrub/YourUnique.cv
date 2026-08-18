@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Spinner } from "@/components/ui/spinner";
 import { afterAuthPath, authPageHref } from "@/lib/auth-redirect";
 import { getClerkErrorMessage } from "@/lib/clerk-error";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 
 import { AuthDivider } from "./auth-divider";
 import { AuthFormHeading } from "./auth-form-heading";
@@ -40,6 +41,11 @@ export function SignInForm({ plan }: { plan?: string }) {
 			}
 
 			await setActive({ session: sessionId });
+			trackEvent(
+				MixpanelEvent.SignInCompleted,
+				{ method: "email" },
+				{ sendImmediately: true },
+			);
 			window.location.href = afterAuth;
 		},
 		[afterAuth, setActive],
@@ -57,6 +63,7 @@ export function SignInForm({ plan }: { plan?: string }) {
 		event.preventDefault();
 		setError(null);
 		setIsLoading(true);
+		trackEvent(MixpanelEvent.SignInStarted, { method: "email" });
 
 		if (!isLoaded || !signIn) {
 			setIsLoading(false);
@@ -213,6 +220,13 @@ export function SignInForm({ plan }: { plan?: string }) {
 						}
 						setIsGoogleLoading(true);
 						setError(null);
+						trackEvent(
+							MixpanelEvent.OAuthGoogleStarted,
+							{
+								flow: "sign-in",
+							},
+							{ sendImmediately: true },
+						);
 						try {
 							await signIn.authenticateWithRedirect({
 								strategy: "oauth_google",

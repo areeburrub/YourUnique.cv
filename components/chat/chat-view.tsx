@@ -59,6 +59,7 @@ import {
 	refreshChatAfterTurn,
 	touchChatThread,
 } from "@/lib/chats-query";
+import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import { usageStatusKey } from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
 
@@ -274,6 +275,7 @@ export function ChatView({
 	const uploadsRef = useRef(uploads);
 	const inFlightUploads = useRef(new Set<string>());
 	const prevStatusRef = useRef<string>("ready");
+	const usageLimitTrackedRef = useRef(false);
 	const snippetsRef = useRef(contextSnippets);
 	const lastAppliedPatchKey = useRef<string | null>(null);
 	const chatSurfaceRef = useRef(chatSurface);
@@ -359,6 +361,9 @@ export function ChatView({
 				markChatTurnInFlight(threadId);
 			}
 			setInterrupted(true);
+			trackEvent(MixpanelEvent.ChatTurnFailed, {
+				surface: chatSurface,
+			});
 		} else if (status === "ready" && wasBusy && threadId) {
 			clearChatTurnInFlight(threadId);
 			setInterrupted(false);
@@ -374,13 +379,24 @@ export function ChatView({
 				window.clearTimeout(timer);
 			}
 		};
-	}, [queryClient, status]);
+	}, [chatSurface, queryClient, status]);
 
 	useEffect(() => {
-		if (usageStatus.data?.blocked) {
-			setUsageDialogOpen(true);
+		if (!usageStatus.data?.blocked) {
+			usageLimitTrackedRef.current = false;
+			return;
 		}
-	}, [usageStatus.data?.blocked]);
+		setUsageDialogOpen(true);
+		if (usageLimitTrackedRef.current) {
+			return;
+		}
+		usageLimitTrackedRef.current = true;
+		trackEvent(MixpanelEvent.UsageLimitHit, {
+			plan: usageStatus.data.plan.id,
+			scope: usageStatus.data.scope,
+			blocked: true,
+		});
+	}, [usageStatus.data]);
 
 	useEffect(() => {
 		if (!onProfileUpdated) {
@@ -569,6 +585,13 @@ export function ChatView({
 			inFlightUploads.current.clear();
 			onClearSnippets?.();
 
+			trackEvent(MixpanelEvent.ChatMessageSent, {
+				surface: chatSurface,
+				is_new_thread: created,
+				has_attachments: fileParts.length > 0,
+				has_profile_context: snippetsRef.current.length > 0,
+			});
+
 			void sendMessage({ text: messageText, files: fileParts }).catch(
 				(err) => {
 					setUploadError(
@@ -585,6 +608,7 @@ export function ChatView({
 			);
 		},
 		[
+			chatSurface,
 			onClearSnippets,
 			queryClient,
 			sendMessage,
