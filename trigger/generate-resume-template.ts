@@ -140,7 +140,7 @@ ${sourceLayoutBrief({
 })}
 
 Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sampleData so spacing can be judged fairly.
-inputSchema must follow the data contract: startDate/endDate strings, experience grouped as company.roles[], bullets as { label?, text }, skills.items as one comma-separated string.`,
+inputSchema must follow the data contract: startDate/endDate strings, experience grouped as company.roles[], bullets as objects with optional label plus text, skills.items as one comma-separated string.`,
 					},
 					...input.pageParts,
 				],
@@ -213,8 +213,8 @@ Rules:
 - Prefer one solid CSS spacing/type-scale pass over endless micro-edits.
 - Keep the existing Handlebars bindings and inputSchema paths. No JS/Tailwind CDN/scripts. A4 print CSS.
 - Keep @page margin at least 12mm on every side. Do not set @page margin to 0. Body/page padding is not enough for page 2+.
-- If you revise sampleData, keep dates as strings like "Jun 2021" / "Present" and bullets as { label?, text }.
-- If you revise, return the complete html document.`;
+- If you revise sampleData, keep dates as strings like "Jun 2021" / "Present" and bullets as objects with optional label plus text.
+- If you revise, return the complete html document.`,
 		messages: [
 			{
 				role: "user",
