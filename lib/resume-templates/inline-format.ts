@@ -1,3 +1,4 @@
+import { formatDateValue, looksLikeDate } from "@/lib/resume-templates/dates";
 import { escapeHtml } from "@/lib/resume-templates/escape";
 
 function unescapeHtml(value: string) {
@@ -29,7 +30,8 @@ function safeHref(escapedUrl: string) {
 }
 
 export function formatInlineMarkup(value: unknown) {
-	const escaped = escapeHtml(String(value ?? ""));
+	const text = looksLikeDate(value) ? formatDateValue(value) : value;
+	const escaped = escapeHtml(String(text ?? ""));
 	return escaped
 		.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
 		.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>")

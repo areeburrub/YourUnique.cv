@@ -12,17 +12,21 @@ export const html = `
 	margin: 0;
 }
 
-@media print {
-	body {
-		background: white !important;
-		padding: 0 !important;
-		margin: 0 !important;
-	}
-
-	.page {
-		box-shadow: none !important;
-		margin: 0 !important;
-	}
+:root {
+	--fs-name: 16pt;
+	--lh-name: 18pt;
+	--fs-section: 10pt;
+	--lh-section: 12pt;
+	--fs-heading: 10pt;
+	--lh-heading: 12pt;
+	--fs-body: 9pt;
+	--lh-body: 11pt;
+	--fs-meta: 9pt;
+	--lh-meta: 11pt;
+	--gap-section: 4pt;
+	--gap-title: 7pt;
+	--gap-entry: 4pt;
+	--gap-item: 1.25pt;
 }
 
 * {
@@ -34,12 +38,14 @@ body {
 	background: #e5e5e5;
 	color: #000;
 	-webkit-font-smoothing: antialiased;
+	print-color-adjust: exact;
+	-webkit-print-color-adjust: exact;
 }
 
 .page {
 	font-family: "Computer Modern Serif", "CMU Serif", "Latin Modern Roman", "Liberation Serif", "Times New Roman", serif;
-	font-size: 10pt;
-	line-height: 12pt;
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
 	margin: 24px auto;
 	min-height: 297mm;
 	width: 100%;
@@ -58,28 +64,34 @@ body {
 }
 
 .section {
-	margin-top: 4pt;
+	margin-top: var(--gap-section);
 }
 
 .section-title {
-	font-size: 12pt;
-	line-height: 14pt;
+	font-size: var(--fs-section);
+	line-height: var(--lh-section);
 	font-weight: normal;
 	font-variant: small-caps;
 	letter-spacing: 0.03em;
 	border-bottom: 0.6pt solid black;
-	padding-bottom: 1pt;
-	margin-bottom: 4pt;
+	padding-bottom: 5pt;
+	margin-bottom: var(--gap-title);
 }
 
-.section-body {
-	font-size: 9pt;
-	line-height: 11pt;
+.section-body,
+.skill-list > li,
+.project-list > li,
+.sub-list > li {
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
+	text-align: justify;
+	text-justify: inter-word;
+	hyphens: auto;
 }
 
 .company {
-	font-size: 12pt;
-	line-height: 14pt;
+	font-size: var(--fs-heading);
+	line-height: var(--lh-heading);
 	font-weight: bold;
 	margin-top: 2pt;
 	margin-bottom: 1pt;
@@ -96,7 +108,15 @@ body {
 
 .role-list > li {
 	position: relative;
-	margin-bottom: 5pt;
+	margin-bottom: var(--gap-entry);
+}
+
+.role-list > li::before,
+.skill-list > li::before,
+.project-list > li::before,
+.sub-list > li::before {
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
 }
 
 .role-list > li::before,
@@ -105,16 +125,12 @@ body {
 	content: "•";
 	position: absolute;
 	left: -0.12in;
-	font-size: 9pt;
-	line-height: 11pt;
 }
 
 .skill-list > li,
 .project-list > li {
 	position: relative;
-	font-size: 9pt;
-	line-height: 11pt;
-	margin-bottom: 1pt;
+	margin-bottom: var(--gap-item);
 	padding-left: 0.02in;
 }
 
@@ -132,8 +148,8 @@ body {
 	justify-content: space-between;
 	align-items: baseline;
 	gap: 8pt;
-	font-size: 10pt;
-	line-height: 12pt;
+	font-size: var(--fs-heading);
+	line-height: var(--lh-heading);
 }
 
 .role-meta-row {
@@ -141,8 +157,8 @@ body {
 	justify-content: space-between;
 	align-items: baseline;
 	gap: 8pt;
-	font-size: 9pt;
-	line-height: 11pt;
+	font-size: var(--fs-meta);
+	line-height: var(--lh-meta);
 	font-style: italic;
 	margin-bottom: 1pt;
 }
@@ -155,17 +171,13 @@ body {
 
 .sub-list > li {
 	position: relative;
-	font-size: 9pt;
-	line-height: 11pt;
-	margin-bottom: 1.5pt;
+	margin-bottom: var(--gap-item);
 }
 
 .sub-list > li::before {
 	content: "◦";
 	position: absolute;
 	left: -0.15in;
-	font-size: 9pt;
-	line-height: 11pt;
 }
 
 .header-grid {
@@ -174,11 +186,13 @@ body {
 	column-gap: 8pt;
 	row-gap: 1pt;
 	margin-bottom: 2pt;
+	font-size: var(--fs-meta);
+	line-height: var(--lh-meta);
 }
 
 .text-name {
-	font-size: 14.4pt;
-	line-height: 16pt;
+	font-size: var(--fs-name);
+	line-height: var(--lh-name);
 	font-weight: bold;
 }
 
@@ -187,8 +201,8 @@ body {
 }
 
 .text-small {
-	font-size: 9pt;
-	line-height: 11pt;
+	font-size: var(--fs-meta);
+	line-height: var(--lh-meta);
 }
 
 .shrink-0 {
@@ -204,18 +218,36 @@ body {
 	justify-content: space-between;
 	align-items: baseline;
 	gap: 8pt;
-	line-height: 12pt;
+	font-size: var(--fs-heading);
+	line-height: var(--lh-heading);
 }
 
 .edu-row + .edu-row {
-	font-size: 9pt;
-	line-height: 11pt;
+	font-size: var(--fs-body);
+	line-height: var(--lh-body);
 	font-style: italic;
 }
 
 a {
 	color: #000080;
 	text-decoration: none;
+}
+
+@media print {
+	body {
+		background: white !important;
+		padding: 0 !important;
+		margin: 0 !important;
+	}
+
+	.page {
+		box-shadow: none !important;
+		margin: 0 !important;
+		padding: 0 !important;
+		min-height: auto;
+		max-width: none;
+		width: auto;
+	}
 }
 	</style>
 </head>

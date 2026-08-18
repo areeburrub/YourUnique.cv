@@ -18,7 +18,7 @@ In `index.ts`, set gallery metadata: `category`, `colors`, `formats`, `styleLabe
 
 ## Add a template
 
-1. Copy `classic-serif/` to a new folder id (e.g. `modern-mono/`).
+1. Copy `classic-serif/` or `navy-centered/` to a new folder id (e.g. `modern-mono/`).
 2. Edit `index.ts`, `template.ts`, `schema.ts`, `notes.ts`, `sample-data.ts`.
 3. Import and append it in `templates/resume/index.ts`.
 4. Run `bun scripts/generate-builtin-previews.ts`.

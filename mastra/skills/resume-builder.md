@@ -279,8 +279,6 @@ When the resume was tailored to a JD, the chat text after `create_resume` / `upd
 Ask if user wants to:
 - Adjust emphasis or tone
 - Add or remove sections
-- Generate alternative versions for different roles
-- Create format variations (traditional vs. modern)
 - Develop role-specific versions (if applying to multiple similar positions)
 
 ### 9. Best Practices to Follow
@@ -322,7 +320,6 @@ Ask if user wants to:
 - Emphasize revenue growth, team building, vision
 
 **Technical Roles**:
-- Include technical skills section prominently
 - List programming languages, frameworks, tools
 - Include GitHub, portfolio, or project links
 - For each project, include a `stack` field (comma-separated tech) separate from outcome bullets
@@ -344,6 +341,7 @@ Ask if user wants to:
 - **Mention constraints**: Share any specific requirements (page limits, sections to include/exclude)
 - **Iterate**: Don't hesitate to ask for revisions or alternative approaches
 - **Multiple applications**: Generate separate tailored versions for different roles
+- **Skills Section**: in skills section mention only known names like software, language, frameworks, methods, etc. (don't write statements in skills section)
 
 ## Privacy Note
 

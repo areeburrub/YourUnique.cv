@@ -1,8 +1,16 @@
-export const notes = `# Classic Serif template notes
+export const notes = `# Navy Centered template notes
 
 You produce a **structured JSON document** matching this template's \`inputSchema\` and pass it to \`create_resume\` / \`update_resume_document\`.
 
 The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markdown resumes, HTML, or any markup.
+
+## Layout (how this page reads)
+
+- Centered header: name, then location / phone / email, then website / GitHub / LinkedIn
+- **Location belongs in the header** — it is not omitted
+- Section titles render as EXECUTIVE SUMMARY, WORK EXPERIENCE, SKILLS, PROJECTS, EDUCATION
+- Dates render as \`Mon YYYY – Present\` (en dash). Never put date objects in JSON — use strings
+- Projects render as **Name (url)** plus their own bullets, not a one-line dump
 
 ## Work experience nesting (critical)
 
@@ -18,20 +26,19 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - \`employment\`: only \`"Full-time"\`, \`"Part-time"\`, \`"Internship"\`, \`"Contract"\`, or similar real values from the profile
 - If employment type is unknown, **omit** \`employment\` — never use placeholders
 - \`location\` on roles: real city / \`"Remote"\` from the profile
-- Header does **not** show location — put contact fields that exist; omit empty ones
 - \`skills[].items\`: one comma-separated string
 - \`projects[].stack\`: comma-separated tech stack for that project when known
-- Dates: \`"Mon YYYY"\` / \`"Present"\`
-- This layout is **one A4 page by design**. Stay on one page: ~3–5 bullets on the current role, 2–3 on older roles, a short summary. Cut older or weaker items before overflowing.
-- Prose fields (\`summary\`, bullet \`text\`, skill \`items\`) may use inline \`**bold**\`, \`*italic*\`, and \`[label](https://url)\`. Use sparingly on a few key terms, not whole sentences. No HTML, Typst, or LaTeX in strings.
+- Dates: \`"Mon YYYY"\` / \`"Present"\` — always strings
+- This layout is **one A4 page by design**. Stay on one page: ~3–5 bullets on the current role, 2–3 on older roles, 1–2 project bullets, a short summary. Cut older or weaker items before overflowing.
+- Prose fields (\`summary\`, bullet \`text\`, skill \`items\`) may use inline \`**bold**\`, \`*italic*\`, and \`[label](https://url)\`. Bold a few metrics and technologies, not whole sentences. No HTML, Typst, or LaTeX in strings.
 
 ## Projects
 
-This template renders projects as compact one-liners: name, stack (if any), joined bullet text, then Links.
+This template gives each project a title line and its own bullets.
 
-- Include \`stack\` for every technical project when known from the profile.
+- Put the live site in \`url\` (host/path). Extra GitHub / Product Hunt links go in \`links\`.
+- Include \`stack\` when known — it renders under the title in muted type.
 - Bullets should focus on what you built and the outcome — not restate the full stack.
-- Prefer labeled bullets; keep \`links\` for Website / GitHub / Product Hunt when available.
 
 ## Content rules
 

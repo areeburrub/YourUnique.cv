@@ -10,10 +10,12 @@ import {
 	updateResumeTemplateForUser,
 } from "@/lib/db/templates";
 import { putR2Object, getR2Object } from "@/lib/r2";
+import { assertAgentFillableSchema } from "@/lib/resume-templates/assert-fillable-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import { customTemplatePreviewPdfKey } from "@/lib/resume-templates/registry";
 import { rasterizeSourceFile } from "@/lib/resume-templates/rasterize-source";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
+import { DRAFT_TEMPLATE_INSTRUCTIONS } from "@/lib/resume-templates/template-draft-prompt";
 import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
 import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
@@ -123,26 +125,7 @@ async function draftTemplate(input: {
 	const { output } = await generateText({
 		model: visionModel(),
 		output: Output.json(),
-		instructions: `You reverse-engineer a printable A4 resume HTML/CSS template from page image(s) of a user's uploaded resume.
-
-Reproduce the uploaded design closely: same section order, header layout, columns, rules/dividers, colors, font sizes, and spacing rhythm. Aim for a faithful HTML/CSS clone, not a generic resume.
-
-Return a single JSON object (not a string, not markdown) with these keys:
-- name: short template name (string)
-- description: one sentence (string)
-- notes: markdown instructions for a resume agent filling THIS template's inputSchema (field rules, nesting, what to omit). No global schema assumptions. Tell the agent that prose fields (summary, bullets, descriptions) may use inline **bold**, *italic*, and [label](https://url); the renderer turns those into emphasis and links. Do not allow HTML, Typst, or LaTeX in JSON strings. Do not say "plain text only". Do not use triple-stash {{{value}}} for user text.
-- inputSchema: a JSON Schema object (draft 2020-12 style) describing ONLY the fields this layout needs. Must be a nested object, not a string.
-- html: a complete HTML document (DOCTYPE + html) with embedded CSS for A4 print (@page size A4; margin at least 12mm on every side). Use Handlebars mustache tags bound to inputSchema paths. No JavaScript, no Tailwind CDN, no external scripts. Prefer Google Fonts / jsDelivr font links matching the uploaded look.
-- sampleData: fixture document matching inputSchema. Copy the original resume's visible text, bullet counts, and section density so the preview lines up with the source.
-
-Rules:
-- First count source pages and judge leftover whitespace, then set type scale and vertical rhythm so the clone fills the same number of A4 pages the same way.
-- Match structure: columns, header, section order, dividers, colors, font sizes.
-- Every printed page needs at least 12mm inset on all sides via @page margin (not body padding alone — padding does not apply after a page break). Content, rules, and headings must not touch the paper edge.
-- Keep vertical spacing intentional — match the source. Do not invent extra padding that pushes later sections onto another page, and do not cram a spacious source.
-- Target exactly the source page count.
-- print CSS only. No script tags or event handlers.
-- Handlebars {{value}} interpolations HTML-escape first, then render inline **bold**, *italic*, and [label](url) from JSON strings. Use {{value}}, not triple-stash, for user text.`,
+		instructions: DRAFT_TEMPLATE_INSTRUCTIONS,
 		messages: [
 			{
 				role: "user",
@@ -156,7 +139,8 @@ ${sourceLayoutBrief({
 	attachedPages: input.pageParts.length,
 })}
 
-Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sampleData so spacing can be judged fairly.`,
+Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sampleData so spacing can be judged fairly.
+inputSchema must follow the data contract: startDate/endDate strings, experience grouped as company.roles[], bullets as { label?, text }, skills.items as one comma-separated string.`,
 					},
 					...input.pageParts,
 				],
@@ -170,6 +154,7 @@ Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sam
 function applyDraft(generated: GeneratedTemplate): Draft {
 	const html = sanitizeTemplateHtml(generated.html);
 	const inputSchema = generated.inputSchema;
+	assertAgentFillableSchema(inputSchema);
 	const sampleData = validateAgainstJsonSchema(
 		inputSchema,
 		generated.sampleData,
@@ -228,7 +213,8 @@ Rules:
 - Prefer one solid CSS spacing/type-scale pass over endless micro-edits.
 - Keep the existing Handlebars bindings and inputSchema paths. No JS/Tailwind CDN/scripts. A4 print CSS.
 - Keep @page margin at least 12mm on every side. Do not set @page margin to 0. Body/page padding is not enough for page 2+.
-- If you revise, return the complete html document.`,
+- If you revise sampleData, keep dates as strings like "Jun 2021" / "Present" and bullets as { label?, text }.
+- If you revise, return the complete html document.`;
 		messages: [
 			{
 				role: "user",

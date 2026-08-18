@@ -1,5 +1,6 @@
 import Handlebars from "handlebars";
 
+import { dateRangeFromHelperArgs } from "@/lib/resume-templates/dates";
 import {
 	escapeHtml,
 	hrefForHostPath,
@@ -54,8 +55,8 @@ runtime.registerHelper("hostPath", (value: unknown) =>
 runtime.registerHelper("href", (value: unknown) =>
 	safePlain(hrefForHostPath(String(value ?? ""))),
 );
-runtime.registerHelper("dateRange", (start: unknown, end: unknown) =>
-	`${String(start ?? "")} to ${String(end ?? "")}`,
+runtime.registerHelper("dateRange", (...args: unknown[]) =>
+	dateRangeFromHelperArgs(args),
 );
 runtime.registerHelper("employment", (value: unknown) => {
 	const trimmed = String(value ?? "").trim();

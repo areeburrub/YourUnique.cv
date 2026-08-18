@@ -56,12 +56,12 @@ export function TemplateCard({
 			>
 				<div className="relative overflow-hidden rounded-2xl bg-white product-shadow">
 					{template.previewUrl ? (
-						<div className="flex aspect-210/297 items-center justify-center bg-white">
+						<div className="aspect-210/297 overflow-hidden bg-white">
 							{/* eslint-disable-next-line @next/next/no-img-element */}
 							<img
 								src={template.previewUrl}
 								alt={`${template.name} preview`}
-								className="max-h-full max-w-full object-contain"
+								className="h-full w-full object-cover object-top"
 							/>
 						</div>
 					) : (

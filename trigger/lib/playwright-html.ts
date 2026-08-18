@@ -38,11 +38,15 @@ export async function compileHtmlToPdf(html: string) {
 					}
 					html, body {
 						margin: 0 !important;
+						padding: 0 !important;
+						background: #fff !important;
 					}
 					.page, main.page, main {
 						box-sizing: border-box !important;
 						width: auto !important;
 						max-width: 100% !important;
+						margin: 0 !important;
+						box-shadow: none !important;
 					}
 				`,
 			});
