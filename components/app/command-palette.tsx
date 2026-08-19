@@ -366,7 +366,7 @@ function CommandPaletteDialog({
 								}}
 							>
 								<SparkleIcon size={16} weight="fill" />
-								<span>Upgrade to Pro</span>
+								<span>Start 7-day trial</span>
 							</CommandItem>
 						) : null}
 						<CommandItem

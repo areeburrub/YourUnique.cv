@@ -1,9 +1,12 @@
 import { eq } from "drizzle-orm";
 import DodoPayments from "dodopayments";
+import { cache } from "react";
 
 import { db } from "@/lib/db";
+import { activateSubscription } from "@/lib/db/subscriptions";
 import { users } from "@/lib/db/schema";
 import { dodoEnvironment } from "@/lib/dodo";
+import { PLANS, isPaidPlan } from "@/lib/plans";
 
 function dodoClient() {
 	return new DodoPayments({
@@ -46,3 +49,48 @@ export async function resolveDodoCustomerId(input: {
 
 	return customerId;
 }
+
+export const syncPaidPlanFromDodo = cache(async function syncPaidPlanFromDodo(input: {
+	userId: string;
+	email?: string | null;
+	planId?: string | null;
+}) {
+	if (isPaidPlan(input.planId ?? "")) {
+		return input.planId ?? null;
+	}
+
+	try {
+		const customerId = await resolveDodoCustomerId(input);
+		if (!customerId) {
+			return input.planId ?? null;
+		}
+
+		const client = dodoClient();
+		const result = await client.subscriptions.list({
+			customer_id: customerId,
+			status: "active",
+			page_size: 10,
+		});
+		const proProductId = PLANS.PRO.dodoProductId;
+		const active = result.items.find(
+			(item) => !proProductId || item.product_id === proProductId,
+		);
+		if (!active) {
+			return input.planId ?? null;
+		}
+
+		await activateSubscription({
+			subscription_id: active.subscription_id,
+			status: active.status,
+			metadata: { userId: input.userId },
+			customer: {
+				email: input.email?.trim() || undefined,
+				customer_id: customerId,
+			},
+		});
+		return "PRO";
+	} catch (error) {
+		console.error("Dodo syncPaidPlanFromDodo failed", error);
+		return input.planId ?? null;
+	}
+});

@@ -639,7 +639,7 @@ export function AppSidebar({
 							<SparkleIcon size={16} weight="fill" />
 						</span>
 						<span className="truncate pr-2">
-							Upgrade to Pro
+							Start 7-day trial
 						</span>
 					</a>
 				) : null}

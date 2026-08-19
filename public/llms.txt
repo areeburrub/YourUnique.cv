@@ -8,7 +8,7 @@ It is not a job board. It does not apply for you. Built by Areeb ur Rub.
 
 ## Features
 
-These are available on Free and Pro:
+These are included on Pro and Lifetime:
 
 - Career persona: roles, skills, and wins stored as one profile the agent writes from
 - Onboarding from a resume upload and an optional LinkedIn profile URL
@@ -32,12 +32,12 @@ These are available on Free and Pro:
 
 ## Plans
 
-Both plans include the features above. The difference is how many resumes you can make.
+Same product on both paid plans. Volume is about 500+ tailored resumes a month.
 
-- Free: $0. Chat-led drafts, persona, templates, ATS analysis, and PDF export. About 10–15 resumes a month. For casual applicants.
-- Pro: $10/month. Everything in Free, with room for heavy application weeks and hundreds of iterations. About 100+ resumes a month. Recommended if you apply often.
+- Pro: $5/month after a 7-day trial (50% off $10). Chat-led drafts, persona, templates, ATS analysis, and PDF export.
+- Lifetime: $150 once (40% off $250). Everything in Pro, with lifetime access and updates. No monthly billing.
 
-Start free at https://yourunique.cv/sign-up, or choose Pro there or during onboarding.
+Start a 7-day trial or buy Lifetime at https://yourunique.cv/sign-up, or during onboarding.
 
 ## Links
 

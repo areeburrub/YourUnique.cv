@@ -10,7 +10,7 @@ Built by [Areeb ur Rub](https://areeburrub.dev).
 
 ## Features
 
-Available on Free and Pro:
+Included on Pro:
 
 - Career persona from a resume upload and an optional LinkedIn URL (roles, skills, wins)
 - Chat with memory: paste a JD, share a LinkedIn job link or JD PDF, ask what to emphasize, or mention something new
@@ -30,12 +30,12 @@ Available on Free and Pro:
 
 ## Plans
 
-Same product on both plans. The difference is volume.
+Pro is $5 a month after a 7-day trial. Lifetime is $150 once.
 
 | Plan | Price | Volume |
 | --- | --- | --- |
-| Free | $0 | About 10–15 resumes a month |
-| Pro | $10/month | About 100+ resumes a month, for heavy application weeks |
+| Pro | $5/month after a 7-day trial | 500+ tailored resumes a month |
+| Lifetime | $150 once (40% off $250) | Same as Pro, lifetime access |
 
 Start at [yourunique.cv/sign-up](https://yourunique.cv/sign-up).
 

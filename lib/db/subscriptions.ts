@@ -2,11 +2,9 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { subscriptions, users } from "@/lib/db/schema";
-import { PlanId } from "@/lib/plans";
+import { PlanId, PLANS, isLifetimePlan } from "@/lib/plans";
 
-type SubscriptionPayloadData = {
-	subscription_id: string;
-	status?: string;
+type CustomerPayload = {
 	metadata?: Record<string, unknown>;
 	customer?: {
 		email?: string;
@@ -14,12 +12,17 @@ type SubscriptionPayloadData = {
 	};
 };
 
+type SubscriptionPayloadData = CustomerPayload & {
+	subscription_id: string;
+	status?: string;
+};
+
 function userIdFromMetadata(metadata?: Record<string, unknown>) {
 	const value = metadata?.userId ?? metadata?.user_id;
 	return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
-async function resolveUserId(data: SubscriptionPayloadData) {
+async function resolveUserId(data: CustomerPayload) {
 	const fromMeta = userIdFromMetadata(data.metadata);
 	if (fromMeta) {
 		return fromMeta;
@@ -49,6 +52,13 @@ export async function activateSubscription(data: SubscriptionPayloadData) {
 
 	const status = data.status ?? "active";
 	const dodoCustomerId = data.customer?.customer_id?.trim() || null;
+	const current = await db.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { planId: true },
+	});
+	const nextPlanId = isLifetimePlan(current?.planId ?? "")
+		? PlanId.LIFETIME
+		: PlanId.PRO;
 
 	await db.transaction(async (tx) => {
 		await tx
@@ -72,7 +82,7 @@ export async function activateSubscription(data: SubscriptionPayloadData) {
 		await tx
 			.update(users)
 			.set({
-				planId: PlanId.PRO,
+				planId: nextPlanId,
 				...(dodoCustomerId ? { dodoCustomerId } : {}),
 				updatedAt: new Date(),
 			})
@@ -80,10 +90,76 @@ export async function activateSubscription(data: SubscriptionPayloadData) {
 	});
 }
 
+type PaymentPayloadData = {
+	payment_id?: string;
+	subscription_id?: string | null;
+	metadata?: Record<string, unknown>;
+	customer?: {
+		email?: string;
+		customer_id?: string;
+	};
+	product_cart?: { product_id?: string }[];
+};
+
+function planIdFromMetadata(metadata?: Record<string, unknown>) {
+	const value = metadata?.planId ?? metadata?.plan_id;
+	return typeof value === "string" ? value.trim().toUpperCase() : "";
+}
+
+function isLifetimePayment(data: PaymentPayloadData) {
+	if (data.subscription_id) {
+		return false;
+	}
+
+	const lifetimeProductId = PLANS.LIFETIME.dodoProductId;
+	const fromCart = data.product_cart?.some(
+		(item) => lifetimeProductId && item.product_id === lifetimeProductId,
+	);
+	if (fromCart) {
+		return true;
+	}
+
+	return planIdFromMetadata(data.metadata) === PlanId.LIFETIME;
+}
+
+export async function activateLifetimePurchase(data: PaymentPayloadData) {
+	if (!isLifetimePayment(data)) {
+		return;
+	}
+
+	const userId = await resolveUserId(data);
+	if (!userId) {
+		console.error("Dodo activateLifetimePurchase: missing userId", {
+			paymentId: data.payment_id,
+			email: data.customer?.email,
+		});
+		return;
+	}
+
+	const dodoCustomerId = data.customer?.customer_id?.trim() || null;
+
+	await db
+		.update(users)
+		.set({
+			planId: PlanId.LIFETIME,
+			...(dodoCustomerId ? { dodoCustomerId } : {}),
+			updatedAt: new Date(),
+		})
+		.where(eq(users.id, userId));
+}
+
 export async function downgradeSubscription(data: SubscriptionPayloadData) {
 	const userId = await resolveUserId(data);
 	const status = data.status ?? "cancelled";
 	const dodoCustomerId = data.customer?.customer_id?.trim() || null;
+
+	async function currentPlanId(id: string) {
+		const current = await db.query.users.findFirst({
+			where: eq(users.id, id),
+			columns: { planId: true },
+		});
+		return current?.planId ?? PlanId.FREE;
+	}
 
 	if (!userId) {
 		const existing = await db.query.subscriptions.findFirst({
@@ -97,6 +173,10 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 			return;
 		}
 
+		const keepLifetime = isLifetimePlan(
+			await currentPlanId(existing.userId),
+		);
+
 		await db.transaction(async (tx) => {
 			await tx
 				.update(subscriptions)
@@ -105,7 +185,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 			await tx
 				.update(users)
 				.set({
-					planId: PlanId.FREE,
+					planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
 					...(dodoCustomerId ? { dodoCustomerId } : {}),
 					updatedAt: new Date(),
 				})
@@ -113,6 +193,8 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		});
 		return;
 	}
+
+	const keepLifetime = isLifetimePlan(await currentPlanId(userId));
 
 	await db.transaction(async (tx) => {
 		await tx
@@ -136,7 +218,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		await tx
 			.update(users)
 			.set({
-				planId: PlanId.FREE,
+				planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
 				...(dodoCustomerId ? { dodoCustomerId } : {}),
 				updatedAt: new Date(),
 			})

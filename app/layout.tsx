@@ -9,6 +9,11 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND } from "@/lib/brand";
 import { clerkAppearance } from "@/lib/clerk-appearance";
 import {
+	LIFETIME_PRICE_USD,
+	PRO_PRICE_USD,
+	TRIAL_DAYS,
+} from "@/lib/plan-copy";
+import {
 	ogImageAlt,
 	ogImagePath,
 	ogImageSize,
@@ -140,15 +145,17 @@ const jsonLd = {
 			offers: [
 				{
 					"@type": "Offer",
-					price: "0",
+					price: String(PRO_PRICE_USD),
 					priceCurrency: "USD",
-					name: "Free",
+					name: "Pro",
+					description: `${TRIAL_DAYS}-day trial, then $${PRO_PRICE_USD} per month`,
 				},
 				{
 					"@type": "Offer",
-					price: "10",
+					price: String(LIFETIME_PRICE_USD),
 					priceCurrency: "USD",
-					name: "Pro",
+					name: "Lifetime",
+					description: `$${LIFETIME_PRICE_USD} one-time, lifetime access`,
 				},
 			],
 		},

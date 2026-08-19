@@ -109,7 +109,7 @@ export function createOgImage(scale = 1) {
 							fontWeight: 600,
 						}}
 					>
-						Start for free
+						Start 7-day trial
 					</div>
 				</div>
 

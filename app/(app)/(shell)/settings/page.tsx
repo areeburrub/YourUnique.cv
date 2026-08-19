@@ -1,10 +1,11 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
 import { buttonVariants } from "@/components/ui/button";
 import { MixpanelCheckoutLink } from "@/components/mixpanel-checkout-link";
 import { getUsageSummary } from "@/lib/db/usage";
-import { isProPlan } from "@/lib/plans";
+import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
+import { checkoutPath, isLifetimePlan, isPaidPlan, isProPlan, PlanId } from "@/lib/plans";
 import { cn } from "@/lib/utils";
 
 export default async function SettingsPage() {
@@ -13,8 +14,20 @@ export default async function SettingsPage() {
 		redirect("/sign-in");
 	}
 
-	const summary = await getUsageSummary(userId);
+	const user = await currentUser();
+	const email = user?.primaryEmailAddress?.emailAddress ?? null;
+	const existing = await getUsageSummary(userId);
+	await syncPaidPlanFromDodo({
+		userId,
+		email,
+		planId: existing.plan.id,
+	});
+	const summary = isPaidPlan(existing.plan.id)
+		? existing
+		: await getUsageSummary(userId);
 	const isPro = isProPlan(summary.plan.id);
+	const isLifetime = isLifetimePlan(summary.plan.id);
+	const isPaid = isPaidPlan(summary.plan.id);
 	const usagePct =
 		summary.monthlyLimitUsd > 0
 			? Math.min(
@@ -53,15 +66,32 @@ export default async function SettingsPage() {
 							>
 								Manage subscription
 							</a>
-						) : (
-							<MixpanelCheckoutLink
-								href="/api/checkout"
-								source="settings"
-								className={cn(buttonVariants())}
-							>
-								Upgrade
-							</MixpanelCheckoutLink>
-						)}
+						) : null}
+						{!isPaid ? (
+							<>
+								<MixpanelCheckoutLink
+									href={checkoutPath(PlanId.PRO)}
+									source="settings"
+									className={cn(buttonVariants())}
+								>
+									Start trial
+								</MixpanelCheckoutLink>
+								<MixpanelCheckoutLink
+									href={checkoutPath(PlanId.LIFETIME)}
+									source="settings_lifetime"
+									className={cn(
+										buttonVariants({ variant: "outline" }),
+									)}
+								>
+									Buy lifetime
+								</MixpanelCheckoutLink>
+							</>
+						) : null}
+						{isLifetime ? (
+							<p className="text-sm text-muted-foreground">
+								Lifetime access
+							</p>
+						) : null}
 					</div>
 				</div>
 

@@ -23,6 +23,8 @@ const columns = [
 		title: "Company",
 		links: [
 			{ href: `mailto:${SITE_EMAIL}`, label: "Contact" },
+			{ href: "/terms", label: "Terms" },
+			{ href: "/privacy", label: "Privacy Policy" },
 		],
 	},
 ];

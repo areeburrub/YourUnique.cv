@@ -10,7 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { isProPlan } from "@/lib/plans";
+import { isPaidPlan } from "@/lib/plans";
 import {
 	formatDailyResetAt,
 	nextUtcMidnight,
@@ -29,7 +29,7 @@ export function UsageLimitDialog({
 	onOpenChange,
 	status,
 }: UsageLimitDialogProps) {
-	const isPro = isProPlan(status.plan.id);
+	const isPaid = isPaidPlan(status.plan.id);
 	const resetLabel = formatDailyResetAt(
 		status.resetAt ? new Date(status.resetAt) : nextUtcMidnight(),
 	);
@@ -40,20 +40,22 @@ export function UsageLimitDialog({
 			? resetLabel
 				? `You've hit today's limit. It resets at ${resetLabel}.`
 				: "You've hit today's limit."
-			: "You've reached your usage limit for now."
+			: isPaid
+				? "You've reached your usage limit for now."
+				: "You've used this month's trial resumes."
 		: resetLabel
 			? `You've hit 90% of today's usage. It resets at ${resetLabel}.`
 			: "You've hit 90% of today's usage.";
 
-	const title = isPro
-		? "You're already on Pro"
+	const title = isPaid
+		? `You're already on ${status.plan.name}`
 		: status.blocked
 			? status.scope === "daily"
 				? "Daily limit reached"
 				: "Usage limit reached"
-			: "Upgrade to Pro";
+			: "Start your 7-day trial";
 
-	const checkoutHref = !isPro ? "/api/checkout" : null;
+	const checkoutHref = !isPaid ? "/api/checkout" : null;
 
 	const mailtoHref = supportEmail
 		? `mailto:${supportEmail}?subject=${encodeURIComponent("Higher usage limits")}`
@@ -66,7 +68,7 @@ export function UsageLimitDialog({
 					<DialogTitle>{title}</DialogTitle>
 					<DialogDescription>
 						{usageLine}{" "}
-						{isPro ? (
+						{isPaid ? (
 							<>
 								You're a power user. Ping me
 								{supportEmail ? (
@@ -84,7 +86,7 @@ export function UsageLimitDialog({
 								and I'll add some more.
 							</>
 						) : (
-							"Upgrade to Pro for a higher limit."
+							"Start your 7-day trial to keep tailoring."
 						)}
 					</DialogDescription>
 				</DialogHeader>
@@ -103,10 +105,10 @@ export function UsageLimitDialog({
 								);
 							}}
 						>
-							Upgrade to Pro
+							Start 7-day trial
 						</a>
 					) : null}
-					{isPro && mailtoHref ? (
+					{isPaid && mailtoHref ? (
 						<a
 							href={mailtoHref}
 							className={cn(buttonVariants())}

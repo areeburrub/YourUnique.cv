@@ -10,7 +10,7 @@ import { getUserContext, upsertUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { getUserById } from "@/lib/db/users";
-import { getR2Object, getR2SignedGetUrl } from "@/lib/r2";
+import { getR2Object } from "@/lib/r2";
 import {
 	fetchLinkedInProfile,
 	normalizeLinkedInProfileUrl,
@@ -42,22 +42,6 @@ async function fileContentForModel(input: {
 	const mediaType = file.contentType;
 	const filename = file.filename;
 
-	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
-		const signedUrl = await getR2SignedGetUrl(file.key, 3600);
-		return [
-			{
-				type: "text",
-				text: `Resume file: ${filename}`,
-			},
-			{
-				type: "file",
-				mediaType,
-				filename,
-				data: new URL(signedUrl),
-			},
-		];
-	}
-
 	const object = await getR2Object(file.key);
 	const body = object.Body;
 	if (!body) {
@@ -70,6 +54,21 @@ async function fileContentForModel(input: {
 	}
 
 	const bytes = await body.transformToByteArray();
+
+	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
+		return [
+			{
+				type: "text",
+				text: `Resume file: ${filename}`,
+			},
+			{
+				type: "file",
+				mediaType,
+				filename,
+				data: bytes,
+			},
+		];
+	}
 
 	if (mediaType === "text/plain" || mediaType === "text/markdown") {
 		const text = Buffer.from(bytes).toString("utf8").trim();

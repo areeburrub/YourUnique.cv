@@ -1,40 +1,20 @@
 import { CheckIcon } from "@phosphor-icons/react/ssr";
 
 import { SlideButton } from "@/components/landing/slide-button";
-import { authPageHref, SIGNUP_PLAN_PRO } from "@/lib/auth-redirect";
+import { authPageHref, SIGNUP_PLAN_LIFETIME } from "@/lib/auth-redirect";
+import { PLAN_COPY, PRO_PRICE_USD, TRIAL_DAYS } from "@/lib/plan-copy";
 import { cn } from "@/lib/utils";
 
 const plans = [
 	{
-		name: "Free",
-		price: "Free",
-		period: "",
-		blurb: "Best for casual applicants who only need about 10–15 CVs a month.",
-		features: [
-			"Chat-led resume drafting",
-			"Career persona profile",
-			"PDF export",
-			"About 10–15 resumes / month",
-		],
-		cta: "Get started",
+		...PLAN_COPY.PRO,
 		href: "/sign-up",
-		featured: false,
+		featured: true,
 	},
 	{
-		name: "Pro",
-		price: "$10",
-		period: "/month",
-		blurb: "For regular applicants who apply often and need 100+ resumes every month.",
-		badge: "Recommended",
-		features: [
-			"Everything in Free",
-			"Room for heavy application weeks",
-			"Hundreds of resume iterations",
-			"100+ resumes / month",
-		],
-		cta: "Start with Pro",
-		href: authPageHref("/sign-up", SIGNUP_PLAN_PRO),
-		featured: true,
+		...PLAN_COPY.LIFETIME,
+		href: authPageHref("/sign-up", SIGNUP_PLAN_LIFETIME),
+		featured: false,
 	},
 ] as const;
 
@@ -42,14 +22,14 @@ export function PricingSection() {
 	return (
 		<section id="pricing">
 			<div className="rail px-5 py-20 sm:px-8 md:px-10 md:py-28">
-				<div className="mb-12 max-w-[520px] md:mb-14">
+				<div className="mb-12 md:mb-14">
 					<p className="eyebrow !text-brand">Pricing</p>
-					<h2 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
-						Free to start. Pro for $10.
+					<h2 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:whitespace-nowrap sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
+						{TRIAL_DAYS} days to try, or pay once.
 					</h2>
-					<p className="mt-4 text-base leading-7 text-muted-foreground">
-						Start free, or go Pro when you&apos;re applying
-						regularly.
+					<p className="mt-4 max-w-[520px] text-base leading-7 text-muted-foreground">
+						Pro is ${PRO_PRICE_USD} a month after the trial.
+						Lifetime is $150 once.
 					</p>
 				</div>
 
@@ -68,22 +48,21 @@ export function PricingSection() {
 								<p className="text-[22px] leading-8 font-semibold tracking-[-0.3px] text-foreground">
 									{plan.name}
 								</p>
-								{"badge" in plan && plan.badge ? (
-									<span className="rounded-full bg-brand px-3 py-1 text-[12px] font-medium tracking-[0.04em] text-brand-foreground uppercase">
-										{plan.badge}
-									</span>
-								) : null}
+								<span className="rounded-full bg-brand px-3 py-1 text-[12px] font-medium tracking-[0.04em] text-brand-foreground uppercase">
+									{plan.badge}
+								</span>
 							</div>
 
-							<div className="mt-6 flex items-end gap-1">
+							<div className="mt-6 flex items-end gap-2.5">
+								<span className="mb-2 font-display text-[28px] leading-8 font-semibold tracking-[-0.4px] text-muted-foreground line-through">
+									{plan.compareAt}
+								</span>
 								<span className="font-display text-[48px] leading-[56px] font-semibold tracking-[-0.96px] text-foreground">
 									{plan.price}
 								</span>
-								{plan.period ? (
-									<span className="mb-2 text-base text-muted-foreground">
-										{plan.period}
-									</span>
-								) : null}
+								<span className="mb-2 text-base text-muted-foreground">
+									{plan.period}
+								</span>
 							</div>
 
 							<p className="mt-3 min-h-12 text-base leading-7 text-muted-foreground">

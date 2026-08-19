@@ -13,8 +13,8 @@ export function dodoReturnUrl() {
 		null;
 
 	if (host) {
-		return `https://${host.replace(/^https?:\/\//, "")}/settings`;
+		return `https://${host.replace(/^https?:\/\//, "")}/new-chat`;
 	}
 
-	return "http://localhost:6700/settings";
+	return "http://localhost:6700/new-chat";
 }

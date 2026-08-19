@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon } from "@phosphor-icons/react";
+import { ArrowRightIcon, CheckIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { GenerationCountdown } from "@/components/templates/generation-countdown";
@@ -225,7 +225,7 @@ export function OnboardingTemplateStep({
 	const showResumeSlot = Boolean(resumeFileId) && canUseResumeLook;
 
 	return (
-		<div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+		<div className="mx-auto w-full max-w-6xl px-4 py-8 pb-28 sm:px-6">
 			<div className="mb-8 max-w-2xl">
 				<p className="text-sm font-medium text-muted-foreground">
 					Step 5 of 6
@@ -294,27 +294,33 @@ export function OnboardingTemplateStep({
 				</div>
 			)}
 
-			<div className="mt-10 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-6">
-				<Button type="button" variant="ghost" onClick={onBack}>
-					Back
-				</Button>
-				<Button
-					type="button"
-					disabled={
-						continuing ||
-						(preferResume
-							? !resumeTemplate || resumeTemplate.status !== "ready"
-							: !selectedRef)
-					}
-					onClick={() => void continueNext()}
-				>
-					{continuing ? <Spinner className="size-4" /> : null}
-					{continuing
-						? "Saving…"
-						: preferResume && resumeTemplate?.status === "drafting"
-							? "Preparing your template…"
-							: "Continue"}
-				</Button>
+			<div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 px-4 sm:px-6">
+				<div className="pointer-events-auto mx-auto flex w-full max-w-6xl items-center justify-between gap-3 rounded-2xl border border-border bg-background/90 px-4 py-3 shadow-[0_12px_40px_rgba(15,23,42,0.12)] backdrop-blur-md">
+					<Button type="button" variant="ghost" onClick={onBack}>
+						Back
+					</Button>
+					<Button
+						type="button"
+						disabled={
+							continuing ||
+							(preferResume
+								? !resumeTemplate || resumeTemplate.status !== "ready"
+								: !selectedRef)
+						}
+						onClick={() => void continueNext()}
+					>
+						{continuing ? <Spinner className="size-4" /> : null}
+						{continuing
+							? "Saving…"
+							: preferResume && resumeTemplate?.status === "drafting"
+								? "Preparing your template…"
+								: "Continue"}
+						{!continuing &&
+						!(preferResume && resumeTemplate?.status === "drafting") ? (
+							<ArrowRightIcon size={16} weight="bold" />
+						) : null}
+					</Button>
+				</div>
 			</div>
 		</div>
 	);

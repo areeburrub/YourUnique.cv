@@ -16,6 +16,7 @@ import {
 	saveOnboardingProgress,
 	uploadOnboardingResume,
 } from "@/lib/onboarding/client";
+import { PLAN_COPY, PRO_PRICE_USD, TRIAL_DAYS } from "@/lib/plan-copy";
 import { PlanId, type PlanId as PlanIdType } from "@/lib/plans";
 import { isLinkedInProfileUrl } from "@/lib/scrapecreators";
 import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
@@ -36,34 +37,14 @@ type GenerateStage = "analyzing" | "linkedin" | "writing" | "done";
 
 const PLAN_CARDS = [
 	{
-		id: PlanId.FREE,
-		name: "Free",
-		price: "Free",
-		period: "",
-		blurb: "Best for casual applicants who only need about 10–15 CVs a month.",
-		features: [
-			"Chat-led resume drafting",
-			"Career persona profile",
-			"PDF export",
-			"About 10–15 resumes / month",
-		],
-		cta: "Continue with Free",
-		featured: false,
+		id: PlanId.PRO,
+		...PLAN_COPY.PRO,
+		featured: true,
 	},
 	{
-		id: PlanId.PRO,
-		name: "Pro",
-		price: "$10",
-		period: "/month",
-		blurb: "For regular applicants who apply often and need 100+ resumes every month.",
-		features: [
-			"Everything in Free",
-			"Room for heavy application weeks",
-			"Hundreds of resume iterations",
-			"100+ resumes / month",
-		],
-		cta: "Continue with Pro",
-		featured: true,
+		id: PlanId.LIFETIME,
+		...PLAN_COPY.LIFETIME,
+		featured: false,
 	},
 ] as const;
 
@@ -744,6 +725,8 @@ function PlanStep({
 		})();
 	}, [onMissingStep]);
 
+	const busy = submittingPlan !== null;
+
 	return (
 		<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
 			<div className="mb-10 max-w-lg text-center">
@@ -751,17 +734,16 @@ function PlanStep({
 					Step 6 of 6 · You&apos;re almost in
 				</p>
 				<h1 className="font-display mt-2 text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
-					Choose your plan
+					Choose how you pay
 				</h1>
 				<p className="mt-3 text-base leading-6 text-muted-foreground">
-					Your profile is ready. Start free, or go Pro when you&apos;re
-					applying regularly.
+					Your profile is ready. Try Pro for {TRIAL_DAYS} days, then
+					${PRO_PRICE_USD} a month, or buy Lifetime once.
 				</p>
 			</div>
 
 			<div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
 				{PLAN_CARDS.map((plan) => {
-					const busy = submittingPlan !== null;
 					const thisBusy = submittingPlan === plan.id;
 					return (
 						<article
@@ -777,22 +759,21 @@ function PlanStep({
 								<p className="text-lg font-semibold tracking-[-0.2px] text-foreground">
 									{plan.name}
 								</p>
-								{plan.featured ? (
-									<span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-medium tracking-wide text-brand uppercase">
-										Recommended
-									</span>
-								) : null}
+								<span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-medium tracking-wide text-brand uppercase">
+									{plan.badge}
+								</span>
 							</div>
 
-							<div className="mt-4 flex items-end gap-1">
+							<div className="mt-4 flex items-end gap-2.5">
+								<span className="mb-1.5 font-display text-2xl font-semibold tracking-[-0.4px] text-muted-foreground line-through">
+									{plan.compareAt}
+								</span>
 								<span className="font-display text-4xl font-semibold tracking-[-0.8px] text-foreground sm:text-5xl sm:tracking-[-0.96px]">
 									{plan.price}
 								</span>
-								{plan.period ? (
-									<span className="mb-1.5 text-sm text-muted-foreground">
-										{plan.period}
-									</span>
-								) : null}
+								<span className="mb-1.5 text-sm text-muted-foreground">
+									{plan.period}
+								</span>
 							</div>
 
 							<p className="mt-3 min-h-18 text-sm leading-6 text-muted-foreground">

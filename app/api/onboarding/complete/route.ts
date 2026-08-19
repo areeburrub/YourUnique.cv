@@ -7,7 +7,7 @@ import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
 } from "@/lib/onboarding/progress";
-import { PlanId, isPlanId, isProPlan } from "@/lib/plans";
+import { PlanId, checkoutPath, isPaidPlan } from "@/lib/plans";
 
 export async function POST(req: Request) {
 	const { userId } = await auth();
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
 			? (body as { planId: string }).planId
 			: "";
 
-	if (!isPlanId(planId)) {
+	if (planId !== PlanId.PRO && planId !== PlanId.LIFETIME) {
 		return NextResponse.json(
 			{ error: "A plan selection is required" },
 			{ status: 400 },
@@ -49,10 +49,9 @@ export async function POST(req: Request) {
 	const dbUser = await getUserById(userId);
 	await markUserOnboarded(userId);
 
-	const redirectUrl =
-		planId === PlanId.PRO && !isProPlan(dbUser?.planId ?? PlanId.FREE)
-			? "/api/checkout"
-			: "/new-chat";
+	const redirectUrl = isPaidPlan(dbUser?.planId ?? PlanId.FREE)
+		? "/new-chat"
+		: checkoutPath(planId);
 
 	return NextResponse.json({ redirectUrl });
 }

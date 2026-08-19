@@ -155,6 +155,13 @@
       "when": 1786623000000,
       "tag": "0021_user_context_resume_style",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1786624000000,
+      "tag": "0022_add_lifetime_plan",
+      "breakpoints": true
     }
   ]
 }

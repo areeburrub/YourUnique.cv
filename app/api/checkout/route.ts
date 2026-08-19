@@ -3,7 +3,7 @@ import { Checkout } from "@dodopayments/nextjs";
 import { NextRequest, NextResponse } from "next/server";
 
 import { dodoEnvironment, dodoReturnUrl } from "@/lib/dodo";
-import { PLANS } from "@/lib/plans";
+import { PlanId, PLANS } from "@/lib/plans";
 
 const dodoCheckout = Checkout({
 	bearerToken: process.env.DODO_PAYMENTS_API_KEY!,
@@ -11,6 +11,14 @@ const dodoCheckout = Checkout({
 	environment: dodoEnvironment(),
 	type: "static",
 });
+
+function checkoutPlanId(req: NextRequest) {
+	const plan = req.nextUrl.searchParams.get("plan")?.trim().toUpperCase();
+	if (plan === PlanId.LIFETIME) {
+		return PlanId.LIFETIME;
+	}
+	return PlanId.PRO;
+}
 
 export async function GET(req: NextRequest) {
 	const { userId } = await auth();
@@ -27,7 +35,8 @@ export async function GET(req: NextRequest) {
 		[firstName, lastName].filter(Boolean).join(" ");
 	const url = req.nextUrl.clone();
 
-	const productId = PLANS.PRO.dodoProductId;
+	const planId = checkoutPlanId(req);
+	const productId = PLANS[planId].dodoProductId;
 	if (!productId) {
 		return NextResponse.json(
 			{ error: "Checkout is not configured" },
@@ -37,6 +46,7 @@ export async function GET(req: NextRequest) {
 	url.searchParams.set("productId", productId);
 
 	url.searchParams.set("metadata_userId", userId);
+	url.searchParams.set("metadata_planId", planId);
 	if (email && !url.searchParams.get("email")) {
 		url.searchParams.set("email", email);
 	}

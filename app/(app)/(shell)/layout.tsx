@@ -8,9 +8,14 @@ import { CHATS_PAGE_SIZE } from "@/lib/chats";
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { listChatThreads } from "@/lib/mastra-chats";
-import { isProPlan } from "@/lib/plans";
+import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
+import { isPaidPlan } from "@/lib/plans";
 
 const getCachedUser = cache(async () => currentUser());
+const getCachedPlanId = cache(
+	async (userId: string, email: string | null, planId: string | null) =>
+		syncPaidPlanFromDodo({ userId, email, planId }),
+);
 
 export default async function ShellLayout({
 	children,
@@ -48,7 +53,12 @@ export default async function ShellLayout({
 		(email.includes("@") ? email.slice(0, email.indexOf("@")) : "") ||
 		"Account";
 
-	const showUpgrade = !isProPlan(dbUser?.planId ?? "FREE");
+	const planId = await getCachedPlanId(
+		userId,
+		email || null,
+		dbUser?.planId ?? null,
+	);
+	const showUpgrade = !isPaidPlan(planId ?? "FREE");
 
 	return (
 		<AppShell

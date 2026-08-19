@@ -3,7 +3,15 @@ import { redirect } from "next/navigation";
 
 import { NewChatClient } from "./_components/new-chat-client";
 
-export default async function NewChatPage() {
+export default async function NewChatPage({
+	searchParams,
+}: {
+	searchParams: Promise<{
+		status?: string;
+		subscription_id?: string;
+		payment_id?: string;
+	}>;
+}) {
 	const { userId } = await auth();
 	await auth.protect();
 
@@ -11,5 +19,15 @@ export default async function NewChatPage() {
 		redirect("/sign-in");
 	}
 
-	return <NewChatClient />;
+	const params = await searchParams;
+
+	return (
+		<NewChatClient
+			checkoutReturn={{
+				status: params.status ?? null,
+				subscriptionId: params.subscription_id ?? null,
+				paymentId: params.payment_id ?? null,
+			}}
+		/>
+	);
 }

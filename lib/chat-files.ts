@@ -143,18 +143,6 @@ async function filePartToModelParts(
 	const mediaType = part.mediaType || file.contentType;
 	const filename = part.filename || file.filename;
 
-	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
-		const signedUrl = await getR2SignedGetUrl(file.key, 3600);
-		return [
-			{
-				type: "file",
-				mediaType,
-				filename,
-				url: signedUrl,
-			},
-		];
-	}
-
 	const object = await getR2Object(file.key);
 	const body = object.Body;
 	if (!body) {
@@ -167,6 +155,17 @@ async function filePartToModelParts(
 	}
 
 	const bytes = await body.transformToByteArray();
+
+	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
+		return [
+			{
+				type: "file",
+				mediaType,
+				filename,
+				data: bytes,
+			},
+		];
+	}
 
 	if (mediaType === "text/plain" || mediaType === "text/markdown") {
 		const text = Buffer.from(bytes).toString("utf8").trim();

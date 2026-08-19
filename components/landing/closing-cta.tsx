@@ -35,13 +35,13 @@ export function ClosingCta() {
 							Start with the resume you already have
 						</h2>
 						<p className="mt-5 max-w-[400px] text-base leading-7 text-muted-foreground">
-							Free to begin. Add your history once. The next time
-							a posting shows up, paste it in chat and leave with
-							a CV for that job.
+							Try it for 7 days. Add your history once. The next
+							time a posting shows up, paste it in chat and leave
+							with a CV for that job.
 						</p>
 						<div className="mt-8 flex flex-wrap gap-3">
 							<SlideButton href="/sign-up">
-								Get started free
+								Start 7-day trial
 							</SlideButton>
 							<SlideButton href="/sign-in" variant="outline">
 								Log in
