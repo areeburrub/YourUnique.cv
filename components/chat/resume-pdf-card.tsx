@@ -1,9 +1,10 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { CircleNotchIcon, DownloadSimpleIcon } from "@phosphor-icons/react";
-import { useEffect, useRef } from "react";
+import { DownloadSimpleIcon } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
 
+import { SparkleShuffle } from "@/components/ui/sparkle-shuffle";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import {
 	isResumeCompiling,
@@ -13,6 +14,58 @@ import {
 	type ResumeListItem,
 } from "@/lib/resumes";
 import { cn } from "@/lib/utils";
+
+const COMPILE_ESTIMATE_MS = 30_000;
+
+function formatCompileRemaining(ms: number) {
+	const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+	const minutes = Math.floor(totalSeconds / 60);
+	const seconds = totalSeconds % 60;
+	return `${minutes}:${seconds.toString().padStart(2, "0")}`;
+}
+
+function useCompileCountdown(active: boolean) {
+	const startedAtRef = useRef<number | null>(null);
+	const [now, setNow] = useState(() => Date.now());
+
+	useEffect(() => {
+		if (!active) {
+			startedAtRef.current = null;
+			return;
+		}
+
+		startedAtRef.current ??= Date.now();
+		setNow(Date.now());
+		const timer = window.setInterval(() => {
+			setNow(Date.now());
+		}, 200);
+		return () => window.clearInterval(timer);
+	}, [active]);
+
+	if (!active || startedAtRef.current == null) {
+		return COMPILE_ESTIMATE_MS;
+	}
+
+	return Math.max(0, COMPILE_ESTIMATE_MS - (now - startedAtRef.current));
+}
+
+function CompileSparkle({ remainingMs }: { remainingMs: number }) {
+	const finished = remainingMs <= 0;
+	const label = finished
+		? "Generating PDF"
+		: `Generating, ${formatCompileRemaining(remainingMs)} estimated`;
+
+	return (
+		<span
+			className="flex size-9 shrink-0 items-center justify-center text-brand"
+			role="status"
+			aria-live="polite"
+			aria-label={label}
+		>
+			<SparkleShuffle size={28} />
+		</span>
+	);
+}
 
 type ResumePdfCardProps = {
 	name: string;
@@ -68,6 +121,7 @@ export function ResumePdfCard({
 	const status = data?.compileStatus ?? compileStatus ?? "ready";
 	const pending = isResumeCompiling(status);
 	const failed = status === "failed";
+	const remainingMs = useCompileCountdown(pending);
 	const wasPending = useRef(pending);
 
 	useEffect(() => {
@@ -90,30 +144,34 @@ export function ResumePdfCard({
 	const subtitle = failed
 		? "PDF failed"
 		: pending
-			? "Creating PDF"
+			? remainingMs > 0
+				? `Generating, ${formatCompileRemaining(remainingMs)} est.`
+				: "Generating…"
 			: "PDF";
 
 	const inner = (
 		<>
 			<span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-[#e53935] text-white">
-				{pending ? (
-					<CircleNotchIcon size={16} className="animate-spin" />
-				) : (
-					<span className="text-[9px] font-semibold tracking-wide">PDF</span>
-				)}
+				<span className="text-[9px] font-semibold tracking-wide">PDF</span>
 			</span>
 			<span className="flex min-w-0 flex-col justify-center gap-0.5">
 				<span className="truncate text-sm font-medium leading-tight">
 					{fileName}
 				</span>
-				<span className="text-[12px] leading-none text-muted-foreground">
+				<span
+					className={cn(
+						"text-[12px] leading-none text-muted-foreground",
+						pending && "tabular-nums",
+					)}
+					aria-hidden={pending}
+				>
 					{subtitle}
 				</span>
 			</span>
 		</>
 	);
 
-	if (!href || !downloadHref) {
+	if (failed || (!pending && (!href || !downloadHref))) {
 		return (
 			<div
 				className={cn(
@@ -132,33 +190,42 @@ export function ResumePdfCard({
 				"inline-flex w-fit max-w-[min(100%,20rem)] items-center gap-1 rounded-3xl bg-secondary py-1.5 pl-3 pr-1.5 text-foreground",
 				className,
 			)}
+			aria-busy={pending}
 		>
-			<a
-				href={href}
-				target="_blank"
-				rel="noreferrer"
-				className="flex min-w-0 items-center gap-2.5 py-1 transition-opacity hover:opacity-90"
-				onClick={() => {
-					trackEvent(MixpanelEvent.ResumePdfOpened, {
-						resume_id: resumeId ?? "",
-					});
-				}}
-			>
-				{inner}
-			</a>
-			<a
-				href={downloadHref}
-				download={fileName}
-				className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-background/70"
-				aria-label={`Download ${fileName}`}
-				onClick={() => {
-					trackEvent(MixpanelEvent.ResumePdfDownloaded, {
-						resume_id: resumeId ?? "",
-					});
-				}}
-			>
-				<DownloadSimpleIcon size={18} weight="bold" />
-			</a>
+			{href && downloadHref ? (
+				<a
+					href={href}
+					target="_blank"
+					rel="noreferrer"
+					className="flex min-w-0 items-center gap-2.5 py-1 transition-opacity hover:opacity-90"
+					onClick={() => {
+						trackEvent(MixpanelEvent.ResumePdfOpened, {
+							resume_id: resumeId ?? "",
+						});
+					}}
+				>
+					{inner}
+				</a>
+			) : (
+				<div className="flex min-w-0 items-center gap-2.5 py-1">{inner}</div>
+			)}
+			{pending ? (
+				<CompileSparkle remainingMs={remainingMs} />
+			) : (
+				<a
+					href={downloadHref}
+					download={fileName}
+					className="flex size-9 shrink-0 items-center justify-center rounded-full text-foreground transition-colors hover:bg-background/70"
+					aria-label={`Download ${fileName}`}
+					onClick={() => {
+						trackEvent(MixpanelEvent.ResumePdfDownloaded, {
+							resume_id: resumeId ?? "",
+						});
+					}}
+				>
+					<DownloadSimpleIcon size={18} weight="bold" />
+				</a>
+			)}
 		</div>
 	);
 }

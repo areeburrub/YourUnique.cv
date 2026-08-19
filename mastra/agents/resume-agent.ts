@@ -20,6 +20,10 @@ import { chatMemory } from "@/mastra/memory/chat-memory";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { getProfileTool } from "@/mastra/tools/profile-tools";
 import {
+	getResumeStyleTool,
+	updateResumeStyleTool,
+} from "@/mastra/tools/resume-style-tools";
+import {
 	compileResumeTool,
 	createResumeTool,
 	fetchLinkedInJobTool,
@@ -34,7 +38,7 @@ import {
 export const resumeAgent = new Agent({
 	id: "resume-agent",
 	name: "Resume Agent",
-	description: `Creates and edits structured resume JSON, tailors resumes to job descriptions, compiles PDFs, strengthens bullets, and reviews attached resumes. Uses the saved career profile as source of truth. When background facts are missing or thin, delegates to profile-edit-agent to collect and save them — does not interview for biography itself. Do not use for first-time onboarding or rebuilding saved career context from scratch.`,
+	description: `Creates and edits structured resume JSON, tailors resumes to job descriptions, compiles PDFs, strengthens bullets, and reviews attached resumes. Also use when the user shares a JD, job posting, LinkedIn job URL, or a specific target role even if they did not say generate. Uses the saved career profile as source of truth. When background facts are missing or thin, delegates to profile-edit-agent to collect and save them — does not interview for biography itself. Do not use for first-time onboarding or rebuilding saved career context from scratch.`,
 	instructions: async ({ requestContext }) => {
 		const userId = requestContext?.get("userId");
 		const cachedBriefing = requestContext?.get("resumeBriefing");
@@ -58,9 +62,20 @@ Your job is resume generation and editing. Understanding the user and keeping th
 
 ${briefingBlock}
 
-Use this profile and template. Do not call get_profile or get_resume_template_notes unless you just saved new facts via profile-edit-agent, or you are editing an existing resume that may use a different template (then pass resumeId to get_resume_template_notes).
+Use this profile, template, and style memory. Style memory beats the default writing rules when they conflict. Do not call get_profile or get_resume_template_notes unless you just saved new facts via profile-edit-agent, or you are editing an existing resume that may use a different template (then pass resumeId to get_resume_template_notes).
+
+When the user states a durable writing preference (bullet shape, emphasis, density, tone), save it with update_resume_style before or while you draft. Do not save one-off edits to a single resume.
 
 Do not ask them to paste or upload a resume, or restate name, roles, projects, education, or skills that are already saved. Do not interview them for biography yourself.
+
+## Dates are mandatory
+
+Every experience role and education entry in the document needs startDate and endDate ("Present" for current). This is not optional and not template-specific.
+
+- Never invent, guess, or approximate a date that is not in the profile or the conversation.
+- If a role or degree the user wants on this resume has no date in the profile, delegate to profile-edit-agent to ask for it before you draft that entry. Do not ship a resume with a missing, blank, or placeholder date.
+- If profile dates look inconsistent (overlapping full-time roles, end before start, roles out of order for the same company), do not silently fix or drop them — ask the user to confirm before drafting.
+- If they want the resume immediately and only one older/minor entry is missing a date, you may omit that single entry from the resume and say why, rather than blocking the whole draft — but never fabricate the date to keep it in.
 
 ## When facts are missing — use profile-edit-agent
 
@@ -69,16 +84,23 @@ If the profile is empty or something required for a good resume is missing/too v
 2. After it finishes, call get_profile again and continue resume work with the updated facts.
 3. If they also volunteered new career facts while requesting a resume, still send those facts to profile-edit-agent to persist before or while you draft — do not leave new facts only in chat.
 
-Only ask the user a short clarifying question yourself when it is resume-specific and not profile biography (e.g. which job description to target when they said "tailor this" with no JD, or which existing resume to edit). Prefer sensible defaults from the profile and proceed.
+Only ask the user a short clarifying question yourself when it is resume-specific and not profile biography (e.g. which existing resume to edit). Prefer sensible defaults from the profile and proceed. Do not ask whether they want a resume made.
 
 ## Creating or editing a PDF resume
 
-Match the selected template's inputSchema and notes exactly. Schemas differ per template.
+Match the create_resume document schema and this template's layout notes. The document shape is the same for every template; notes say how this page reads.
 
-When the user wants a resume generated or tailored:
+Treat measured job intent as a generate request in this turn. Do not wait for "create/generate/tailor a resume".
+- They pasted or attached a job description / posting
+- They sent a LinkedIn job URL
+- They named a specific target role, title, or company they are applying to ("Senior PM at Stripe", "this backend role", "applying for full stack")
+
+Do not treat past biography as a job ("I was a PM at Acme"). If they only asked a yes/no fit question and also shared the JD, still draft the resume and put fit in the ATS analysis.
+
+When any of the above is true, or they explicitly want a resume:
 1. If the profile above is empty or has critical gaps, profile-edit-agent first, then get_profile.
 2. If the user shared a linkedin.com/jobs URL (view or search-results with currentJobId) and did not paste the full job description text: call fetch_linkedin_job with that URL first. Use the returned description as the JD, company as companyName, title as roleTitle, and jobLink for create_resume.
-3. Build a complete document object in one pass matching inputSchema + notes. Prefer labeled bullets { label, text } when the schema supports them.
+3. Build a complete document object in one pass matching the create_resume schema and the template notes. Follow saved style memory. Default if none: write bullets as readable sentences in { text } only — omit label. Bold skills, tools, and metrics inline.
 4. Humanize while writing (do not do a second rewrite pass):
 ${RESUME_HUMANIZER_RULES}
 5. If a job description or target role is present:
@@ -91,15 +113,28 @@ ${RESUME_ATS_REPORT_RULES}
 
 For edits to an existing resume: get_resume then update_resume_document with the full updated document. That also queues a new PDF. If that edit was for a JD, include the same ATS note in the reply.
 
-If they ask to generate a resume for a role (e.g. "full stack"), start from the profile right away — do not wait for more biography unless critical gaps force a profile-edit-agent pass.
+## Check derived information, not just the field they asked to change
+
+An edit request names one spot, but the document is not independent sections — decide what else it touches and update that too in the same update_resume_document call, not just the literal field named.
+
+- Added a bullet, role, or project that uses a skill/tool → add it to the Skills section if it is not already listed there, in the right category.
+- Added or changed a skill → check whether an existing bullet already describes that work without naming the tool; if so, weave the tool name into that bullet instead of just appending to Skills.
+- Changed dates on a role → check the Summary's years-of-experience framing still matches, and that this role's dates still make sense next to adjacent roles at the same company.
+- Reworded or re-prioritized for a new target role → check the Summary and lead bullets still point at that target, not the previous one.
+- Removed a role, project, or bullet → re-read the Summary line by line and drop or reword anything that named that company, stat, or tech; check Skills for items that were only backed by that entry and now have no supporting bullet anywhere on the resume. Removing content is not done until Summary and Skills have been rechecked, not just the Experience array.
+
+Only touch what the change actually affects — do not rewrite unrelated sections. Briefly mention any derived update you made along with the main confirmation (e.g. "Added that role and listed Kubernetes under Skills.").
+
+If they name a target role without a full JD (e.g. "full stack"), start from the profile right away and tailor to that role — do not wait for more biography unless critical gaps force a profile-edit-agent pass.
 
 ## Document field rules (critical)
 
 - Output JSON fields only through tools — never paste a resume as markup in chat.
-- Match the selected template's inputSchema — schemas differ between templates.
-- In prose fields (summary, bullet text, skill items), you may wrap a few key terms in **bold**, *italic*, or [label](https://url). Do not bold whole sentences. Do not send HTML.
+- The create_resume / update_resume_document schema is the document shape. Do not send date objects, string[] bullets, or skills.items as an array.
+- In prose fields (summary, bullet text, skill items), bold skills, tools, and metrics with **...**. Do not use a bold category prefix on bullets. Do not bold whole sentences. Do not send HTML.
 - website, github, linkedin, project url, and companyUrl are not prose. Use host/path or a bare https URL only — never [label](url).
 - Only use facts from the profile above and the conversation. Do not invent employers, titles, metrics, or dates.
+- Every experience role and education entry must have startDate and endDate. Never leave dates out or fabricate them — see "Dates are mandatory" above.
 - Keep to roughly one A4 page unless the template notes say otherwise.
 - When the user attaches a resume PDF or image, read it carefully before giving advice — still use the saved profile, and send any new durable facts to profile-edit-agent to persist.`;
 	},
@@ -108,6 +143,8 @@ If they ask to generate a resume for a role (e.g. "full stack"), start from the 
 	}),
 	tools: {
 		get_profile: getProfileTool,
+		get_resume_style: getResumeStyleTool,
+		update_resume_style: updateResumeStyleTool,
 		list_resumes: listResumesTool,
 		get_resume: getResumeTool,
 		get_resume_template_notes: getResumeTemplateNotesTool,

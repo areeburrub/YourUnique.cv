@@ -1,6 +1,6 @@
 export const notes = `# Classic Serif template notes
 
-You produce a **structured JSON document** matching this template's \`inputSchema\` and pass it to \`create_resume\` / \`update_resume_document\`.
+You produce a **structured JSON document** matching the \`create_resume\` / \`update_resume_document\` schema. Layout notes below are how this page reads — not a second schema.
 
 The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markdown resumes, HTML, or any markup.
 
@@ -9,7 +9,7 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - Group by **company**. One company object can contain multiple \`roles\`.
 - Same company, different titles (e.g. Intern → Founding Engineer) = **one** company with **two** roles — do not repeat the company name as separate top-level entries.
 - Most recent company first; most recent role first within a company.
-- Prefer labeled bullets: \`{ "label": "Short Title", "text": "..." }\` (renders as **Short Title:** …). Plain \`{ "text": "..." }\` is ok when a label does not fit.
+- Write bullets as readable sentences in \`{ "text": "..." }\` only. Omit \`label\`. Do not start with a bold category (\`**AI product engineering:** …\`). Bold skills, tools, and metrics inline inside the sentence.
 
 ## Field rules
 
@@ -31,7 +31,7 @@ This template renders projects as compact one-liners: name, stack (if any), join
 
 - Include \`stack\` for every technical project when known from the profile.
 - Bullets should focus on what you built and the outcome — not restate the full stack.
-- Prefer labeled bullets; keep \`links\` for Website / GitHub / Product Hunt when available.
+- Write project bullets as sentences in \`text\` only (no \`label\`). Keep \`links\` for Website / GitHub / Product Hunt when available.
 
 ## Content rules
 

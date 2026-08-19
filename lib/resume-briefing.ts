@@ -1,4 +1,9 @@
 import { getUserContext } from "@/lib/db/contexts";
+import {
+	formatResumeStyleForAgent,
+	parseResumeStyle,
+	type ResumeStyleMemory,
+} from "@/lib/resume-style";
 import { resolveUserSelectedTemplate } from "@/lib/resume-templates/registry";
 
 export type ResumeBriefing = {
@@ -7,7 +12,7 @@ export type ResumeBriefing = {
 	templateRef: string;
 	templateName: string;
 	templateNotes: string;
-	inputSchema: Record<string, unknown>;
+	resumeStyle: ResumeStyleMemory;
 };
 
 export function isResumeBriefing(value: unknown): value is ResumeBriefing {
@@ -20,8 +25,8 @@ export function isResumeBriefing(value: unknown): value is ResumeBriefing {
 		typeof record.templateRef === "string" &&
 		typeof record.templateName === "string" &&
 		typeof record.templateNotes === "string" &&
-		Boolean(record.inputSchema) &&
-		typeof record.inputSchema === "object"
+		Boolean(record.resumeStyle) &&
+		typeof record.resumeStyle === "object"
 	);
 }
 
@@ -39,7 +44,7 @@ export async function loadResumeBriefing(
 		templateRef: template.ref,
 		templateName: template.name,
 		templateNotes: template.notes,
-		inputSchema: template.inputSchema,
+		resumeStyle: parseResumeStyle(context?.resumeStyle),
 	};
 }
 
@@ -57,6 +62,8 @@ ${profile}
 ### Template notes
 ${briefing.templateNotes}
 
-### inputSchema
-${JSON.stringify(briefing.inputSchema)}`;
+The create_resume document schema is the resume JSON shape. Notes are layout/density only.
+
+## Resume style memory
+${formatResumeStyleForAgent(briefing.resumeStyle)}`;
 }

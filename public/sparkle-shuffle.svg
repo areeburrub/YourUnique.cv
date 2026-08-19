@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="3 3 26 26" width="256" height="256">
+	<style>
+		.orbit { animation: orbit 3s linear infinite; }
+		.orbit-b { animation-delay: -1s; }
+		.orbit-c { animation-delay: -2s; }
+		.twinkle {
+			transform-box: fill-box;
+			transform-origin: center;
+			animation: twinkle 1.5s linear infinite;
+		}
+		.twinkle-b { animation-delay: -0.5s; }
+		.twinkle-c { animation-delay: -1s; }
+		@keyframes orbit {
+			0%,
+			100% { transform: translate(9px, 10px); }
+			33.333% { transform: translate(23px, 11px); }
+			66.666% { transform: translate(16px, 23px); }
+		}
+		@keyframes twinkle {
+			0%,
+			100% { transform: scale(0.85) rotate(-6deg); opacity: 0.65; }
+			50% { transform: scale(1.05) rotate(6deg); opacity: 1; }
+		}
+		@media (prefers-reduced-motion: reduce) {
+			.orbit,
+			.twinkle { animation: none; }
+			.orbit { transform: translate(9px, 10px); }
+			.orbit-b { transform: translate(23px, 11px); }
+			.orbit-c { transform: translate(16px, 23px); }
+		}
+	</style>
+	<g fill="#e36a58">
+		<g class="orbit">
+			<g class="twinkle">
+				<g transform="scale(0.0606) translate(-117.19 -144)">
+					<path d="M208,144a15.78,15.78,0,0,1,-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1,-29.88,0L78,178l-51.62,-19a15.92,15.92,0,0,1,0,-29.88L78,110l19,-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144Z"/>
+				</g>
+			</g>
+		</g>
+		<g class="orbit orbit-b">
+			<g class="twinkle twinkle-b">
+				<g transform="scale(0.0413) translate(-117.19 -144)">
+					<path d="M208,144a15.78,15.78,0,0,1,-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1,-29.88,0L78,178l-51.62,-19a15.92,15.92,0,0,1,0,-29.88L78,110l19,-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144Z"/>
+				</g>
+			</g>
+		</g>
+		<g class="orbit orbit-c">
+			<g class="twinkle twinkle-c">
+				<g transform="scale(0.0303) translate(-117.19 -144)">
+					<path d="M208,144a15.78,15.78,0,0,1,-10.42,14.94L146,178l-19,51.62a15.92,15.92,0,0,1,-29.88,0L78,178l-51.62,-19a15.92,15.92,0,0,1,0,-29.88L78,110l19,-51.62a15.92,15.92,0,0,1,29.88,0L146,110l51.62,19A15.78,15.78,0,0,1,208,144Z"/>
+				</g>
+			</g>
+		</g>
+	</g>
+</svg>

@@ -3,6 +3,7 @@
 import { UploadSimpleIcon } from "@phosphor-icons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { StyleMemoryPanel } from "@/components/templates/style-memory-panel";
 import {
 	openTemplatePdf,
 	TemplateCard,
@@ -12,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { uploadChatFile } from "@/lib/client-uploads";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
+import type { ResumeStyleMemory } from "@/lib/resume-style";
 import type { TemplateListItem, TemplateRef } from "@/lib/resume-templates/types";
 import {
 	mediaTypeFromFilename,
@@ -21,11 +23,13 @@ import {
 type TemplatesGalleryProps = {
 	initialSelectedRef: TemplateRef;
 	initialTemplates: TemplateListItem[];
+	initialStyle: ResumeStyleMemory;
 };
 
 export function TemplatesGallery({
 	initialSelectedRef,
 	initialTemplates,
+	initialStyle,
 }: TemplatesGalleryProps) {
 	const [selectedRef, setSelectedRef] = useState(initialSelectedRef);
 	const [templates, setTemplates] = useState(initialTemplates);
@@ -174,17 +178,11 @@ export function TemplatesGallery({
 		<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 			<div className="min-h-0 flex-1 overflow-auto">
 				<div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
-					<div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-						<div className="max-w-xl">
-							<h1 className="font-display text-[24px] font-medium tracking-[-0.48px] text-foreground">
-								Templates
-							</h1>
-							<p className="mt-1 text-sm text-muted-foreground">
-								Pick a layout for new resumes, or create one from a format you
-								like.
-							</p>
-						</div>
-						<div>
+					<div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<h1 className="font-display text-[24px] font-medium tracking-[-0.48px] text-foreground">
+							Templates
+						</h1>
+						<div className="flex items-center gap-2">
 							<input
 								ref={fileInputRef}
 								type="file"
@@ -198,6 +196,7 @@ export function TemplatesGallery({
 									}
 								}}
 							/>
+							<StyleMemoryPanel initialStyle={initialStyle} />
 							<Button
 								type="button"
 								className="shrink-0"
@@ -209,7 +208,7 @@ export function TemplatesGallery({
 								) : (
 									<UploadSimpleIcon data-icon="inline-start" weight="bold" />
 								)}
-								Create from your format
+								Upload PDF
 							</Button>
 						</div>
 					</div>
@@ -244,7 +243,7 @@ export function TemplatesGallery({
 							</div>
 						) : (
 							<p className="rounded-2xl border border-dashed border-border bg-surface-subtle/60 px-4 py-8 text-center text-sm text-muted-foreground">
-								Nothing here yet. Create one from your own format.
+								Nothing here yet. Upload a PDF to create one.
 							</p>
 						)}
 					</section>

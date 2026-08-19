@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 
 import { PLAN_IDS, PlanId } from "@/lib/plans";
+import type { ResumeStyleMemory } from "@/lib/resume-style";
 
 export const planIdEnum = pgEnum("plan_id", PLAN_IDS);
 
@@ -90,6 +91,7 @@ export const userContexts = pgTable("user_contexts", {
 	linkedinUrl: text("linkedin_url"),
 	introduction: text("introduction"),
 	templateRef: text("template_ref"),
+	resumeStyle: jsonb("resume_style").$type<ResumeStyleMemory>(),
 	sourceFileIds: jsonb("source_file_ids")
 		.$type<string[]>()
 		.notNull()

@@ -4,5 +4,6 @@ export function sanitizeTemplateHtml(html: string) {
 		.replace(/<script[\s\S]*?\/>/gi, "")
 		.replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
 		.replace(/javascript:/gi, "")
-		.replace(/data:text\/html/gi, "");
+		.replace(/data:text\/html/gi, "")
+		.replace(/\{\{\{\s*([^}]+?)\s*\}\}\}/g, "{{$1}}");
 }

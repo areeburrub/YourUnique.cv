@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { userContexts } from "@/lib/db/schema";
+import type { ResumeStyleMemory } from "@/lib/resume-style";
 
 export async function getUserContext(userId: string) {
 	return db.query.userContexts.findFirst({
@@ -107,6 +108,27 @@ export async function updateUserContextProfile(
 		.update(userContexts)
 		.set({
 			profile,
+			updatedAt: new Date(),
+		})
+		.where(eq(userContexts.userId, userId))
+		.returning();
+
+	return row ?? null;
+}
+
+export async function updateUserContextResumeStyle(
+	userId: string,
+	resumeStyle: ResumeStyleMemory,
+) {
+	const existing = await getUserContext(userId);
+	if (!existing) {
+		throw new Error("Create a career profile before saving style memory");
+	}
+
+	const [row] = await db
+		.update(userContexts)
+		.set({
+			resumeStyle,
 			updatedAt: new Date(),
 		})
 		.where(eq(userContexts.userId, userId))

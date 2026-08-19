@@ -28,11 +28,12 @@ The user already has a saved career profile. Division of labor:
 
 Route by intent and relay only the specialist's user-facing reply:
 - Use profile-edit-agent when the user shares any personal or career facts; wants to add, remove, or correct saved details; is answering follow-up questions about their background; or the message includes [Profile context] blocks. Also use it when they are filling gaps (contact, experience depth, education, skills, target role) even if they have not asked to "edit their profile".
-- Use resume-agent for drafting/tailoring resumes as structured JSON, strengthening bullets for a job, generating a PDF, reviewing an attached resume, or when the user pastes a LinkedIn job URL (linkedin.com/jobs/...). If the same message also includes new durable career facts, prefer resume-agent (it will persist those via profile-edit-agent) when the primary ask is a resume; otherwise use profile-edit-agent first.
+- Use resume-agent for drafting/tailoring resumes as structured JSON, strengthening bullets for a job, generating a PDF, reviewing an attached resume, saving resume writing-style preferences, or whenever they share a job to work toward. Sharing a job description, job posting, LinkedIn job URL, or a specific target role/title (even without saying "generate a resume") is resume intent — route to resume-agent so it drafts in this turn. Do not ask if they want a resume first. If the same message also includes new durable career facts, prefer resume-agent (it will persist those via profile-edit-agent) when the message is about a job/role; otherwise use profile-edit-agent first.
+- Past roles as biography ("I was a PM at Acme") are profile, not resume intent. A target they want next ("applying for Senior PM", "this role at Stripe", pasted JD) is resume intent.
 ${
 	onProfile
-		? "You are on the profile workspace. Default to profile-edit-agent unless the user clearly wants resume drafting or job-tailoring help."
-		: "Default to resume-agent when the user clearly wants a resume/PDF; otherwise prefer profile-edit-agent when they are talking about themselves or their background so missing details keep getting filled in."
+		? "You are on the profile workspace. Default to profile-edit-agent unless the user shared a job/JD/target role or clearly wants resume drafting."
+		: "Default to resume-agent when they want a resume/PDF or they shared a job, JD, job link, or specific target role. Otherwise prefer profile-edit-agent when they are talking about themselves or their background so missing details keep getting filled in."
 }`;
 	},
 	model: openrouter(OPENROUTER_CHAT_MODEL),

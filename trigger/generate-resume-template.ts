@@ -10,13 +10,16 @@ import {
 	updateResumeTemplateForUser,
 } from "@/lib/db/templates";
 import { putR2Object, getR2Object } from "@/lib/r2";
-import { assertAgentFillableSchema } from "@/lib/resume-templates/assert-fillable-schema";
+import {
+	parseResumeDocument,
+	resumeDocumentJsonSchema,
+	resumeDocumentSchema,
+} from "@/lib/resume-templates/document-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import { customTemplatePreviewPdfKey } from "@/lib/resume-templates/registry";
 import { rasterizeSourceFile } from "@/lib/resume-templates/rasterize-source";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
 import { DRAFT_TEMPLATE_INSTRUCTIONS } from "@/lib/resume-templates/template-draft-prompt";
-import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
 import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
 const TEMPLATE_VISION_MODEL = "google/gemini-3.7-flash";
@@ -27,9 +30,8 @@ const generatedTemplateSchema = z.object({
 	name: z.string().min(1).max(80),
 	description: z.string().max(240),
 	notes: z.string().min(1),
-	inputSchema: z.record(z.string(), z.unknown()),
 	html: z.string().min(1),
-	sampleData: z.record(z.string(), z.unknown()),
+	sampleData: resumeDocumentSchema,
 });
 
 const evaluationSchema = z.object({
@@ -38,8 +40,7 @@ const evaluationSchema = z.object({
 	differences: z.array(z.string()),
 	revisedHtml: z.string().nullable(),
 	revisedNotes: z.string().nullable(),
-	revisedInputSchema: z.record(z.string(), z.unknown()).nullable(),
-	revisedSampleData: z.record(z.string(), z.unknown()).nullable(),
+	revisedSampleData: resumeDocumentSchema.nullable(),
 });
 
 type GeneratedTemplate = z.infer<typeof generatedTemplateSchema>;
@@ -49,7 +50,6 @@ type Draft = {
 	description: string;
 	notes: string;
 	html: string;
-	inputSchema: Record<string, unknown>;
 	sampleData: Record<string, unknown>;
 };
 
@@ -124,7 +124,7 @@ async function draftTemplate(input: {
 }) {
 	const { output } = await generateText({
 		model: visionModel(),
-		output: Output.json(),
+		output: Output.object({ schema: generatedTemplateSchema }),
 		instructions: DRAFT_TEMPLATE_INSTRUCTIONS,
 		messages: [
 			{
@@ -140,7 +140,7 @@ ${sourceLayoutBrief({
 })}
 
 Clone this resume design in HTML/CSS + Handlebars. Reuse the visible text in sampleData so spacing can be judged fairly.
-inputSchema must follow the data contract: startDate/endDate strings, experience grouped as company.roles[], bullets as objects with optional label plus text, skills.items as one comma-separated string.`,
+Bind only the canonical document paths (experience[].roles[], {{dateRange startDate endDate}}, bullets as {{text}}, skills.items as a string). Do not invent a schema or interpolate whole objects.`,
 					},
 					...input.pageParts,
 				],
@@ -153,18 +153,12 @@ inputSchema must follow the data contract: startDate/endDate strings, experience
 
 function applyDraft(generated: GeneratedTemplate): Draft {
 	const html = sanitizeTemplateHtml(generated.html);
-	const inputSchema = generated.inputSchema;
-	assertAgentFillableSchema(inputSchema);
-	const sampleData = validateAgainstJsonSchema(
-		inputSchema,
-		generated.sampleData,
-	);
+	const sampleData = parseResumeDocument(generated.sampleData);
 	return {
 		name: generated.name,
 		description: generated.description || "",
 		notes: generated.notes,
 		html,
-		inputSchema,
 		sampleData,
 	};
 }
@@ -185,7 +179,7 @@ async function evaluateAndRevise(input: {
 }) {
 	const { output } = await generateText({
 		model: visionModel(),
-		output: Output.json(),
+		output: Output.object({ schema: evaluationSchema }),
 		instructions: `You QA a resume HTML template against the original page image(s).
 
 This is the only refine pass — return your best revisedHtml now if anything high-impact is off.
@@ -207,13 +201,13 @@ Return a single JSON object:
 - differences: up to 5 highest-impact mismatches (short strings)
 - revisedHtml: full HTML document with the best practical fixes, or null if nothing worth changing
 - revisedNotes / revisedSampleData: only when needed for the layout; otherwise null
-- revisedInputSchema: always null — do not change the schema or Handlebars paths
 
 Rules:
 - Prefer one solid CSS spacing/type-scale pass over endless micro-edits.
-- Keep the existing Handlebars bindings and inputSchema paths. No JS/Tailwind CDN/scripts. A4 print CSS.
+- Keep the existing Handlebars bindings. No JS/Tailwind CDN/scripts. A4 print CSS.
 - Keep @page margin at least 12mm on every side. Do not set @page margin to 0. Body/page padding is not enough for page 2+.
-- If you revise sampleData, keep dates as strings like "Jun 2021" / "Present" and bullets as objects with optional label plus text.
+- Do not invent new data fields or interpolate whole objects ({{this}}, {{bullets}}).
+- If you revise sampleData, keep the canonical document shape.
 - If you revise, return the complete html document.`,
 		messages: [
 			{
@@ -241,7 +235,7 @@ ORIGINAL page image(s) first, then GENERATED preview. Current HTML:\n\n${input.d
 					},
 					{
 						type: "text",
-						text: `Current inputSchema:\n${JSON.stringify(input.draft.inputSchema)}\n\nCurrent sampleData:\n${JSON.stringify(input.draft.sampleData)}\n\nCurrent notes:\n${input.draft.notes}`,
+						text: `Current sampleData:\n${JSON.stringify(input.draft.sampleData)}\n\nCurrent notes:\n${input.draft.notes}`,
 					},
 				],
 			},
@@ -302,7 +296,7 @@ async function publishReadyTemplate(input: {
 		name: input.draft.name,
 		description: input.draft.description,
 		notes: input.draft.notes,
-		inputSchema: input.draft.inputSchema,
+		inputSchema: resumeDocumentJsonSchema,
 		html: input.draft.html,
 		previewFileId: previewFile.id,
 		previewPdfFileId: previewPdfFile.id,
@@ -413,8 +407,7 @@ export const generateResumeTemplate = schemaTask({
 						let sampleData = draft.sampleData;
 						if (evaluation.revisedSampleData) {
 							try {
-								sampleData = validateAgainstJsonSchema(
-									draft.inputSchema,
+								sampleData = parseResumeDocument(
 									evaluation.revisedSampleData,
 								);
 							} catch {

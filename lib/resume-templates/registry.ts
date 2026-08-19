@@ -6,6 +6,7 @@ import {
 } from "@/lib/db/templates";
 import { fileAppUrl } from "@/lib/uploads";
 import { getBuiltinTemplate, listBuiltinTemplates } from "@/lib/resume-templates/builtins";
+import { coerceResumeDocument, resumeDocumentJsonSchema } from "@/lib/resume-templates/document-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import {
 	builtinRef,
@@ -19,7 +20,6 @@ import {
 	type TemplateListItem,
 	type TemplateRef,
 } from "@/lib/resume-templates/types";
-import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
 
 export function customTemplatePreviewPdfKey(userId: string, templateId: string) {
 	return `users/${userId}/templates/${templateId}/preview.pdf`;
@@ -148,25 +148,23 @@ export async function resolveTemplate(
 		previewPdfUrl = file ? fileAppUrl(file.id) : null;
 	}
 
-	const inputSchema = row.inputSchema ?? {};
-
 	return {
 		ref: customRef(row.id),
 		kind: "custom",
 		id: row.id,
 		name: row.name,
 		description: row.description,
-		inputSchema,
+		inputSchema: resumeDocumentJsonSchema,
 		notes: row.notes,
 		previewUrl,
 		previewPdfUrl,
 		status: row.status,
 		error: row.error,
 		render(data) {
-			return renderHandlebarsHtml(row.html, data);
+			return renderHandlebarsHtml(row.html, coerceResumeDocument(data));
 		},
 		validate(data) {
-			return validateAgainstJsonSchema(inputSchema, data);
+			return coerceResumeDocument(data);
 		},
 	};
 }

@@ -344,6 +344,7 @@
 			opacity: 1;
 			stroke-dashoffset: 0;
 			box-shadow: none;
+			filter: none;
 		}
 	}
 

@@ -8,6 +8,10 @@ import {
 } from "@/lib/resume-templates/escape";
 import { formatInlineMarkup } from "@/lib/resume-templates/inline-format";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
+import {
+	assertNoObjectObject,
+	stringifyTemplateValue,
+} from "@/lib/resume-templates/stringify";
 
 function safePlain(value: string) {
 	return new Handlebars.SafeString(escapeHtml(value));
@@ -50,24 +54,23 @@ runtime.registerHelper("len", (value: unknown) =>
 	Array.isArray(value) ? value.length : 0,
 );
 runtime.registerHelper("hostPath", (value: unknown) =>
-	safePlain(stripUrlScheme(String(value ?? ""))),
+	safePlain(stripUrlScheme(stringifyTemplateValue(value))),
 );
 runtime.registerHelper("href", (value: unknown) =>
-	safePlain(hrefForHostPath(String(value ?? ""))),
+	safePlain(hrefForHostPath(stringifyTemplateValue(value))),
 );
 runtime.registerHelper("dateRange", (...args: unknown[]) =>
 	dateRangeFromHelperArgs(args),
 );
 runtime.registerHelper("gpaScore", (value: unknown) => {
-	if (value == null || typeof value === "object") {
+	const trimmed = stringifyTemplateValue(value).trim();
+	if (!trimmed) {
 		return "";
 	}
-	return String(value)
-		.replace(/\s*(?:\/|out\s+of)\s*[\d.]+/gi, "")
-		.trim();
+	return trimmed.replace(/\s*(?:\/|out\s+of)\s*[\d.]+/gi, "").trim();
 });
 runtime.registerHelper("employment", (value: unknown) => {
-	const trimmed = String(value ?? "").trim();
+	const trimmed = stringifyTemplateValue(value).trim();
 	if (!trimmed || /not specified|unknown|n\/a|^none$/i.test(trimmed)) {
 		return "";
 	}
@@ -82,14 +85,15 @@ runtime.registerHelper("projectBody", (project: unknown) => {
 		bullets?: Array<{ label?: unknown; text?: unknown }>;
 	};
 	const bits: string[] = [];
-	const stack = String(row.stack ?? "").trim();
+	const stack = stringifyTemplateValue(row.stack).trim();
 	if (stack) {
 		bits.push(stack);
 	}
 	for (const bullet of row.bullets ?? []) {
-		const label = String(bullet.label ?? "").trim();
-		const text = String(bullet.text ?? "");
-		bits.push(label ? `${label}: ${text}` : text);
+		const rendered = stringifyTemplateValue(bullet).trim();
+		if (rendered) {
+			bits.push(rendered);
+		}
 	}
 	return bits.join("; ");
 });
@@ -102,5 +106,7 @@ export function renderHandlebarsHtml(
 		noEscape: false,
 		strict: false,
 	});
-	return compiled(data);
+	const html = compiled(data);
+	assertNoObjectObject(html);
+	return html;
 }

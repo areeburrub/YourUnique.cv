@@ -30,15 +30,15 @@ export function SoftNavProvider({ children }: { children: React.ReactNode }) {
 	}, [nextPathname]);
 
 	const softReplace = useCallback((href: string) => {
-		window.history.replaceState(window.history.state, "", href);
+		window.history.replaceState(null, "", href);
 		setSoftPathname(href);
 	}, []);
 
 	const openNewChat = useCallback(() => {
 		setSoftPathname(null);
-		window.history.replaceState(window.history.state, "", "/new-chat");
 
 		if (nextPathname === "/new-chat") {
+			window.history.replaceState(null, "", "/new-chat");
 			setNewChatKey((key) => key + 1);
 			return;
 		}

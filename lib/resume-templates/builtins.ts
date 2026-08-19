@@ -1,7 +1,7 @@
 import { builtinTemplateSources } from "@/templates/resume";
+import { parseResumeDocument } from "@/lib/resume-templates/document-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
 import type { BuiltinTemplateDefinition } from "@/lib/resume-templates/types";
-import { validateAgainstJsonSchema } from "@/lib/resume-templates/validate";
 
 const builtins: BuiltinTemplateDefinition[] = builtinTemplateSources.map(
 	(source) => ({
@@ -17,10 +17,10 @@ const builtins: BuiltinTemplateDefinition[] = builtinTemplateSources.map(
 		formats: source.formats,
 		styleLabel: source.styleLabel,
 		validate(data) {
-			return validateAgainstJsonSchema(source.schema, data);
+			return parseResumeDocument(data);
 		},
 		render(data) {
-			const document = validateAgainstJsonSchema(source.schema, data);
+			const document = parseResumeDocument(data);
 			return renderHandlebarsHtml(source.html, document);
 		},
 	}),

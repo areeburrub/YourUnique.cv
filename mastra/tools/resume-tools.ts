@@ -12,6 +12,7 @@ import {
 	updateResumeForUser,
 } from "@/lib/db/resumes";
 import { extractLinkedInJobId } from "@/lib/linkedin-jobs";
+import { parseResumeDocument, resumeDocumentSchema } from "@/lib/resume-templates/document-schema";
 import { queueResumeCompile } from "@/lib/resume-compile";
 import {
 	resolveTemplate,
@@ -188,7 +189,7 @@ export const getResumeTool = createTool({
 export const getResumeTemplateNotesTool = createTool({
 	id: "get_resume_template_notes",
 	description:
-		"Read a resume template's notes and JSON Schema. The selected template is already in your instructions — call only when editing an existing resume that may use a different template (pass resumeId).",
+		"Read a resume template's layout notes. The document shape is the create_resume / update_resume_document schema — call only when editing an existing resume that may use a different template (pass resumeId).",
 	inputSchema: z.object({
 		resumeId: z
 			.string()
@@ -230,7 +231,7 @@ export const getResumeTemplateNotesTool = createTool({
 export const createResumeTool = createTool({
 	id: "create_resume",
 	description:
-		"Create a resume from structured document JSON matching the selected template's inputSchema, and queue the PDF. Never send HTML, Typst, or LaTeX. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only (summary, bullets, skills). website/github/linkedin/url/companyUrl must be a plain host/path or https URL. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
+		"Create a resume from structured document JSON and queue the PDF. The document field is the resume schema — dates are strings, bullets are { text }, skills.items is one comma-separated string. Never send HTML, Typst, or LaTeX. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only (summary, bullets, skills). website/github/linkedin/url/companyUrl must be a plain host/path or https URL. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
 	inputSchema: z.object({
 		name: z
 			.string()
@@ -239,11 +240,9 @@ export const createResumeTool = createTool({
 			.describe(
 				"Display name for this resume, preferably like 'Role @ Company' when tailored",
 			),
-		document: z
-			.record(z.string(), z.unknown())
-			.describe(
-				"Structured resume JSON matching the selected template inputSchema",
-			),
+		document: resumeDocumentSchema.describe(
+			"Structured resume JSON. startDate/endDate are strings like \"Jun 2021\" / \"Present\". Group experience by company with roles[]. Write bullets as { text }. skills[].items is one comma-separated string.",
+		),
 		jobDescription: z
 			.string()
 			.optional()
@@ -287,11 +286,7 @@ export const createResumeTool = createTool({
 			if (!existing) {
 				throw new Error("Resume not found");
 			}
-			const template = await resolveTemplate(
-				normalizeTemplateRef(existing.templateRef),
-				userId,
-			);
-			const document = template.validate(input.document);
+			const document = parseResumeDocument(input.document);
 			const row = await updateResumeForUser(turnResumeId, userId, {
 				name: input.name,
 				document,
@@ -322,7 +317,7 @@ export const createResumeTool = createTool({
 		const contextRow = await getUserContext(userId);
 		const templateRef = normalizeTemplateRef(contextRow?.templateRef);
 		const template = await resolveTemplate(templateRef, userId);
-		const document = template.validate(input.document);
+		const document = parseResumeDocument(input.document);
 		const row = await createResume({
 			userId,
 			name: input.name,
@@ -354,10 +349,10 @@ export const createResumeTool = createTool({
 export const updateResumeDocumentTool = createTool({
 	id: "update_resume_document",
 	description:
-		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match that resume's template inputSchema. Send the full updated document. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only; website/github/linkedin/url/companyUrl must be a plain host/path or https URL. Do not send HTML.",
+		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match the resume document schema (same as create_resume). Send the full updated document. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only; website/github/linkedin/url/companyUrl must be a plain host/path or https URL. Do not send HTML.",
 	inputSchema: z.object({
 		id: z.string().min(1),
-		document: z.record(z.string(), z.unknown()),
+		document: resumeDocumentSchema,
 	}),
 	outputSchema: z.object({
 		ok: z.boolean(),
@@ -376,11 +371,7 @@ export const updateResumeDocumentTool = createTool({
 		if (!existing) {
 			throw new Error("Resume not found");
 		}
-		const template = await resolveTemplate(
-			normalizeTemplateRef(existing.templateRef),
-			userId,
-		);
-		const document = template.validate(input.document);
+		const document = parseResumeDocument(input.document);
 		const row = await replaceResumeDocument(input.id, userId, document);
 		if (!row) {
 			throw new Error("Resume not found");
