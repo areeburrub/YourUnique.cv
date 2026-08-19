@@ -8,7 +8,6 @@ import { SlideButton } from "@/components/landing/slide-button";
 
 const navLinks = [
 	{ href: "/#how-it-works", label: "How it works" },
-	{ href: "/templates", label: "Templates" },
 	{ href: "/#pricing", label: "Pricing" },
 ];
 
