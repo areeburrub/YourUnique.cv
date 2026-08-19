@@ -10,7 +10,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatTextIcon, FileTextIcon, PlusIcon, UploadSimpleIcon, XIcon } from "@phosphor-icons/react";
 import { nanoid } from "nanoid";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import {
 	Conversation,
@@ -25,6 +25,10 @@ import {
 	ChatComposer,
 	type AttachmentUploadState,
 } from "@/components/chat/chat-composer";
+import {
+	ChatEmptySuggestions,
+	selectPromptPlaceholder,
+} from "@/components/chat/chat-empty-suggestions";
 import { ChatInterruptBanner } from "@/components/chat/chat-interrupt-banner";
 import {
 	assistantHasVisibleActivity,
@@ -264,6 +268,8 @@ export function ChatView({
 		return false;
 	});
 	const [text, setText] = useState("");
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const pendingSuggestionRef = useRef<string | null>(null);
 	const [uploadError, setUploadError] = useState<string | null>(null);
 	const [uploads, setUploads] = useState<Record<string, UploadRecord>>({});
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
@@ -292,6 +298,18 @@ export function ChatView({
 	useEffect(() => {
 		chatSurfaceRef.current = chatSurface;
 	}, [chatSurface]);
+
+	useLayoutEffect(() => {
+		const pending = pendingSuggestionRef.current;
+		if (!pending || text !== pending) {
+			return;
+		}
+		pendingSuggestionRef.current = null;
+		const el = textareaRef.current;
+		if (el) {
+			selectPromptPlaceholder(el, text);
+		}
+	}, [text]);
 
 	useEffect(() => {
 		if (!threadIdProp) {
@@ -663,6 +681,15 @@ export function ChatView({
 		submitMessage(nextText, toFileUIParts(uploaded));
 	};
 
+	const applySuggestion = useCallback((prompt: string) => {
+		if (usageStatus.data?.blocked) {
+			setUsageDialogOpen(true);
+			return;
+		}
+		pendingSuggestionRef.current = prompt;
+		setText(prompt);
+	}, [usageStatus.data?.blocked]);
+
 	const handleRetry = () => {
 		if (usageStatus.data?.blocked) {
 			setUsageDialogOpen(true);
@@ -768,6 +795,7 @@ export function ChatView({
 				busy={busy}
 				canSubmit={canSubmit}
 				disabled={usageBlocked}
+				textareaRef={textareaRef}
 				variant={isPanel ? "docked" : isEmpty ? "centered" : "docked"}
 				placeholder={
 					usageBlocked
@@ -971,12 +999,21 @@ export function ChatView({
 				</div>
 			) : null}
 			{isEmpty ? (
-				<div className="flex min-h-0 flex-1 flex-col items-center justify-center px-4 pb-4 sm:px-6 sm:pb-16">
-					<div className="flex w-full max-w-3xl flex-col items-center gap-10">
-						<h1 className="text-center font-display text-[36px] font-bold leading-[1.1] tracking-[-1.2px] text-foreground sm:text-[44px]">
-							How can I help you today?
-						</h1>
-						{composer}
+				<div className="flex min-h-0 flex-1 flex-col px-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center sm:justify-center sm:px-6 sm:pb-16">
+					<div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col sm:flex-none sm:items-center sm:gap-10">
+						<div className="flex min-h-0 flex-1 items-center justify-center px-2 sm:flex-none sm:px-0">
+							<h1 className="text-center font-display text-[32px] font-bold leading-[1.1] tracking-[-1.2px] text-foreground sm:text-[44px]">
+								How can I help you today?
+							</h1>
+						</div>
+						<div className="flex w-full shrink-0 flex-col gap-3 sm:gap-6">
+							<div className="order-2 sm:order-1">{composer}</div>
+							<ChatEmptySuggestions
+								className="order-1 sm:order-2"
+								disabled={usageBlocked}
+								onSelect={applySuggestion}
+							/>
+						</div>
 					</div>
 				</div>
 			) : (

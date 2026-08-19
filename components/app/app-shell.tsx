@@ -1,17 +1,11 @@
 "use client";
 
-import { MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { PlusIcon } from "@phosphor-icons/react";
 import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/app/app-sidebar";
-import {
-	CommandPaletteProvider,
-	useCommandPalette,
-} from "@/components/app/command-palette";
-import {
-	SidebarUserMenu,
-	type SidebarUser,
-} from "@/components/app/sidebar-user-menu";
+import { CommandPaletteProvider } from "@/components/app/command-palette";
+import { type SidebarUser } from "@/components/app/sidebar-user-menu";
 import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Button } from "@/components/ui/button";
@@ -44,20 +38,18 @@ function MobileBrand() {
 	);
 }
 
-function MobileSearchButton() {
-	const { setOpen } = useCommandPalette();
+function MobileNewChatButton() {
+	const { openNewChat } = useSoftNav();
 
 	return (
 		<Button
 			variant="ghost"
 			size="icon-sm"
 			className="text-muted-foreground"
-			aria-label="Search"
-			aria-keyshortcuts="Meta+K Control+K"
-			title="Search (⌘K)"
-			onClick={() => setOpen(true)}
+			aria-label="New chat"
+			onClick={openNewChat}
 		>
-			<MagnifyingGlassIcon size={18} weight="duotone" />
+			<PlusIcon size={18} weight="bold" />
 		</Button>
 	);
 }
@@ -100,9 +92,8 @@ export function AppShell({
 									<div className="flex min-w-0 flex-1 items-center justify-center">
 										<MobileBrand />
 									</div>
-									<div className="flex w-20 shrink-0 items-center justify-end gap-0.5">
-										<MobileSearchButton />
-										<SidebarUserMenu user={user} compact />
+									<div className="flex w-20 shrink-0 items-center justify-end">
+										<MobileNewChatButton />
 									</div>
 								</div>
 								<div className="flex min-h-0 flex-1 flex-col overflow-hidden">

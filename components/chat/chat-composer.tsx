@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode, type Ref } from "react";
 import type { ChatStatus, FileUIPart } from "ai";
 import { PaperclipIcon, XIcon } from "@phosphor-icons/react";
 
@@ -15,7 +15,10 @@ import {
 	PromptInputTools,
 	usePromptInputAttachments,
 } from "@/components/ai-elements/prompt-input";
-import { SpeechToTextButton } from "@/components/chat/speech-to-text-button";
+import {
+	SpeechToTextButton,
+	type SpeechToTextHandle,
+} from "@/components/chat/speech-to-text-button";
 import { dataTransferHasFiles } from "@/lib/file-drag";
 import { fileTypeLabel } from "@/lib/file-type";
 import {
@@ -49,6 +52,7 @@ type ChatComposerProps = {
 	accept?: string;
 	maxFiles?: number;
 	placeholder?: string;
+	textareaRef?: Ref<HTMLTextAreaElement>;
 };
 
 function LocalFilesSync({
@@ -347,7 +351,9 @@ export function ChatComposer({
 	accept = UPLOAD_ACCEPT,
 	maxFiles = MAX_UPLOAD_FILES,
 	placeholder = "Paste a job description, drop a resume, or ask anything…",
+	textareaRef,
 }: ChatComposerProps) {
+	const speechRef = useRef<SpeechToTextHandle>(null);
 	const uploading = Object.values(uploads).some(
 		(upload) => upload.status === "uploading",
 	);
@@ -372,7 +378,13 @@ export function ChatComposer({
 					multiple
 					maxFiles={maxFiles}
 					maxFileSize={MAX_UPLOAD_BYTES}
-					onSubmit={onSubmit}
+					onSubmit={(message) => {
+						const spoken = speechRef.current?.stop();
+						return onSubmit({
+							...message,
+							text: spoken ?? message.text,
+						});
+					}}
 					onError={(err) => onError(err.message)}
 					className={INPUT_GROUP_STYLE}
 				>
@@ -383,6 +395,7 @@ export function ChatComposer({
 					<ComposerAttachmentsHeader uploads={uploads} />
 					<PromptInputBody>
 						<PromptInputTextarea
+							ref={textareaRef}
 							value={text}
 							onChange={(event) =>
 								onTextChange(event.currentTarget.value)
@@ -398,10 +411,12 @@ export function ChatComposer({
 						</PromptInputTools>
 						<div className="flex items-center gap-1">
 							<SpeechToTextButton
+								ref={speechRef}
 								text={text}
 								onTextChange={onTextChange}
 								onError={onError}
 								disabled={inputDisabled}
+								submitOnEnter
 							/>
 							<PromptInputSubmit
 								status={

@@ -2,7 +2,15 @@
 
 import { CommitStrategy, useScribe } from "@elevenlabs/react";
 import { CircleNotchIcon, MicrophoneIcon, SquareIcon } from "@phosphor-icons/react";
-import { useEffect, useEffectEvent, useRef, useState } from "react";
+import {
+	useEffect,
+	useEffectEvent,
+	useImperativeHandle,
+	useRef,
+	useState,
+	type Ref,
+} from "react";
+import { flushSync } from "react-dom";
 
 import { cn } from "@/lib/utils";
 
@@ -31,11 +39,17 @@ function spokenFromScribe(
 	return [committedText, partialText].filter(Boolean).join(" ");
 }
 
+export type SpeechToTextHandle = {
+	stop: () => string | null;
+};
+
 type SpeechToTextButtonProps = {
 	text: string;
 	onTextChange: (value: string) => void;
 	onError: (message: string) => void;
 	disabled?: boolean;
+	submitOnEnter?: boolean;
+	ref?: Ref<SpeechToTextHandle>;
 };
 
 export function SpeechToTextButton({
@@ -43,9 +57,12 @@ export function SpeechToTextButton({
 	onTextChange,
 	onError,
 	disabled,
+	submitOnEnter = false,
+	ref,
 }: SpeechToTextButtonProps) {
 	const baseTextRef = useRef("");
 	const textRef = useRef(text);
+	const buttonRef = useRef<HTMLButtonElement>(null);
 	const [listening, setListening] = useState(false);
 	const [starting, setStarting] = useState(false);
 
@@ -106,20 +123,54 @@ export function SpeechToTextButton({
 		};
 	}, []);
 
-	const stop = () => {
-		onTextChange(
-			joinSpoken(
-				baseTextRef.current,
-				spokenFromScribe(
-					scribe.committedTranscripts,
-					scribe.partialTranscript,
-				),
+	const lastFinalizedRef = useRef<string | null>(null);
+
+	const finalize = () => {
+		const wasActive =
+			listening ||
+			scribe.isConnected ||
+			scribe.status === "connecting" ||
+			scribe.status === "transcribing";
+		if (!wasActive) {
+			return lastFinalizedRef.current;
+		}
+		const finalized = joinSpoken(
+			baseTextRef.current,
+			spokenFromScribe(
+				scribe.committedTranscripts,
+				scribe.partialTranscript,
 			),
 		);
+		lastFinalizedRef.current = finalized;
+		flushSync(() => {
+			onTextChange(finalized);
+			setListening(false);
+			setStarting(false);
+		});
 		scribe.disconnect();
-		setListening(false);
-		setStarting(false);
+		return finalized;
 	};
+
+	const consume = () => {
+		const result = lastFinalizedRef.current;
+		lastFinalizedRef.current = null;
+		return result;
+	};
+
+	const stop = () => {
+		finalize();
+		return consume();
+	};
+
+	const finalizeRef = useRef(finalize);
+	finalizeRef.current = finalize;
+
+	useImperativeHandle(ref, () => ({
+		stop: () => {
+			finalizeRef.current();
+			return consume();
+		},
+	}));
 
 	const start = async () => {
 		if (starting || listening || scribe.isConnected) {
@@ -139,6 +190,7 @@ export function SpeechToTextButton({
 			}
 
 			baseTextRef.current = textRef.current;
+			lastFinalizedRef.current = null;
 			scribe.clearTranscripts();
 			setListening(true);
 			await scribe.connect({
@@ -168,8 +220,60 @@ export function SpeechToTextButton({
 		scribe.status === "transcribing";
 	const connecting = starting || scribe.status === "connecting";
 
+	useEffect(() => {
+		if (!submitOnEnter || !active) {
+			return;
+		}
+
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (
+				event.key !== "Enter" ||
+				event.shiftKey ||
+				event.altKey ||
+				event.ctrlKey ||
+				event.metaKey ||
+				event.isComposing ||
+				event.repeat ||
+				event.defaultPrevented
+			) {
+				return;
+			}
+
+			const form = buttonRef.current?.closest("form");
+			if (!form) {
+				return;
+			}
+
+			const target = event.target;
+			if (target instanceof Node && !form.contains(target)) {
+				return;
+			}
+
+			event.preventDefault();
+			finalizeRef.current();
+
+			const submitButton = form.querySelector(
+				'button[type="submit"]',
+			);
+			if (
+				submitButton instanceof HTMLButtonElement &&
+				submitButton.disabled
+			) {
+				return;
+			}
+
+			form.requestSubmit();
+		};
+
+		window.addEventListener("keydown", onKeyDown, true);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown, true);
+		};
+	}, [active, submitOnEnter]);
+
 	return (
 		<button
+			ref={buttonRef}
 			type="button"
 			disabled={disabled && !active}
 			onClick={() => {
