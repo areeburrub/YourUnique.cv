@@ -98,7 +98,7 @@ type PaymentPayloadData = {
 		email?: string;
 		customer_id?: string;
 	};
-	product_cart?: { product_id?: string }[];
+	product_cart?: { product_id?: string }[] | null;
 };
 
 function planIdFromMetadata(metadata?: Record<string, unknown>) {

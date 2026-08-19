@@ -162,7 +162,7 @@ async function filePartToModelParts(
 				type: "file",
 				mediaType,
 				filename,
-				data: bytes,
+				url: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
 			},
 		];
 	}
