@@ -437,9 +437,9 @@ export function FeaturesSection() {
 	return (
 		<section id="how-it-works">
 			<div className="rail px-5 py-20 sm:px-8 md:px-10 md:py-28">
-				<div className="mx-auto max-w-[560px] text-center">
+				<div className="mx-auto text-center">
 					<p className="eyebrow !text-brand">How it works</p>
-					<h2 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
+					<h2 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:whitespace-nowrap sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
 						From your files to a CV for this job
 					</h2>
 				</div>

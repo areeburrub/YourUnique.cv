@@ -7,30 +7,14 @@ export const ALLOWED_UPLOAD_MEDIA_TYPES = new Set([
 	"image/gif",
 	"image/webp",
 	"application/pdf",
-	"application/msword",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	"text/plain",
-	"text/markdown",
 ]);
 
-export const ONBOARDING_UPLOAD_MEDIA_TYPES = new Set([
-	"image/jpeg",
-	"image/png",
-	"image/gif",
-	"image/webp",
-	"application/pdf",
-	"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	"application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	"text/plain",
-	"text/markdown",
-]);
+export const ONBOARDING_UPLOAD_MEDIA_TYPES = new Set(["application/pdf"]);
 
 export const UPLOAD_ACCEPT =
-	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,application/msword,.doc,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,text/plain,.txt,text/markdown,.md";
+	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf";
 
-export const ONBOARDING_UPLOAD_ACCEPT =
-	"image/jpeg,image/png,image/gif,image/webp,application/pdf,.pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.docx,application/vnd.openxmlformats-officedocument.presentationml.presentation,.pptx,text/plain,.txt,text/markdown,.md";
+export const ONBOARDING_UPLOAD_ACCEPT = "application/pdf,.pdf";
 
 const EXTENSION_MEDIA_TYPES: Record<string, string> = {
 	".jpg": "image/jpeg",
@@ -39,14 +23,6 @@ const EXTENSION_MEDIA_TYPES: Record<string, string> = {
 	".gif": "image/gif",
 	".webp": "image/webp",
 	".pdf": "application/pdf",
-	".doc": "application/msword",
-	".docx":
-		"application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-	".pptx":
-		"application/vnd.openxmlformats-officedocument.presentationml.presentation",
-	".txt": "text/plain",
-	".md": "text/markdown",
-	".markdown": "text/markdown",
 };
 
 export function fileExtension(filename: string) {

@@ -6,7 +6,7 @@ const RESUME_ASK_RE =
 	/\bresume\b|\bcv\b|curriculum vitae|(?:tailor|draft|write|create|generate|make|build|compile|update|edit|strengthen|review).{0,48}(?:resume|\bcv\b|pdf)/i;
 
 const JOB_SHARE_RE =
-	/linkedin\.com\/jobs|\bjob description\b|\bjob posting\b|\bjob spec\b|\bjob opening\b|\bthe jd\b|\bthis jd\b|\bhere(?:'|’)s the (?:job|role|jd)\b|\bpaste[sd]? (?:the )?(?:job|jd|role)\b/i;
+	/linkedin\.com\/jobs|myworkdayjobs\.com|myworkday\.com|greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|icims\.com|workable\.com|jobvite\.com|(?:https?:\/\/[^\s]+\/(?:jobs?|careers?|positions?|openings?)\/)|\bjob description\b|\bjob posting\b|\bjob spec\b|\bjob opening\b|\bthe jd\b|\bthis jd\b|\bhere(?:'|’)s the (?:job|role|jd)\b|\bpaste[sd]? (?:the )?(?:job|jd|role)\b/i;
 
 const APPLY_ROLE_RE =
 	/\b(?:apply(?:ing)?|applied) (?:for|to)\b|\btarget(?:ing)? (?:role|title|position|job)\b|\bthis (?:role|position|job|opening)(?:\s+at\b)?/i;

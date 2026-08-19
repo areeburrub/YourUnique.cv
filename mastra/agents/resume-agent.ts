@@ -26,6 +26,7 @@ import {
 import {
 	compileResumeTool,
 	createResumeTool,
+	fetchJobPostingTool,
 	fetchLinkedInJobTool,
 	getResumeDownloadTool,
 	getResumeTemplateNotesTool,
@@ -93,6 +94,7 @@ Match the create_resume document schema and this template's layout notes. The do
 Treat measured job intent as a generate request in this turn. Do not wait for "create/generate/tailor a resume".
 - They pasted or attached a job description / posting
 - They sent a LinkedIn job URL
+- They sent a Workday, Greenhouse, Lever, Ashby, or other job posting URL
 - They named a specific target role, title, or company they are applying to ("Senior PM at Stripe", "this backend role", "applying for full stack")
 
 Do not treat past biography as a job ("I was a PM at Acme"). If they only asked a yes/no fit question and also shared the JD, still draft the resume and put fit in the ATS analysis.
@@ -100,15 +102,16 @@ Do not treat past biography as a job ("I was a PM at Acme"). If they only asked 
 When any of the above is true, or they explicitly want a resume:
 1. If the profile above is empty or has critical gaps, profile-edit-agent first, then get_profile.
 2. If the user shared a linkedin.com/jobs URL (view or search-results with currentJobId) and did not paste the full job description text: call fetch_linkedin_job with that URL first. Use the returned description as the JD, company as companyName, title as roleTitle, and jobLink for create_resume.
-3. Build a complete document object in one pass matching the create_resume schema and the template notes. Follow saved style memory. Default if none: write bullets as readable sentences in { text } only — omit label. Bold skills, tools, and metrics inline.
-4. Humanize while writing (do not do a second rewrite pass):
+3. If the user shared any other job posting URL (Workday, Greenhouse, Lever, Ashby, company careers page, etc.) and did not paste the full job description text: call fetch_job_posting with that URL first. On ok:true, use description as the JD, company as companyName, title as roleTitle, and url as jobLink. On ok:false, tell the user we could not load the posting and ask them to paste the job text or send screenshots — do not invent a JD and do not call create_resume until you have the posting.
+4. Build a complete document object in one pass matching the create_resume schema and the template notes. Follow saved style memory. Default if none: write bullets as readable sentences in { text } only — omit label. Bold skills, tools, and metrics inline.
+5. Humanize while writing (do not do a second rewrite pass):
 ${RESUME_HUMANIZER_RULES}
-5. If a job description or target role is present:
+6. If a job description or target role is present:
 ${RESUME_TAILORING_RULES}
-6. Call create_resume once with name + document. When tailored to a job, always include jobDescription plus companyName, roleTitle, and jobLink when the user provided a posting URL. Prefer a name like "Role @ Company".
-7. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Do not call compile_resume after create. Do not fetch the PDF yourself.
-8. One resume per turn. If you already called create_resume, use update_resume_document on that id. Do not create a second resume.
-9. In the same text reply (no extra tool calls):
+7. Call create_resume once with name + document. When tailored to a job, always include jobDescription plus companyName, roleTitle, and jobLink when the user provided a posting URL. Prefer a name like "Role @ Company".
+8. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Do not call compile_resume after create. Do not fetch the PDF yourself.
+9. One resume per turn. If you already called create_resume, use update_resume_document on that id. Do not create a second resume.
+10. In the same text reply (no extra tool calls):
 ${RESUME_ATS_REPORT_RULES}
 
 For edits to an existing resume: get_resume then update_resume_document with the full updated document. That also queues a new PDF. If that edit was for a JD, include the same ATS note in the reply.
@@ -149,6 +152,7 @@ If they name a target role without a full JD (e.g. "full stack"), start from the
 		get_resume: getResumeTool,
 		get_resume_template_notes: getResumeTemplateNotesTool,
 		fetch_linkedin_job: fetchLinkedInJobTool,
+		fetch_job_posting: fetchJobPostingTool,
 		create_resume: createResumeTool,
 		update_resume_document: updateResumeDocumentTool,
 		rename_resume: renameResumeTool,

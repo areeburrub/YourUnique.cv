@@ -12,7 +12,7 @@ Treat that as a request to create a tailored resume in this turn. Do not ask if 
 ### 1. Gather Information
 
 **Job Description Analysis**:
-- If they pasted a JD, attached a posting, or sent a LinkedIn job URL, use it immediately
+- If they pasted a JD, attached a posting, or sent a job URL (LinkedIn, Workday, Greenhouse, Lever, Ashby, company careers), use it immediately. Fetch the URL when they did not paste the full text. If the fetch fails, ask them to paste the posting or send screenshots — do not invent a JD.
 - Ask for the company name and job title only if a target role is clearly intended but those are missing
 - A named target role without a full JD is enough to draft — do not block on a posting
 

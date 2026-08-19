@@ -35,6 +35,7 @@ const toolTitles: Record<string, string> = {
 	compile_resume: "Compiling your PDF",
 	get_resume_download: "Getting your download link",
 	fetch_linkedin_job: "Fetching the job posting",
+	fetch_job_posting: "Fetching the job posting",
 };
 
 export function isInternalToolName(name: string) {

@@ -32,7 +32,7 @@ export const CHAT_EMPTY_SUGGESTIONS: ChatPromptSuggestion[] = [
 Role: [role]
 Company: [company]
 Job description:
-[paste the posting or LinkedIn URL]`,
+[paste the posting or a job URL]`,
 	},
 	{
 		id: "add-profile",

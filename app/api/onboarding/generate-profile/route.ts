@@ -85,7 +85,7 @@ async function fileContentForModel(input: {
 	return [
 		{
 			type: "text",
-			text: `The user uploaded resume "${filename}" (${mediaType}). Binary Office documents may not be fully readable — extract what you can from any accompanying notes/LinkedIn, and leave gaps rather than inventing.`,
+			text: `The user uploaded resume "${filename}" (${mediaType}), which is not a readable PDF. Extract what you can from any accompanying notes/LinkedIn, and leave gaps rather than inventing.`,
 		},
 	];
 }

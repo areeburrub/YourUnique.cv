@@ -57,7 +57,7 @@ export function resolveOnboardingResume(file: File) {
 		}) || file.type;
 
 	if (!isAllowedOnboardingUploadMediaType(mediaType)) {
-		throw new Error("Please upload a PDF, DOCX, image, or text resume.");
+		throw new Error("Please upload a PDF resume.");
 	}
 	if (file.size > MAX_UPLOAD_BYTES) {
 		throw new Error("Resume must be 10MB or smaller.");

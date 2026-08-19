@@ -15,9 +15,8 @@ export function Hero() {
 							Every job is different. Why send the same CV?
 						</h1>
 						<p className="animate-fade-rise delay-2 mt-5 max-w-[400px] text-[16px] leading-7 text-muted-foreground sm:text-[17px]">
-							Start from your resume and LinkedIn. Share a job
-							post in chat and get a CV written for that role,
-							plus an ATS read.
+							Bring your own resume. We keep your design, rewrite
+							it for the role, and give you a stronger ATS match.
 						</p>
 						<div className="animate-fade-rise delay-3 mt-8">
 							<HeroResumeDropzone />

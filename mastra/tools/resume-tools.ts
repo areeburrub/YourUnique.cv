@@ -11,7 +11,8 @@ import {
 	replaceResumeDocument,
 	updateResumeForUser,
 } from "@/lib/db/resumes";
-import { extractLinkedInJobId } from "@/lib/linkedin-jobs";
+import { normalizeJobPostingUrl } from "@/lib/job-postings";
+import { extractLinkedInJobId, isLinkedInJobUrl } from "@/lib/linkedin-jobs";
 import { parseResumeDocument, resumeDocumentSchema } from "@/lib/resume-templates/document-schema";
 import { queueResumeCompile } from "@/lib/resume-compile";
 import {
@@ -19,7 +20,11 @@ import {
 	resolveUserSelectedTemplate,
 } from "@/lib/resume-templates/registry";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
+import type { fetchJobPosting } from "@/trigger/fetch-job-posting";
 import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
+
+const JOB_POSTING_FALLBACK =
+	"We could not load this job posting. Ask the user to paste the job description text or send screenshots of the posting. Do not invent a job description and do not call create_resume until you have the posting.";
 
 const TURN_RESUME_ID_KEY = "turnResumeId";
 
@@ -568,6 +573,95 @@ export const fetchLinkedInJobTool = createTool({
 			throw new Error(
 				`Could not fetch LinkedIn job. Ensure TRIGGER_SECRET_KEY and FD_PROXY_URL are set and trigger.dev is running. (${message})`,
 			);
+		}
+	},
+});
+
+export const fetchJobPostingTool = createTool({
+	id: "fetch_job_posting",
+	description:
+		"Fetch a job posting from a public careers URL (Workday, Greenhouse, Lever, Ashby, company jobs pages, etc.). Call when the user pasted a job link that is not a LinkedIn jobs URL and did not paste the full job description. If ok is false, tell the user we could not load the page and ask them to paste the job text or send screenshots. Do not use for linkedin.com/jobs — use fetch_linkedin_job instead.",
+	inputSchema: z.object({
+		url: z
+			.string()
+			.min(1)
+			.describe(
+				"Public job posting URL, e.g. a Workday, Greenhouse, Lever, Ashby, or company careers link",
+			),
+	}),
+	outputSchema: z.object({
+		ok: z.boolean(),
+		url: z.string(),
+		title: z.string().optional(),
+		company: z.string().optional(),
+		location: z.string().optional(),
+		description: z.string().optional(),
+		instruction: z.string(),
+	}),
+	execute: async (input, context) => {
+		requireUserId(context?.requestContext);
+
+		if (isLinkedInJobUrl(input.url)) {
+			return {
+				ok: false,
+				url: input.url,
+				instruction:
+					"This is a LinkedIn job URL. Call fetch_linkedin_job with the same URL instead of fetch_job_posting.",
+			};
+		}
+
+		const parsedUrl = normalizeJobPostingUrl(input.url);
+		if (!parsedUrl) {
+			return {
+				ok: false,
+				url: input.url,
+				instruction: JOB_POSTING_FALLBACK,
+			};
+		}
+
+		try {
+			const handle = await tasks.trigger<typeof fetchJobPosting>(
+				"fetch-job-posting",
+				{ url: parsedUrl.toString() },
+			);
+
+			const run = await runs.poll<typeof fetchJobPosting>(handle.id, {
+				pollIntervalMs: 750,
+			});
+
+			if (!run.isSuccess || !run.output) {
+				return {
+					ok: false,
+					url: parsedUrl.toString(),
+					instruction: JOB_POSTING_FALLBACK,
+				};
+			}
+
+			const job = run.output;
+			if (!job.ok || !job.description) {
+				return {
+					ok: false,
+					url: job.url || parsedUrl.toString(),
+					instruction: JOB_POSTING_FALLBACK,
+				};
+			}
+
+			return {
+				ok: true,
+				url: job.url,
+				title: job.title,
+				company: job.company,
+				location: job.location,
+				description: job.description,
+				instruction:
+					"Use description as the jobDescription for tailoring. Pass company as companyName, title as roleTitle, and url as jobLink to create_resume.",
+			};
+		} catch {
+			return {
+				ok: false,
+				url: parsedUrl.toString(),
+				instruction: JOB_POSTING_FALLBACK,
+			};
 		}
 	},
 });

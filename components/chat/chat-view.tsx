@@ -992,7 +992,7 @@ export function ChatView({
 						<div className="space-y-1">
 							<p className="font-medium text-sm">Drop files to attach</p>
 							<p className="text-muted-foreground text-xs">
-								Images, PDFs, and documents up to 10MB
+								Images and PDFs up to 10MB
 							</p>
 						</div>
 					</div>

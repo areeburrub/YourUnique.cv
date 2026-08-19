@@ -86,15 +86,6 @@ export function SiteFooter() {
 					>
 						Areeb ur Rub
 					</Link>
-					{" · "}
-					<Link
-						href="https://github.com/areeburrub/YourUnique.cv"
-						target="_blank"
-						rel="noreferrer"
-						className="font-medium text-foreground transition-colors duration-200 hover:text-brand"
-					>
-						Open source
-					</Link>
 				</p>
 			</div>
 		</footer>

@@ -376,7 +376,7 @@ export function AppSidebar({
 	const { state, setOpenMobile } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
-	const loadMoreRef = useRef<HTMLDivElement | null>(null);
+	const loadMoreRef = useRef<HTMLDivElement>(null);
 
 	const handleOpenNewChat = () => {
 		setOpenMobile(false);
@@ -447,15 +447,15 @@ export function AppSidebar({
 					<div className={navIconSlot}>
 						<BrandSidebarTrigger />
 					</div>
-					<button
-						type="button"
-						onClick={handleOpenNewChat}
+					<Link
+						href="/"
+						onClick={() => setOpenMobile(false)}
 						className="flex min-w-0 flex-1 items-center overflow-hidden rounded-xl px-1 text-left group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none"
 					>
 						<span className="truncate font-display text-[16px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
 							YourUnique.cv
 						</span>
-					</button>
+					</Link>
 					<Button
 						variant="ghost"
 						size="icon-sm"
@@ -477,19 +477,6 @@ export function AppSidebar({
 				<SidebarGroup className="px-1.5">
 					<SidebarGroupContent>
 						<SidebarMenu className="gap-1">
-							<SidebarMenuItem className="hidden group-data-[collapsible=icon]:block">
-								<SidebarMenuButton
-									tooltip="Search"
-									onClick={() => setCommandOpen(true)}
-								>
-									<span className={navIconSlot}>
-										<MagnifyingGlassIcon size={16} weight="duotone" />
-									</span>
-									<span className="min-w-0 truncate pr-2">
-										Search
-									</span>
-								</SidebarMenuButton>
-							</SidebarMenuItem>
 							{primaryNav.map((item) => (
 								<SidebarMenuItem key={item.title}>
 									<SidebarMenuButton
@@ -533,7 +520,11 @@ export function AppSidebar({
 					</SidebarGroupContent>
 				</SidebarGroup>
 
-				<SidebarGroup className="group-data-[collapsible=icon]:hidden">
+				{threads.length > 0 ? (
+				<SidebarGroup
+					aria-hidden={collapsed}
+					className="overflow-hidden opacity-100 transition-opacity duration-300 ease-in-out group-data-[collapsible=icon]:pointer-events-none group-data-[collapsible=icon]:opacity-0"
+				>
 					<div className="flex h-8 items-center justify-between px-2">
 						<SidebarGroupLabel className="p-0 text-[12px] font-medium tracking-[-0.1px] text-muted-soft">
 							Recents
@@ -570,11 +561,7 @@ export function AppSidebar({
 						</DropdownMenu>
 					</div>
 					<SidebarGroupContent>
-						{threads.length === 0 ? (
-							<p className="px-2 text-[12px] text-muted-soft">
-								No chats yet
-							</p>
-						) : groupBy === "date" ? (
+						{groupBy === "date" ? (
 							<div className="flex flex-col gap-2">
 								{dateGroups.map((group) => (
 									<div key={group.label}>
@@ -617,6 +604,7 @@ export function AppSidebar({
 						) : null}
 					</SidebarGroupContent>
 				</SidebarGroup>
+				) : null}
 			</SidebarContent>
 
 			<SidebarFooter className="overflow-hidden px-1.5 py-2">

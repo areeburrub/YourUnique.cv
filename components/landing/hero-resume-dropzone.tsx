@@ -180,7 +180,7 @@ export function HeroResumeDropzone() {
 				{label}
 			</button>
 			<p className="mt-3 text-sm text-muted-foreground">
-				PDF or DOCX · drop a file to start
+				PDF · drop a file to start
 			</p>
 			{error ? (
 				<p className="mt-2 text-sm text-destructive">{error}</p>

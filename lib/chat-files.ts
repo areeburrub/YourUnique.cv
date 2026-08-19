@@ -182,7 +182,7 @@ async function filePartToModelParts(
 	return [
 		{
 			type: "text",
-			text: `The user attached "${filename}" (${mediaType}). Binary Office documents are stored, but only PDF/text/image contents are readable in chat right now. Ask them to paste key text if needed.`,
+			text: `The user attached "${filename}" (${mediaType}). Only PDF and image contents are readable in chat. Ask them to upload a PDF or image, or paste the text.`,
 		},
 	];
 }

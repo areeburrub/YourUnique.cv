@@ -567,7 +567,7 @@ export function OnboardingWizard({
 											Drop or choose your resume
 										</p>
 										<p className="mt-1 text-xs text-muted-foreground">
-											PDF or DOCX preferred
+											PDF, up to 10MB
 										</p>
 									</div>
 								</>
