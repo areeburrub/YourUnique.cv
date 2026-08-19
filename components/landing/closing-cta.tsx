@@ -15,7 +15,7 @@ export function ClosingCta() {
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<SlideButton href="/sign-up">
-							Start {TRIAL_DAYS}-day trial
+							{`Start ${TRIAL_DAYS}-day trial`}
 						</SlideButton>
 						<SlideButton href="/sign-in" variant="outline">
 							Log in
