@@ -13,6 +13,11 @@ type ToolRequestContext = {
 	get: (key: string) => unknown;
 };
 
+function getThreadId(requestContext: ToolRequestContext | undefined) {
+	const id = requestContext?.get("threadId");
+	return typeof id === "string" && id ? id : null;
+}
+
 function requireUserId(requestContext: ToolRequestContext | undefined) {
 	const userId = requestContext?.get("userId");
 	if (typeof userId !== "string" || !userId) {
@@ -115,6 +120,7 @@ export const patchTemplateHtmlTool = createTool({
 			{
 				templateId: template.id,
 				userId,
+				threadId: getThreadId(context?.requestContext) ?? undefined,
 				htmlPatches: input.htmlPatches,
 				schemaPatches: input.schemaPatches,
 			},

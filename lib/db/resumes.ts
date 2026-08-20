@@ -10,16 +10,66 @@ import { DEFAULT_TEMPLATE_REF } from "@/lib/resume-templates/types";
 
 export type ResumeRow = typeof resumes.$inferSelect;
 
-export async function listResumesForUser(userId: string) {
-	return db.query.resumes.findMany({
+export type LatestResumeGroup = {
+	latest: ResumeRow[];
+	versionCountByFamily: Map<string, number>;
+};
+
+function latestPerFamily(rows: ResumeRow[]) {
+	const latestByFamily = new Map<string, ResumeRow>();
+	for (const row of rows) {
+		const current = latestByFamily.get(row.familyId);
+		if (!current || row.version > current.version) {
+			latestByFamily.set(row.familyId, row);
+		}
+	}
+	return [...latestByFamily.values()];
+}
+
+async function groupResumesByFamily(userId: string): Promise<LatestResumeGroup> {
+	const rows = await db.query.resumes.findMany({
 		where: eq(resumes.userId, userId),
 		orderBy: [desc(resumes.createdAt)],
 	});
+	const versionCountByFamily = new Map<string, number>();
+	for (const row of rows) {
+		versionCountByFamily.set(
+			row.familyId,
+			(versionCountByFamily.get(row.familyId) ?? 0) + 1,
+		);
+	}
+	const latest = latestPerFamily(rows).sort(
+		(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+	);
+	return { latest, versionCountByFamily };
+}
+
+export async function listResumesForUser(userId: string) {
+	const { latest } = await groupResumesByFamily(userId);
+	return latest;
+}
+
+export async function listLatestResumesForUser(userId: string) {
+	return groupResumesByFamily(userId);
 }
 
 export async function getResumeForUser(resumeId: string, userId: string) {
 	return db.query.resumes.findFirst({
 		where: and(eq(resumes.id, resumeId), eq(resumes.userId, userId)),
+	});
+}
+
+export async function listResumeVersionsForUser(
+	resumeId: string,
+	userId: string,
+) {
+	const row = await getResumeForUser(resumeId, userId);
+	if (!row) {
+		return [];
+	}
+	return db.query.resumes.findMany({
+		where: and(eq(resumes.userId, userId), eq(resumes.familyId, row.familyId)),
+		orderBy: [desc(resumes.version)],
 	});
 }
 
@@ -33,19 +83,37 @@ export async function getLatestResumeDocumentForTemplateRef(
 ): Promise<Record<string, unknown> | null> {
 	const row = await db.query.resumes.findFirst({
 		where: and(eq(resumes.userId, userId), eq(resumes.templateRef, templateRef)),
-		orderBy: [desc(resumes.updatedAt)],
+		orderBy: [desc(resumes.version), desc(resumes.updatedAt)],
 	});
 	return row ? getResumeDocument(row) : null;
 }
 
-export async function listResumesForUserByTemplateRef(
-	userId: string,
-	templateRef: string,
+export function resumeBelongsToThread(
+	row: ResumeRow,
+	threadId: string | null,
 ) {
-	return db.query.resumes.findMany({
-		where: and(eq(resumes.userId, userId), eq(resumes.templateRef, templateRef)),
-		orderBy: [desc(resumes.updatedAt)],
+	if (!threadId) {
+		return false;
+	}
+	return row.threadId == null || row.threadId === threadId;
+}
+
+export async function listLatestResumesForThread(
+	userId: string,
+	threadId: string,
+	templateRef?: string,
+) {
+	const rows = await db.query.resumes.findMany({
+		where: templateRef
+			? and(
+					eq(resumes.userId, userId),
+					eq(resumes.threadId, threadId),
+					eq(resumes.templateRef, templateRef),
+				)
+			: and(eq(resumes.userId, userId), eq(resumes.threadId, threadId)),
+		orderBy: [desc(resumes.createdAt)],
 	});
+	return latestPerFamily(rows);
 }
 
 export async function createResume(input: {
@@ -57,11 +125,16 @@ export async function createResume(input: {
 	companyName?: string | null;
 	roleTitle?: string | null;
 	jobLink?: string | null;
+	threadId?: string | null;
 }) {
+	const id = nanoid();
 	const [row] = await db
 		.insert(resumes)
 		.values({
-			id: nanoid(),
+			id,
+			familyId: id,
+			version: 1,
+			threadId: input.threadId ?? null,
 			userId: input.userId,
 			name: input.name,
 			templateRef: input.templateRef || DEFAULT_TEMPLATE_REF,
@@ -75,6 +148,64 @@ export async function createResume(input: {
 		.returning();
 
 	return row;
+}
+
+export async function createResumeVersion(input: {
+	userId: string;
+	fromResumeId: string;
+	document: Record<string, unknown>;
+	name?: string;
+	jobDescription?: string | null;
+	companyName?: string | null;
+	roleTitle?: string | null;
+	jobLink?: string | null;
+	threadId?: string | null;
+}) {
+	const from = await getResumeForUser(input.fromResumeId, input.userId);
+	if (!from) {
+		return null;
+	}
+
+	const latest = await db.query.resumes.findFirst({
+		where: and(
+			eq(resumes.userId, input.userId),
+			eq(resumes.familyId, from.familyId),
+		),
+		orderBy: [desc(resumes.version)],
+	});
+
+	const [row] = await db
+		.insert(resumes)
+		.values({
+			id: nanoid(),
+			familyId: from.familyId,
+			version: (latest?.version ?? from.version) + 1,
+			threadId: input.threadId ?? from.threadId,
+			userId: input.userId,
+			name: input.name ?? from.name,
+			templateRef: from.templateRef,
+			sourceJson: input.document,
+			jobDescription:
+				input.jobDescription !== undefined
+					? input.jobDescription
+					: from.jobDescription,
+			companyName:
+				input.companyName !== undefined
+					? input.companyName?.trim() || null
+					: from.companyName,
+			roleTitle:
+				input.roleTitle !== undefined
+					? input.roleTitle?.trim() || null
+					: from.roleTitle,
+			jobLink:
+				input.jobLink !== undefined
+					? input.jobLink?.trim() || null
+					: from.jobLink,
+			compileStatus: "idle",
+		})
+		.returning();
+
+	return row ?? null;
 }
 
 export async function updateResumeForUser(

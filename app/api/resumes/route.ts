@@ -1,7 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 
-import { listResumesForUser } from "@/lib/db/resumes";
-import { toResumeListItem } from "@/lib/resumes";
+import { listResumeItemsForUser } from "@/lib/resume-list";
 
 export const runtime = "nodejs";
 
@@ -11,8 +10,8 @@ export async function GET() {
 		return Response.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
-	const rows = await listResumesForUser(userId);
+	const resumes = await listResumeItemsForUser(userId);
 	return Response.json({
-		resumes: rows.map(toResumeListItem),
+		resumes,
 	});
 }

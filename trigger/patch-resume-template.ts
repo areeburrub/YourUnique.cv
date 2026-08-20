@@ -5,7 +5,7 @@ import { z } from "zod";
 import { insertUserFileRow } from "@/lib/db/files";
 import {
 	getLatestResumeDocumentForTemplateRef,
-	listResumesForUserByTemplateRef,
+	listLatestResumesForThread,
 } from "@/lib/db/resumes";
 import {
 	getResumeTemplateForUser,
@@ -27,6 +27,7 @@ export const patchResumeTemplate = schemaTask({
 	schema: z.object({
 		templateId: z.string().min(1),
 		userId: z.string().min(1),
+		threadId: z.string().min(1).optional(),
 		htmlPatches: z
 			.array(
 				z.object({
@@ -151,10 +152,13 @@ export const patchResumeTemplate = schemaTask({
 			throw new Error("Template not found");
 		}
 
-		const affectedResumes = await listResumesForUserByTemplateRef(
-			payload.userId,
-			customRef(payload.templateId),
-		);
+		const affectedResumes = payload.threadId
+			? await listLatestResumesForThread(
+					payload.userId,
+					payload.threadId,
+					customRef(payload.templateId),
+				)
+			: [];
 		const recompiledResumeIds: string[] = [];
 		for (const resume of affectedResumes) {
 			try {

@@ -11,6 +11,7 @@ import {
 	primaryKey,
 	text,
 	timestamp,
+	uniqueIndex,
 } from "drizzle-orm/pg-core";
 
 import { PLAN_IDS, PlanId } from "@/lib/plans";
@@ -152,6 +153,9 @@ export const resumes = pgTable(
 		userId: text("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
+		familyId: text("family_id").notNull(),
+		version: integer("version").notNull().default(1),
+		threadId: text("thread_id"),
 		name: text("name").notNull(),
 		templateRef: text("template_ref").notNull().default("builtin:classic-serif"),
 		sourceJson: jsonb("source_json")
@@ -182,6 +186,9 @@ export const resumes = pgTable(
 	(table) => [
 		index("resumes_user_id_updated_at_idx").on(table.userId, table.updatedAt),
 		index("resumes_user_id_created_at_idx").on(table.userId, table.createdAt),
+		index("resumes_user_id_family_id_idx").on(table.userId, table.familyId),
+		index("resumes_user_id_thread_id_idx").on(table.userId, table.threadId),
+		uniqueIndex("resumes_family_id_version_uidx").on(table.familyId, table.version),
 	],
 );
 

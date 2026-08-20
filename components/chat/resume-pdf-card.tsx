@@ -99,6 +99,9 @@ export function ResumePdfCard({
 		initialData: compileStatus
 			? ({
 					id: resumeId ?? "",
+					familyId: resumeId ?? "",
+					version: 1,
+					versionCount: 1,
 					name,
 					compileStatus,
 					hasPdf: compileStatus === "ready",

@@ -162,6 +162,13 @@
       "when": 1786624000000,
       "tag": "0022_add_lifetime_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1786625000000,
+      "tag": "0023_resume_versions",
+      "breakpoints": true
     }
   ]
 }

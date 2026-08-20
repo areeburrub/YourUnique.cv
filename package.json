@@ -42,7 +42,7 @@
     "@tiptap/pm": "^3.29.2",
     "@tiptap/react": "^3.29.2",
     "@tiptap/starter-kit": "^3.29.2",
-    "@trigger.dev/sdk": "4.5.11",
+    "@trigger.dev/sdk": "4.5.12",
     "ai": "^7.0.58",
     "ajv": "^8.20.0",
     "ajv-formats": "^3.0.1",
@@ -78,7 +78,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@trigger.dev/build": "4.5.11",
+    "@trigger.dev/build": "4.5.12",
     "@types/canvas-confetti": "^1.9.0",
     "@types/handlebars": "^4.1.0",
     "@types/node": "^26.2.0",

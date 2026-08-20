@@ -3,6 +3,9 @@ import { fileAppUrl } from "@/lib/uploads";
 
 export type ResumeListItem = {
 	id: string;
+	familyId: string;
+	version: number;
+	versionCount: number;
 	name: string;
 	companyName: string | null;
 	roleTitle: string | null;
@@ -16,7 +19,10 @@ export type ResumeListItem = {
 	previewUrl: string | null;
 };
 
-export function toResumeListItem(row: ResumeRow): ResumeListItem {
+export function toResumeListItem(
+	row: ResumeRow,
+	versionCount = 1,
+): ResumeListItem {
 	// Recompiling a resume reuses the same previewFileId (see
 	// upsertResumeBinaryFile), so the URL never changes even though the image
 	// bytes did. /api/files/[id] is cached for an hour, so without a
@@ -25,6 +31,9 @@ export function toResumeListItem(row: ResumeRow): ResumeListItem {
 	const previewVersion = row.compiledAt?.getTime() ?? row.updatedAt.getTime();
 	return {
 		id: row.id,
+		familyId: row.familyId,
+		version: row.version,
+		versionCount,
 		name: row.name,
 		companyName: row.companyName,
 		roleTitle: row.roleTitle,
@@ -51,6 +60,10 @@ export function resumeDownloadPath(
 
 export function resumePreviewPath(resumeId: string) {
 	return resumeDownloadPath(resumeId);
+}
+
+export function resumeHistoryPath(resumeId: string) {
+	return `/resumes/${resumeId}/history`;
 }
 
 export const RESUME_PDF_CARD_TOOLS = [
