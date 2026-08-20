@@ -305,10 +305,10 @@ a {
 							<p class="font-bold">{{title}}</p>
 							<p class="shrink-0 text-small">{{location}}</p>
 						</div>
-						{{#if (or (employment employment) startDate endDate)}}
+						{{#if (or (employment employment) dates)}}
 						<div class="role-meta-row">
 							<p>{{#if (employment employment)}}{{employment employment}}{{else}}&nbsp;{{/if}}</p>
-							<p class="shrink-0">{{dateRange startDate endDate}}</p>
+							<p class="shrink-0">{{dates}}</p>
 						</div>
 						{{/if}}
 						<ul class="sub-list">
@@ -357,7 +357,7 @@ a {
 				</div>
 				<div class="edu-row">
 					<p>{{degree}}</p>
-					<p class="shrink-0">{{dateRange startDate endDate}}</p>
+					<p class="shrink-0">{{dates}}</p>
 				</div>
 			</div>
 			{{/each}}

@@ -51,7 +51,7 @@ Unacceptable: adding tools they have not used, changing numbers, claiming titles
 
 ### 4. Structure the Tailored Resume
 
-YourUnique.cv output is a **structured JSON document** via `create_resume` / `update_resume_document`. The document schema is on those tools. Do not write Typst, LaTeX, HTML, or a Markdown resume document. Prose fields may use inline `**bold**`, `*italic*`, and `[label](https://url)` on a few key terms. Contact and URL fields must be a plain host/path or https URL — never markdown.
+YourUnique.cv output is a **structured JSON document** via `create_resume`. Later edits use `patch_resume` (JSON Pointer ops), not a full rewrite. The document schema is on those tools. Do not write a Typst, LaTeX, Markdown, or full HTML resume document. Prose slots (summary, bullet text) use inline HTML: `<strong>`, `<em>`, `<a href="https://...">label</a>`. No markdown. Contact and URL fields must be a plain host/path or https URL — never markdown or an `<a>` tag.
 
 Follow saved **resume style memory** over the defaults below when they conflict. When the user states a durable writing preference, save it with `update_resume_style`. Do not save one-off edits to a single resume.
 
@@ -74,17 +74,17 @@ Follow saved **resume style memory** over the defaults below when they conflict.
 - Only include skills you can substantiate with experience
 - Each skill group is `{ category, items }` where `items` is one comma-separated string
 - Skills items are names only: software, languages, frameworks, methods. No statements
-- Items are plain text — never `**bold**`, `*italic*`, or links inside a skills string. Bolding belongs only in summary/bullet prose
+- Items are plain text — never tags or links inside a skills string. Bolding belongs only in summary/bullet prose
 - 4–7 categories, each with roughly 4–8 items. If a category is growing past ~8 items, split it into two more specific categories or cut the least relevant ones rather than listing everything
 
 **Professional Experience**:
 - Group by company with nested `roles[]`. Same employer + multiple titles = one company object, multiple roles (do not repeat the company).
-- **Date ranges are mandatory**: every role needs `startDate` and `endDate` (`"Present"` for current). Never invent or guess a date. If a role the user wants included has no date in the saved profile, ask for it before drafting that entry — do not leave it blank or use a placeholder.
+- **Date ranges are mandatory**: every role needs a `dates` string as printed (`"Mar 2024 – Present"`, en dash). Do not send `startDate`/`endDate`. Never invent or guess a date. If a role the user wants included has no date in the saved profile, ask for it before drafting that entry — do not leave it blank or use a placeholder.
 - If dates look inconsistent (overlapping full-time roles, end before start, out-of-order roles at one company), ask the user to confirm rather than silently fixing or dropping them.
 - For each role, emphasize responsibilities and achievements aligned with job requirements
 - Lead each role with the bullet that best matches this JD
-- Write each bullet as a readable sentence in `{ text }` only. Do **not** use `{ label }` or start with a bold category (`**AI product engineering:** …`)
-- Bold skills, tools, metrics, and other important terms inline (`**NestJS**`, `**40%**`). Never bold a whole sentence
+- Write each bullet as a readable sentence in `{ text }` only. Do **not** use `{ label }` or start with a bold category (`<strong>AI product engineering:</strong> …`)
+- Bold skills, tools, metrics, and other important terms inline (`<strong>NestJS</strong>`, `<strong>40%</strong>`). Never bold a whole sentence
 - Use action verbs: Led, Developed, Implemented, Optimized, Managed, Created, Analyzed. Never "Responsible for" or "Helped with"
 - **Quantify achievements**: Include numbers, percentages, timeframes, scale — only from the profile
 - Reorder bullet points to prioritize most relevant experience
@@ -96,7 +96,7 @@ Follow saved **resume style memory** over the defaults below when they conflict.
 - List degrees, certifications relevant to position
 - Include relevant coursework if early career
 - Add certifications that match job requirements
-- **Date ranges are mandatory** here too: `startDate` and `endDate` for every degree. Ask if missing rather than guessing.
+- **Date ranges are mandatory** here too: a `dates` string for every degree. Ask if missing rather than guessing.
 
 **Optional Sections** (if applicable):
 - Certifications & Licenses
@@ -156,7 +156,7 @@ Banned below 60: also "good match" or leading with "strongest alignment".
 
 ### 7. After generate, ATS Analysis in the same reply
 
-When the resume was tailored to a JD, the chat text after `create_resume` / `update_resume_document` must be an ATS Analysis. Same turn. No second rewrite pass.
+When the resume was tailored to a JD, the chat text after `create_resume` / `patch_resume` must be an ATS Analysis. Same turn. No second rewrite pass.
 
 ```markdown
 ## ATS Analysis — {Role} at {Company}

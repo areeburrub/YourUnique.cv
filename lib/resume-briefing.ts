@@ -12,6 +12,7 @@ export type ResumeBriefing = {
 	templateRef: string;
 	templateName: string;
 	templateNotes: string;
+	templateSchema: Record<string, unknown>;
 	resumeStyle: ResumeStyleMemory;
 };
 
@@ -25,6 +26,8 @@ export function isResumeBriefing(value: unknown): value is ResumeBriefing {
 		typeof record.templateRef === "string" &&
 		typeof record.templateName === "string" &&
 		typeof record.templateNotes === "string" &&
+		Boolean(record.templateSchema) &&
+		typeof record.templateSchema === "object" &&
 		Boolean(record.resumeStyle) &&
 		typeof record.resumeStyle === "object"
 	);
@@ -44,6 +47,7 @@ export async function loadResumeBriefing(
 		templateRef: template.ref,
 		templateName: template.name,
 		templateNotes: template.notes,
+		templateSchema: template.inputSchema,
 		resumeStyle: parseResumeStyle(context?.resumeStyle),
 	};
 }
@@ -62,7 +66,12 @@ ${profile}
 ### Template notes
 ${briefing.templateNotes}
 
-The create_resume document schema is the resume JSON shape. Notes are layout/density only.
+### Document JSON schema
+create_resume.document must match this schema. patch_resume applies JSON Pointer ops; the document after those ops must still match. It is specific to this template.
+
+\`\`\`json
+${JSON.stringify(briefing.templateSchema, null, 2)}
+\`\`\`
 
 ## Resume style memory
 ${formatResumeStyleForAgent(briefing.resumeStyle)}`;

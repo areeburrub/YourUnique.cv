@@ -6,8 +6,12 @@ import {
 } from "@/lib/db/templates";
 import { fileAppUrl } from "@/lib/uploads";
 import { getBuiltinTemplate, listBuiltinTemplates } from "@/lib/resume-templates/builtins";
-import { coerceResumeDocument, resumeDocumentJsonSchema } from "@/lib/resume-templates/document-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
+import {
+	jsonSchemaFromZod,
+	parseWithZod,
+	zodFromStoredSchema,
+} from "@/lib/resume-templates/parse";
 import {
 	builtinRef,
 	customRef,
@@ -116,6 +120,7 @@ export async function resolveTemplate(
 			name: template.name,
 			description: template.description,
 			inputSchema: template.inputSchema,
+			documentSchema: template.documentSchema,
 			notes: template.notes,
 			previewUrl: template.previewPath,
 			previewPdfUrl: template.previewPdfPath,
@@ -148,23 +153,29 @@ export async function resolveTemplate(
 		previewPdfUrl = file ? fileAppUrl(file.id) : null;
 	}
 
+	const documentSchema = zodFromStoredSchema(row.inputSchema ?? {});
+
 	return {
 		ref: customRef(row.id),
 		kind: "custom",
 		id: row.id,
 		name: row.name,
 		description: row.description,
-		inputSchema: resumeDocumentJsonSchema,
+		inputSchema: row.inputSchema ?? {},
+		documentSchema,
 		notes: row.notes,
 		previewUrl,
 		previewPdfUrl,
 		status: row.status,
 		error: row.error,
 		render(data) {
-			return renderHandlebarsHtml(row.html, coerceResumeDocument(data));
+			return renderHandlebarsHtml(
+				row.html,
+				parseWithZod(documentSchema, data),
+			);
 		},
 		validate(data) {
-			return coerceResumeDocument(data);
+			return parseWithZod(documentSchema, data);
 		},
 	};
 }

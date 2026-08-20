@@ -1,12 +1,11 @@
 import Handlebars from "handlebars";
 
-import { dateRangeFromHelperArgs } from "@/lib/resume-templates/dates";
 import {
 	escapeHtml,
 	hrefForHostPath,
 	stripUrlScheme,
 } from "@/lib/resume-templates/escape";
-import { formatInlineMarkup } from "@/lib/resume-templates/inline-format";
+import { sanitizeSlotHtml } from "@/lib/resume-templates/sanitize-slot";
 import { sanitizeTemplateHtml } from "@/lib/resume-templates/sanitize-html";
 import {
 	assertNoObjectObject,
@@ -29,15 +28,12 @@ function escapeExpression(value: unknown) {
 	if (value == null) {
 		return "";
 	}
-	return formatInlineMarkup(value);
+	return sanitizeSlotHtml(stringifyTemplateValue(value));
 }
 
 Handlebars.Utils.escapeExpression = escapeExpression;
 
 const runtime = Handlebars.create();
-runtime.registerHelper("rich", (value: unknown) => {
-	return new Handlebars.SafeString(formatInlineMarkup(value));
-});
 
 runtime.registerHelper("eq", (a: unknown, b: unknown) => a === b);
 runtime.registerHelper("ne", (a: unknown, b: unknown) => a !== b);
@@ -59,16 +55,6 @@ runtime.registerHelper("hostPath", (value: unknown) =>
 runtime.registerHelper("href", (value: unknown) =>
 	safePlain(hrefForHostPath(stringifyTemplateValue(value))),
 );
-runtime.registerHelper("dateRange", (...args: unknown[]) =>
-	dateRangeFromHelperArgs(args),
-);
-runtime.registerHelper("gpaScore", (value: unknown) => {
-	const trimmed = stringifyTemplateValue(value).trim();
-	if (!trimmed) {
-		return "";
-	}
-	return trimmed.replace(/\s*(?:\/|out\s+of)\s*[\d.]+/gi, "").trim();
-});
 runtime.registerHelper("employment", (value: unknown) => {
 	const trimmed = stringifyTemplateValue(value).trim();
 	if (!trimmed || /not specified|unknown|n\/a|^none$/i.test(trimmed)) {

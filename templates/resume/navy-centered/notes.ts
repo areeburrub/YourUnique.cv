@@ -1,15 +1,17 @@
 export const notes = `# Navy Centered template notes
 
-You produce a **structured JSON document** matching the \`create_resume\` / \`update_resume_document\` schema. Layout notes below are how this page reads — not a second schema.
+You produce a **structured JSON document** matching **this template's** schema (injected into the briefing / create_resume). Layout notes below are how this page reads.
 
-The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markdown resumes, HTML, or any markup.
+The app renders the PDF from this template. Do **not** write a Typst, LaTeX, Markdown, or full HTML resume document.
+
+This layout **requires** top-level \`location\` in the centered header. Education may include optional \`gpa\`. Do not send certifications, languages, or awards — they are not rendered.
 
 ## Layout (how this page reads)
 
 - Centered header: name, then location / phone / email, then website / GitHub / LinkedIn
 - **Location belongs in the header** — it is not omitted
 - Section titles render as EXECUTIVE SUMMARY, WORK EXPERIENCE, SKILLS, PROJECTS, EDUCATION
-- Dates render as \`Mon YYYY – Present\` (en dash). Never put date objects in JSON — use strings
+- Dates render as one \`dates\` string: \`Mar 2024 – Present\` (en dash). Do not send startDate/endDate or date objects.
 - Projects render as **Name (url)** plus their own bullets, not a one-line dump
 
 ## Work experience nesting (critical)
@@ -17,7 +19,7 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - Group by **company**. One company object can contain multiple \`roles\`.
 - Same company, different titles (e.g. Intern → Founding Engineer) = **one** company with **two** roles — do not repeat the company name as separate top-level entries.
 - Most recent company first; most recent role first within a company.
-- Write bullets as readable sentences in \`{ "text": "..." }\` only. Omit \`label\`. Do not start with a bold category (\`**AI product engineering:** …\`). Bold skills, tools, and metrics inline inside the sentence.
+- Write bullets as readable sentences in \`{ "text": "..." }\` only. Omit \`label\`. Do not start with a bold category (\`<strong>AI product engineering:</strong> …\`). Bold skills, tools, and metrics inline with \`<strong>\`.
 
 ## Field rules
 
@@ -28,10 +30,10 @@ The app renders the PDF from this template. Do **not** write Typst, LaTeX, Markd
 - \`location\` on roles: real city / \`"Remote"\` from the profile
 - \`skills[].items\`: one comma-separated string
 - \`projects[].stack\`: comma-separated tech stack for that project when known
-- Dates: \`"Mon YYYY"\` / \`"Present"\` — always strings
+- \`dates\`: one ready-to-print string, e.g. \`"Mar 2024 – Present"\` (en dash). Do not send startDate/endDate.
 - \`education[].gpa\`: score with label only, e.g. \`"CGPA 8.72"\` or \`"GPA 3.8"\`. No /10, /4.0, or "out of". Omit if unknown — do not invent a score
 - This layout is **one A4 page by design**. Stay on one page: ~3–5 bullets on the current role, 2–3 on older roles, 1–2 project bullets, a short summary. Cut older or weaker items before overflowing.
-- Prose fields (\`summary\`, bullet \`text\`, skill \`items\`) may use inline \`**bold**\`, \`*italic*\`, and \`[label](https://url)\`. Bold a few metrics and technologies, not whole sentences. No HTML, Typst, or LaTeX in strings.
+- Prose fields (\`summary\`, bullet \`text\`) may use inline \`<strong>\`, \`<em>\`, and \`<a href="https://...">label</a>\`. Bold a few metrics and technologies, not whole sentences. No markdown. Skills \`items\` stay plain text.
 
 ## Projects
 
@@ -51,7 +53,7 @@ This template gives each project a title line and its own bullets.
 ## Tools
 
 - \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
-- \`update_resume_document\` — \`{ id, document }\` full replace (also queues PDF)
+- \`patch_resume\` — \`{ id, patches[] }\` JSON Pointer ops on the saved document (also queues PDF). Do not resend the full document.
 - Give the user \`downloadUrl\`. Do not fetch the PDF yourself
 - If this resume was tailored to a JD, the same chat reply is an ATS Analysis: score /100, Area/Match table, biggest-gaps list. No extra tools
 `;

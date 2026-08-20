@@ -17,6 +17,7 @@ import {
 	ConversationContent,
 	ConversationEmptyState,
 	ConversationScrollButton,
+	ConversationScrollOnUserMessage,
 } from "@/components/ai-elements/conversation";
 import { Message, MessageContent } from "@/components/ai-elements/message";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -919,6 +920,10 @@ export function ChatView({
 							<ConversationContent className="gap-4 px-4 py-4">
 								{messageList}
 							</ConversationContent>
+							<ConversationScrollOnUserMessage
+								userMessageId={lastUserMessage?.id}
+								force={status === "submitted"}
+							/>
 							<ConversationScrollButton />
 						</>
 					)}
@@ -1022,6 +1027,10 @@ export function ChatView({
 						<ConversationContent className="mx-auto w-full max-w-3xl gap-6 px-4 py-6 sm:px-6">
 							{messageList}
 						</ConversationContent>
+						<ConversationScrollOnUserMessage
+							userMessageId={lastUserMessage?.id}
+							force={status === "submitted"}
+						/>
 						<ConversationScrollButton />
 					</Conversation>
 					{composer}

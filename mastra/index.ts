@@ -4,6 +4,7 @@ import { PostgresStore } from "@mastra/pg";
 import { appAgent } from "./agents/app-agent";
 import { profileEditAgent } from "./agents/profile-edit-agent";
 import { resumeAgent } from "./agents/resume-agent";
+import { templateCustomizerAgent } from "./agents/template-customizer-agent";
 
 const storage = new PostgresStore({
 	id: "yourunique-cv",
@@ -16,6 +17,7 @@ export const mastra = new Mastra({
 		appAgent,
 		resumeAgent,
 		profileEditAgent,
+		templateCustomizerAgent,
 	},
 	storage,
 });

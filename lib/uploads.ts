@@ -62,7 +62,7 @@ export function fileAppUrl(fileId: string) {
 }
 
 export function parseFileIdFromAppUrl(url: string) {
-	const match = url.match(/^\/api\/files\/([^/?#]+)$/);
+	const match = url.match(/^\/api\/files\/([^/?#]+)(?:[?#].*)?$/);
 	return match?.[1] ?? null;
 }
 

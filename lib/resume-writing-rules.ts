@@ -1,14 +1,14 @@
 export const RESUME_TAILORING_RULES = `When a job description or target role is present:
 - Split JD terms into required vs preferred. Required = must/essential/Requirements/"you have"/mentioned 3+ times. Preferred = bonus/nice-to-have/mentioned 1–2 times.
 - Reorder and emphasize only real profile facts. Do not invent employers, titles, metrics, dates, skills, or certs.
-- Every experience role and education entry needs startDate and endDate ("Present" for current). Mandatory, not optional. Never invent a date — if one is missing from the profile, ask via profile-edit-agent before including that entry.
+- Every experience role and education entry needs a dates string ("Mar 2024 – Present"). Mandatory, not optional. Never invent a date — if one is missing from the profile, ask via profile-edit-agent before including that entry. Do not send startDate/endDate.
 - Summary: 3–4 lines, years + target field, 3–4 required JD skills you actually have, in the posting's wording.
-- Skills: required tools first, exact JD wording when it matches real experience. Group as { category, items } with items as one comma-separated string, plain text only (no **bold**, no links) — bolding belongs in the summary and bullets, never in skills items. 4–7 categories, each with roughly 4–8 items; split or drop items rather than cramming one category with 10+ terms.
+- Skills: required tools first, exact JD wording when it matches real experience. Group as { category, items } with items as one comma-separated string, plain text only (no tags, no links) — bolding belongs in the summary and bullets, never in skills items. 4–7 categories, each with roughly 4–8 items; split or drop items rather than cramming one category with 10+ terms.
 - Bullets: full sentences (Action + What + How/Why + Result) in { text } only. No { label } / no bold category prefix. Bold skills, tools, and metrics inline. Quantify only with real numbers from the profile. Lead each role with the bullet that best matches this JD.
 - Place real JD terms in summary, then skills, then bullets. Critical terms 2–4×, important 1–2×. Never keyword-stuff.
 - One A4 page. More bullets on the current role, fewer on older ones.`;
 
-export const RESUME_ATS_REPORT_RULES = `After create_resume or update_resume_document, if this resume was tailored to a job description, the chat reply MUST be an ATS Analysis in this exact shape. Same turn. No extra tools. Do not rewrite the resume for this. Skip only if there is no JD.
+export const RESUME_ATS_REPORT_RULES = `After create_resume or patch_resume, if this resume was tailored to a job description, the chat reply MUST be an ATS Analysis in this exact shape. Same turn. No extra tools. Do not rewrite the resume for this. Skip only if there is no JD.
 
 Score the SAVED resume document against THIS JD only. Not a vendor ATS number. Not the profile. Not implied skill.
 
@@ -91,5 +91,5 @@ export const RESUME_HUMANIZER_RULES = `Apply these while writing summary + bulle
 - No "not only / not just… it's…". No rule-of-three padding.
 - Prefer "is/are" and concrete verbs (built, shipped, cut, led).
 - Keep metrics and tech exactly as in the profile. Rewrite wording, do not drop facts.
-- Inline **bold** skills, tools, and metrics in summary and bullets only. Never start a bullet with a bold category. Never bold a whole sentence. Never bold inside skills items — those are plain comma-separated text.
-- Optional *italic* or [label](https://url) on a few key terms.`;
+- Inline <strong> on skills, tools, and metrics in summary and bullets only. Never start a bullet with a bold category. Never bold a whole sentence. Never bold inside skills items — those are plain comma-separated text.
+- Optional <em> or <a href="https://...">label</a> on a few key terms. No markdown.`;

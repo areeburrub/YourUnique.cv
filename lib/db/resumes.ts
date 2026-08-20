@@ -27,6 +27,27 @@ export function getResumeDocument(row: ResumeRow): Record<string, unknown> {
 	return (row.sourceJson ?? {}) as Record<string, unknown>;
 }
 
+export async function getLatestResumeDocumentForTemplateRef(
+	userId: string,
+	templateRef: string,
+): Promise<Record<string, unknown> | null> {
+	const row = await db.query.resumes.findFirst({
+		where: and(eq(resumes.userId, userId), eq(resumes.templateRef, templateRef)),
+		orderBy: [desc(resumes.updatedAt)],
+	});
+	return row ? getResumeDocument(row) : null;
+}
+
+export async function listResumesForUserByTemplateRef(
+	userId: string,
+	templateRef: string,
+) {
+	return db.query.resumes.findMany({
+		where: and(eq(resumes.userId, userId), eq(resumes.templateRef, templateRef)),
+		orderBy: [desc(resumes.updatedAt)],
+	});
+}
+
 export async function createResume(input: {
 	userId: string;
 	name: string;

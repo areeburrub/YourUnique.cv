@@ -1,6 +1,9 @@
 import { builtinTemplateSources } from "@/templates/resume";
-import { parseResumeDocument } from "@/lib/resume-templates/document-schema";
 import { renderHandlebarsHtml } from "@/lib/resume-templates/handlebars";
+import {
+	jsonSchemaFromZod,
+	parseWithZod,
+} from "@/lib/resume-templates/parse";
 import type { BuiltinTemplateDefinition } from "@/lib/resume-templates/types";
 
 const builtins: BuiltinTemplateDefinition[] = builtinTemplateSources.map(
@@ -9,7 +12,8 @@ const builtins: BuiltinTemplateDefinition[] = builtinTemplateSources.map(
 		name: source.name,
 		description: source.description,
 		notes: source.notes,
-		inputSchema: source.schema,
+		documentSchema: source.documentSchema,
+		inputSchema: jsonSchemaFromZod(source.documentSchema),
 		previewPath: source.previewPath,
 		previewPdfPath: source.previewPdfPath,
 		category: source.category,
@@ -17,10 +21,10 @@ const builtins: BuiltinTemplateDefinition[] = builtinTemplateSources.map(
 		formats: source.formats,
 		styleLabel: source.styleLabel,
 		validate(data) {
-			return parseResumeDocument(data);
+			return parseWithZod(source.documentSchema, data);
 		},
 		render(data) {
-			const document = parseResumeDocument(data);
+			const document = parseWithZod(source.documentSchema, data);
 			return renderHandlebarsHtml(source.html, document);
 		},
 	}),

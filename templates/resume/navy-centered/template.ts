@@ -329,7 +329,7 @@ a {
                 <div class="role">
                     <div class="split">
                         <p class="title">{{title}}</p>
-                        <p class="meta">{{dateRange startDate endDate}}</p>
+                        <p class="meta">{{dates}}</p>
                     </div>
                     {{#if (employment employment)}}
                     <p class="employment">{{employment employment}}</p>
@@ -384,8 +384,8 @@ a {
                     <p class="meta">{{location}}</p>
                 </div>
                 <div class="split">
-                    <p class="degree">{{degree}}{{#if gpa}}, {{gpaScore gpa}}{{/if}}</p>
-                    <p class="meta">{{dateRange startDate endDate}}</p>
+                    <p class="degree">{{degree}}{{#if gpa}}, {{gpa}}{{/if}}</p>
+                    <p class="meta">{{dates}}</p>
                 </div>
             </article>
             {{/each}}

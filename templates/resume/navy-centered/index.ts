@@ -1,7 +1,7 @@
 import type { BuiltinTemplateSource } from "../types";
 import { notes } from "./notes";
 import { sampleData } from "./sample-data";
-import { schema } from "./schema";
+import { documentSchema } from "./schema";
 import { html } from "./template";
 
 export const navyCentered = {
@@ -12,7 +12,7 @@ export const navyCentered = {
     folder: "navy-centered",
     html,
     notes,
-    schema: schema as Record<string, unknown>,
+    documentSchema,
     sampleData: sampleData as Record<string, unknown>,
     previewPath: "/templates/builtins/navy-centered/preview.png",
     previewPdfPath: "/templates/builtins/navy-centered/preview.pdf",

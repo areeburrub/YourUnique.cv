@@ -17,6 +17,12 @@ export type ResumeListItem = {
 };
 
 export function toResumeListItem(row: ResumeRow): ResumeListItem {
+	// Recompiling a resume reuses the same previewFileId (see
+	// upsertResumeBinaryFile), so the URL never changes even though the image
+	// bytes did. /api/files/[id] is cached for an hour, so without a
+	// cache-busting version param the browser would keep showing the stale
+	// thumbnail until the cache expires.
+	const previewVersion = row.compiledAt?.getTime() ?? row.updatedAt.getTime();
 	return {
 		id: row.id,
 		name: row.name,
@@ -29,7 +35,9 @@ export function toResumeListItem(row: ResumeRow): ResumeListItem {
 		createdAt: row.createdAt.toISOString(),
 		updatedAt: row.updatedAt.toISOString(),
 		hasPdf: Boolean(row.pdfFileId),
-		previewUrl: row.previewFileId ? fileAppUrl(row.previewFileId) : null,
+		previewUrl: row.previewFileId
+			? `${fileAppUrl(row.previewFileId)}?v=${previewVersion}`
+			: null,
 	};
 }
 
@@ -47,9 +55,11 @@ export function resumePreviewPath(resumeId: string) {
 
 export const RESUME_PDF_CARD_TOOLS = [
 	"create_resume",
+	"patch_resume",
 	"update_resume_document",
 	"compile_resume",
 	"get_resume_download",
+	"patch_template_html",
 ] as const;
 
 export function isResumePdfCardTool(name: string) {

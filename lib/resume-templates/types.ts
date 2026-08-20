@@ -1,3 +1,5 @@
+import type { ZodType } from "zod";
+
 export const DEFAULT_TEMPLATE_REF = "builtin:classic-serif";
 
 export type TemplateKind = "builtin" | "custom";
@@ -13,6 +15,7 @@ export type ResolvedTemplate = {
 	name: string;
 	description: string;
 	inputSchema: Record<string, unknown>;
+	documentSchema: ZodType;
 	notes: string;
 	previewUrl: string | null;
 	previewPdfUrl: string | null;
@@ -46,6 +49,7 @@ export type BuiltinTemplateDefinition = {
 	description: string;
 	notes: string;
 	inputSchema: Record<string, unknown>;
+	documentSchema: ZodType;
 	previewPath: string | null;
 	previewPdfPath: string | null;
 	category: string;

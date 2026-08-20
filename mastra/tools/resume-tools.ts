@@ -13,12 +13,12 @@ import {
 } from "@/lib/db/resumes";
 import { normalizeJobPostingUrl } from "@/lib/job-postings";
 import { extractLinkedInJobId, isLinkedInJobUrl } from "@/lib/linkedin-jobs";
-import { parseResumeDocument, resumeDocumentSchema } from "@/lib/resume-templates/document-schema";
 import { queueResumeCompile } from "@/lib/resume-compile";
 import {
 	resolveTemplate,
 	resolveUserSelectedTemplate,
 } from "@/lib/resume-templates/registry";
+import { applyResumePatches } from "@/lib/resume-templates/patch";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
 import type { fetchJobPosting } from "@/trigger/fetch-job-posting";
 import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
@@ -53,6 +53,24 @@ function setTurnResumeId(
 	requestContext?.set?.(TURN_RESUME_ID_KEY, id);
 }
 
+export async function documentSchemaFromRequest(
+	requestContext: ToolRequestContext | undefined,
+) {
+	const userId =
+		typeof requestContext?.get === "function"
+			? requestContext.get("userId")
+			: undefined;
+	if (typeof userId !== "string" || !userId) {
+		return z.record(z.string(), z.unknown());
+	}
+	try {
+		const template = await resolveUserSelectedTemplate(userId);
+		return template.documentSchema;
+	} catch {
+		return z.record(z.string(), z.unknown());
+	}
+}
+
 function appBaseUrl() {
 	const explicit = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "");
 	if (explicit) {
@@ -78,7 +96,7 @@ function resumeDownloadUrl(resumeId: string) {
 	return `${appBaseUrl()}/api/resumes/${resumeId}/download?download=1`;
 }
 
-function resumeLinkPayload(row: {
+export function resumeLinkPayload(row: {
 	id: string;
 	name: string;
 	compileStatus: string;
@@ -194,7 +212,7 @@ export const getResumeTool = createTool({
 export const getResumeTemplateNotesTool = createTool({
 	id: "get_resume_template_notes",
 	description:
-		"Read a resume template's layout notes. The document shape is the create_resume / update_resume_document schema — call only when editing an existing resume that may use a different template (pass resumeId).",
+		"Read this template's layout notes and JSON schema. Pass resumeId when editing an existing resume so notes/schema match that resume even if the user changed their default template.",
 	inputSchema: z.object({
 		resumeId: z
 			.string()
@@ -233,10 +251,11 @@ export const getResumeTemplateNotesTool = createTool({
 	},
 });
 
-export const createResumeTool = createTool({
+export function makeCreateResumeTool(documentSchema: z.ZodType) {
+	return createTool({
 	id: "create_resume",
 	description:
-		"Create a resume from structured document JSON and queue the PDF. The document field is the resume schema — dates are strings, bullets are { text }, skills.items is one comma-separated string. Never send HTML, Typst, or LaTeX. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only (summary, bullets, skills). website/github/linkedin/url/companyUrl must be a plain host/path or https URL. One resume per turn — a second call updates the first. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
+		"Create a resume from structured document JSON and queue the PDF. document must match this template's schema. Never send a Typst, LaTeX, or full HTML resume. Prose slots (summary, bullet text) use inline HTML: <strong>, <em>, <a href>. No markdown. website/github/linkedin/url/companyUrl must be a plain host/path or https URL. One resume per turn — later edits use patch_resume on this id. When tailored to a job, always pass companyName, roleTitle, and jobLink when known.",
 	inputSchema: z.object({
 		name: z
 			.string()
@@ -245,8 +264,8 @@ export const createResumeTool = createTool({
 			.describe(
 				"Display name for this resume, preferably like 'Role @ Company' when tailored",
 			),
-		document: resumeDocumentSchema.describe(
-			"Structured resume JSON. startDate/endDate are strings like \"Jun 2021\" / \"Present\". Group experience by company with roles[]. Write bullets as { text }. skills[].items is one comma-separated string.",
+		document: documentSchema.describe(
+			"Structured resume JSON matching this template's schema.",
 		),
 		jobDescription: z
 			.string()
@@ -291,7 +310,11 @@ export const createResumeTool = createTool({
 			if (!existing) {
 				throw new Error("Resume not found");
 			}
-			const document = parseResumeDocument(input.document);
+			const template = await resolveTemplate(
+				normalizeTemplateRef(existing.templateRef),
+				userId,
+			);
+			const document = template.validate(input.document);
 			const row = await updateResumeForUser(turnResumeId, userId, {
 				name: input.name,
 				document,
@@ -322,7 +345,7 @@ export const createResumeTool = createTool({
 		const contextRow = await getUserContext(userId);
 		const templateRef = normalizeTemplateRef(contextRow?.templateRef);
 		const template = await resolveTemplate(templateRef, userId);
-		const document = parseResumeDocument(input.document);
+		const document = template.validate(input.document);
 		const row = await createResume({
 			userId,
 			name: input.name,
@@ -350,19 +373,42 @@ export const createResumeTool = createTool({
 		};
 	},
 });
+}
 
-export const updateResumeDocumentTool = createTool({
-	id: "update_resume_document",
+const resumePatchSchema = z.object({
+	op: z
+		.enum(["replace", "add", "remove"])
+		.describe("replace an existing slot, add a list item, or remove a path"),
+	path: z
+		.string()
+		.min(2)
+		.describe(
+			"JSON Pointer from the document root, e.g. /summary or /experience/0/roles/0/dates. Append to a list with /skills/- or /experience/0/roles/0/bullets/-",
+		),
+	value: z
+		.any()
+		.optional()
+		.describe("Required for replace and add. Omit for remove."),
+});
+
+export function makePatchResumeTool(documentSchema: z.ZodType) {
+	return createTool({
+	id: "patch_resume",
 	description:
-		"Replace the structured resume JSON for an existing generation and queue a new PDF. Document must match the resume document schema (same as create_resume). Send the full updated document. Inline **bold**, *italic*, and [label](https://url) are OK in prose fields only; website/github/linkedin/url/companyUrl must be a plain host/path or https URL. Do not send HTML.",
+		"Patch an existing resume and queue a new PDF. Send only the slots that change as JSON Pointer ops — do not resend the full document. Prose values use inline HTML (<strong>, <em>, <a href>), not markdown. After apply, the document must still match this template's schema.",
 	inputSchema: z.object({
 		id: z.string().min(1),
-		document: resumeDocumentSchema,
+		patches: z
+			.array(resumePatchSchema)
+			.min(1)
+			.describe("Ordered patches. Applied in order to the saved document."),
 	}),
 	outputSchema: z.object({
 		ok: z.boolean(),
 		id: z.string(),
 		name: z.string(),
+		applied: z.number(),
+		document: documentSchema,
 		updatedAt: z.string().nullable(),
 		compileStatus: z.string(),
 		previewUrl: z.string(),
@@ -376,7 +422,15 @@ export const updateResumeDocumentTool = createTool({
 		if (!existing) {
 			throw new Error("Resume not found");
 		}
-		const document = parseResumeDocument(input.document);
+		const template = await resolveTemplate(
+			normalizeTemplateRef(existing.templateRef),
+			userId,
+		);
+		const patched = applyResumePatches(
+			getResumeDocument(existing),
+			input.patches,
+		);
+		const document = template.validate(patched);
 		const row = await replaceResumeDocument(input.id, userId, document);
 		if (!row) {
 			throw new Error("Resume not found");
@@ -390,11 +444,14 @@ export const updateResumeDocumentTool = createTool({
 			ok: true,
 			id: queued.resume.id,
 			name: queued.resume.name,
+			applied: input.patches.length,
+			document,
 			updatedAt: queued.resume.updatedAt.toISOString(),
 			...resumeLinkPayload(queued.resume),
 		};
 	},
 });
+}
 
 export const renameResumeTool = createTool({
 	id: "rename_resume",
@@ -427,7 +484,7 @@ export const renameResumeTool = createTool({
 export const compileResumeTool = createTool({
 	id: "compile_resume",
 	description:
-		"Queue a PDF compile for an existing resume. create_resume and update_resume_document already do this — only call for a resume that has no PDF yet.",
+		"Queue a PDF compile for an existing resume. create_resume and patch_resume already do this — only call for a resume that has no PDF yet.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),

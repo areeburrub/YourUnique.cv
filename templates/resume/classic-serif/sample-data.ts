@@ -2,7 +2,6 @@ export const sampleData = {
 	"name": "Alex Rivera",
 	"email": "alex.rivera@email.com",
 	"phone": "+1 (415) 555-0148",
-	"location": "San Francisco, CA",
 	"github": "github.com/alexrivera",
 	"linkedin": "linkedin.com/in/alexrivera",
 	"website": "alexrivera.dev",
@@ -16,8 +15,7 @@ export const sampleData = {
 					"title": "Senior Product Engineer",
 					"location": "San Francisco, CA",
 					"employment": "Full-time",
-					"startDate": "Mar 2024",
-					"endDate": "Present",
+					"dates": "Mar 2024 – Present",
 					"bullets": [
 						{
 							"label": "Platform",
@@ -41,8 +39,7 @@ export const sampleData = {
 					"title": "Product Engineer",
 					"location": "San Francisco, CA",
 					"employment": "Full-time",
-					"startDate": "Jan 2022",
-					"endDate": "Feb 2024",
+					"dates": "Jan 2022 – Feb 2024",
 					"bullets": [
 						{
 							"label": "Realtime",
@@ -66,8 +63,7 @@ export const sampleData = {
 					"title": "Software Engineer",
 					"location": "Remote",
 					"employment": "Full-time",
-					"startDate": "Jun 2020",
-					"endDate": "Dec 2021",
+					"dates": "Jun 2020 – Dec 2021",
 					"bullets": [
 						{
 							"label": "Dashboards",
@@ -91,8 +87,7 @@ export const sampleData = {
 					"title": "Software Engineering Intern",
 					"location": "Berkeley, CA",
 					"employment": "Internship",
-					"startDate": "May 2019",
-					"endDate": "Aug 2019",
+					"dates": "May 2019 – Aug 2019",
 					"bullets": [
 						{
 							"text": "Prototyped document search with Elasticsearch; improved internal findability for 200+ research notes."
@@ -131,8 +126,6 @@ export const sampleData = {
 		{
 			"name": "Ledger Lite",
 			"url": "ledgerlite.dev",
-			"startDate": "2023",
-			"endDate": "Present",
 			"stack": "Next.js, PostgreSQL, Stripe, Playwright",
 			"bullets": [
 				{
@@ -156,8 +149,6 @@ export const sampleData = {
 		{
 			"name": "Schema Garden",
 			"url": "schemagarden.dev",
-			"startDate": "2021",
-			"endDate": "2022",
 			"stack": "Go, PostgreSQL, React",
 			"bullets": [
 				{
@@ -177,8 +168,7 @@ export const sampleData = {
 			"school": "University of California, Berkeley",
 			"location": "Berkeley, CA",
 			"degree": "B.S. Computer Science",
-			"startDate": "Aug 2016",
-			"endDate": "May 2020"
+			"dates": "Aug 2016 – May 2020"
 		}
 	]
 } as const satisfies Record<string, unknown>;
