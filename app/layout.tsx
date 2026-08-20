@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ui } from "@clerk/ui";
+import { Analytics } from "@vercel/analytics/next";
 import { Inter, Inter_Tight } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 
@@ -203,6 +204,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 					>
 						{children}
 						<MixpanelProvider />
+						<Analytics />
 					</ClerkProvider>
 				</ThemeProvider>
 			</body>
