@@ -98,6 +98,7 @@ type OnboardingWizardProps = {
 	initialResumeMediaType: string;
 	initialLinkedinUrl: string;
 	initialIntroduction: string;
+	initialProfileReady: boolean;
 };
 
 export function OnboardingWizard({
@@ -107,6 +108,7 @@ export function OnboardingWizard({
 	initialResumeMediaType,
 	initialLinkedinUrl,
 	initialIntroduction,
+	initialProfileReady,
 }: OnboardingWizardProps) {
 	const [step, setStep] = useState<WizardStep>(initialStep);
 	const [fileId, setFileId] = useState(initialResumeFileId);
@@ -121,12 +123,18 @@ export function OnboardingWizard({
 	const [generateStage, setGenerateStage] =
 		useState<GenerateStage>("analyzing");
 	const [profilePreview, setProfilePreview] = useState("");
+	const [profileReady, setProfileReady] = useState(initialProfileReady);
 	const [submittingPlan, setSubmittingPlan] = useState<PlanIdType | null>(
 		null,
 	);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const generateStartedRef = useRef(false);
 	const pendingStartedRef = useRef(false);
+	const generatedInputsRef = useRef({
+		fileId: initialResumeFileId,
+		linkedinUrl: initialLinkedinUrl.trim(),
+		notes: initialIntroduction.trim(),
+	});
 
 	useEffect(() => {
 		trackEvent(MixpanelEvent.OnboardingStepViewed, { step });
@@ -268,6 +276,11 @@ export function OnboardingWizard({
 		}
 	}
 
+	function goBackToNotes() {
+		generateStartedRef.current = false;
+		setStep("notes");
+	}
+
 	async function startGenerate(skipNotes = false) {
 		if (!fileId) {
 			setError("Upload your resume to continue.");
@@ -305,6 +318,22 @@ export function OnboardingWizard({
 			return;
 		}
 		setSavingStep(false);
+
+		const nextInputs = {
+			fileId,
+			linkedinUrl: linkedinUrl.trim(),
+			notes: introduction,
+		};
+		if (
+			profileReady &&
+			nextInputs.fileId === generatedInputsRef.current.fileId &&
+			nextInputs.linkedinUrl === generatedInputsRef.current.linkedinUrl &&
+			nextInputs.notes === generatedInputsRef.current.notes
+		) {
+			setStep("template");
+			return;
+		}
+
 		generateStartedRef.current = true;
 		setProfilePreview("");
 		setGenerateStage("analyzing");
@@ -395,6 +424,12 @@ export function OnboardingWizard({
 				introduction: notes.trim(),
 			});
 
+			generatedInputsRef.current = {
+				fileId,
+				linkedinUrl: linkedinUrl.trim(),
+				notes: notes.trim(),
+			};
+			setProfileReady(true);
 			setGenerateStage("done");
 			trackEvent(MixpanelEvent.OnboardingProfileGenerationCompleted);
 			fireConfetti();
@@ -475,7 +510,7 @@ export function OnboardingWizard({
 			<OnboardingTemplateStep
 				resumeFileId={fileId}
 				resumeMediaType={mediaType}
-				onBack={() => setStep("notes")}
+				onBack={goBackToNotes}
 				onContinue={() => setStep("plan")}
 			/>
 		);
@@ -493,6 +528,11 @@ export function OnboardingWizard({
 	}
 
 	const meta = STEP_META[step];
+	const canReuseProfile =
+		profileReady &&
+		fileId === generatedInputsRef.current.fileId &&
+		linkedinUrl.trim() === generatedInputsRef.current.linkedinUrl &&
+		notes.trim() === generatedInputsRef.current.notes;
 
 	return (
 		<div className="mx-auto flex w-full max-w-xl flex-1 flex-col px-4 py-10 sm:px-6 sm:py-14">
@@ -668,15 +708,17 @@ export function OnboardingWizard({
 							Back
 						</Button>
 						<div className="flex gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								disabled={savingStep}
-								onClick={() => void startGenerate(true)}
-								className="cursor-pointer"
-							>
-								Skip
-							</Button>
+							{canReuseProfile ? null : (
+								<Button
+									type="button"
+									variant="outline"
+									disabled={savingStep}
+									onClick={() => void startGenerate(true)}
+									className="cursor-pointer"
+								>
+									Skip
+								</Button>
+							)}
 							<Button
 								type="button"
 								disabled={savingStep}
@@ -684,7 +726,7 @@ export function OnboardingWizard({
 								className="cursor-pointer"
 							>
 								{savingStep ? <Spinner className="size-4" /> : null}
-								Build my profile
+								{canReuseProfile ? "Continue" : "Build my profile"}
 							</Button>
 						</div>
 					</div>

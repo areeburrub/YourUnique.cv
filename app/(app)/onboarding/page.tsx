@@ -77,6 +77,7 @@ export default async function OnboardingPage({
 				initialResumeMediaType={resumeFile?.contentType ?? ""}
 				initialLinkedinUrl={context?.linkedinUrl ?? ""}
 				initialIntroduction={context?.introduction ?? ""}
+				initialProfileReady={Boolean(effectiveContext?.profile?.trim())}
 			/>
 		</div>
 	);
