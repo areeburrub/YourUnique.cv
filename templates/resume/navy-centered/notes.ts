@@ -55,5 +55,5 @@ This template gives each project a title line and its own bullets.
 - \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
 - \`patch_resume\` — \`{ id, patches[] }\` JSON Pointer ops on the saved document (also queues PDF). Do not resend the full document.
 - Give the user \`downloadUrl\`. Do not fetch the PDF yourself
-- If this resume was tailored to a JD, the same chat reply is an ATS Analysis: score /100, Area/Match table, biggest-gaps list. No extra tools
+- If a JD or target role is in play, the same chat reply is always an ATS Analysis: score /100, dynamic Area/Match table, and 3–5 brief constructive gaps. No extra tools
 `;

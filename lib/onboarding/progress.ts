@@ -2,7 +2,6 @@ import type { userContexts } from "@/lib/db/schema";
 
 export type OnboardingWizardStep =
 	| "resume"
-	| "linkedin"
 	| "notes"
 	| "generate"
 	| "template"
@@ -13,11 +12,8 @@ type UserContextRow = typeof userContexts.$inferSelect;
 export function resolveOnboardingStep(
 	context: UserContextRow | null | undefined,
 ): OnboardingWizardStep {
-	if (!context?.sourceFileIds?.length) {
+	if (context?.linkedinUrl == null) {
 		return "resume";
-	}
-	if (context.linkedinUrl == null) {
-		return "linkedin";
 	}
 	if (context.introduction == null) {
 		return "notes";
@@ -35,7 +31,6 @@ export function isOnboardingContextComplete(
 	context: UserContextRow | null | undefined,
 ): boolean {
 	return (
-		Boolean(context?.sourceFileIds?.length) &&
 		context?.linkedinUrl != null &&
 		context?.introduction != null &&
 		Boolean(context.profile?.trim()) &&

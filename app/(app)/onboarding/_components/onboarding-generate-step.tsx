@@ -17,6 +17,7 @@ type StageItem = {
 
 type OnboardingGenerateStepProps = {
 	generateStage: GenerateStage;
+	hasResume: boolean;
 	hasLinkedIn: boolean;
 	profilePreview: string;
 };
@@ -52,6 +53,7 @@ function formatEta(remainingMs: number, done: boolean) {
 
 export function OnboardingGenerateStep({
 	generateStage,
+	hasResume,
 	hasLinkedIn,
 	profilePreview,
 }: OnboardingGenerateStepProps) {
@@ -66,7 +68,7 @@ export function OnboardingGenerateStep({
 	previewLenRef.current = profilePreview.length;
 
 	const stages: StageItem[] = [
-		{ id: "analyzing", label: "Analyzing resume…", visible: true },
+		{ id: "analyzing", label: "Analyzing resume…", visible: hasResume },
 		{
 			id: "linkedin",
 			label: "Checking LinkedIn…",
@@ -144,10 +146,7 @@ export function OnboardingGenerateStep({
 			</div>
 
 			<div className="mb-8 max-w-lg">
-				<p className="text-sm font-medium text-muted-foreground">
-					Step 4 of 6
-				</p>
-				<h1 className="font-display mt-2 text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
+				<h1 className="font-display text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
 					Building your profile
 				</h1>
 				<p className="mt-3 text-base leading-6 text-muted-foreground">

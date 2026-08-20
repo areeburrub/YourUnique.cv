@@ -18,7 +18,7 @@ Included on Pro:
 - Visible agent tool calls (fetch a posting, read the profile, write the resume, update the profile)
 - Profile updates in chat: a new cert, job, or win is saved and used next time
 - Bring your own template (extracted from the upload) or pick one from the library
-- ATS analysis after a tailored draft: score /100, Area / Match table, and biggest gaps. Do not invent experience; rephrase real work in the JD's words
+- ATS analysis after a tailored draft: score /100, a dynamic Area / Match table, and a few constructive next steps. Do not invent experience; rephrase real work in the JD's words
 - PDF export and a tailored file per role
 
 ## How it works

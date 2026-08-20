@@ -154,14 +154,14 @@ Never count "they could do this" or a profile fact that did not make it onto the
 Banned below 75: solid, strong, excellent, great fit, well aligned.
 Banned below 60: also "good match" or leading with "strongest alignment".
 
-### 7. After generate, ATS Analysis in the same reply
+### 7. Always include ATS Analysis in the same reply
 
-When the resume was tailored to a JD, the chat text after `create_resume` / `patch_resume` must be an ATS Analysis. Same turn. No second rewrite pass.
+Whenever a JD or named target role is in the conversation, every user-facing reply must be an ATS Analysis. Same turn as `create_resume` / `patch_resume`, and on later edits, reviews, or fit questions. No second rewrite pass. Do not replace the table with prose. Skip only when there is no JD and no target role.
 
 ```markdown
 ## ATS Analysis — {Role} at {Company}
 
-2–3 sentences. First sentence states the band and must agree with N. Then what is on the resume, then the main gaps.
+1–2 sentences. First sentence states the band and must agree with N. Then the one thing that most helps or most hurts this draft.
 
 **Current ATS Score: {N}/100**
 
@@ -172,24 +172,15 @@ This draft uses {exact_required} of {total_required} must-haves from the posting
 | {JD-derived cluster} | {n}/10 |
 | JD keyword alignment | {N}/100 |
 
-### On this resume
-{comma-separated JD terms that appear in the posting's wording}
+### Gaps and next steps
 
-### Close, different wording
-- **{JD term}** — you wrote "{resume wording}"
-
-### Not on this draft
-{comma-separated missing JD terms}
-
-### Biggest gaps
-
-- {required or high-repeat preferred term that is synonym or missing}
+- {gap + what to do next}
 ```
 
-- 8–12 Area rows covering the baseline categories (tech stack, years of experience, domain, certs/methodology if named, repeated soft skills) plus JD-specific clusters. Score each /10 from how explicitly that cluster appears on the saved resume. Last row is `JD keyword alignment` = N
-- Coverage lists: 8–16 JD terms across the three groups. Use the posting's phrases. Do not show 1× / 2× / exact / synonym / required / preferred to the user
-- Biggest gaps: 8–15 terms. Prefer required + high-repeat preferred. In one closing sentence, split "in profile, weak on resume" vs "not in profile"
-- Do not invent experience. Close: do not keyword-stuff; if related work exists, describe it in the JD's terms
+- 5–8 Area rows covering the baseline categories (tech stack, years of experience, domain, certs/methodology if named, repeated soft skills) plus JD-specific clusters. Score each /10 from how explicitly that cluster appears on the saved resume. Last row is `JD keyword alignment` = N. Never omit this table.
+- Do not add "On this resume" / "Close, different wording" / "Not on this draft" lists
+- Gaps: 3–5 bullets, constructive and brief. Each is one gap plus the next step (reword real work in the JD's terms, or leave it off / add to the profile first). Prefer required + high-repeat preferred. Do not dump 8–15 keywords
+- Do not invent experience. Do not keyword-stuff
 
 ### 8. Iterate and Refine
 

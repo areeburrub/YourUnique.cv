@@ -1,6 +1,11 @@
 "use client";
 
-import { CheckIcon, FileArrowUpIcon, TrashIcon } from "@phosphor-icons/react";
+import {
+	CheckIcon,
+	FileArrowUpIcon,
+	LinkedinLogoIcon,
+	TrashIcon,
+} from "@phosphor-icons/react";
 import confetti from "canvas-confetti";
 import { useEffect, useRef, useState } from "react";
 
@@ -18,22 +23,26 @@ import {
 } from "@/lib/onboarding/client";
 import { PLAN_COPY, PRO_PRICE_USD, TRIAL_DAYS } from "@/lib/plan-copy";
 import { PlanId, type PlanId as PlanIdType } from "@/lib/plans";
-import { isLinkedInProfileUrl } from "@/lib/scrapecreators";
+import { isLinkedInProfileUrl } from "@/lib/linkedin-profile";
 import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
 
 import { OnboardingGenerateStep } from "./onboarding-generate-step";
 import { OnboardingTemplateStep } from "./onboarding-template-step";
 
-type WizardStep =
-	| "resume"
-	| "linkedin"
-	| "notes"
-	| "generate"
-	| "template"
-	| "plan";
+type WizardStep = "resume" | "notes" | "generate" | "template" | "plan";
 
 type GenerateStage = "analyzing" | "linkedin" | "writing" | "done";
+
+function startingGenerateStage(hasResume: boolean, hasLinkedIn: boolean): GenerateStage {
+	if (hasResume) {
+		return "analyzing";
+	}
+	if (hasLinkedIn) {
+		return "linkedin";
+	}
+	return "writing";
+}
 
 const PLAN_CARDS = [
 	{
@@ -53,19 +62,13 @@ const STEP_META: Record<
 	{ eyebrow: string; title: string; description: string }
 > = {
 	resume: {
-		eyebrow: "Step 1 of 6",
-		title: "Upload your resume",
+		eyebrow: "Step 1 of 5",
+		title: "Upload your resume & LinkedIn",
 		description:
-			"We'll use your current resume as the foundation for your career profile.",
-	},
-	linkedin: {
-		eyebrow: "Step 2 of 6",
-		title: "Add your LinkedIn",
-		description:
-			"Optional — if you share a profile URL, we'll pull public details to fill gaps.",
+			"Add at least one so we have something to build your career profile from.",
 	},
 	notes: {
-		eyebrow: "Step 3 of 6",
+		eyebrow: "Step 2 of 5",
 		title: "Anything else we should know?",
 		description:
 			"Share goals, wins, skills, or context that isn't on your resume. Type or speak.",
@@ -161,7 +164,7 @@ export function OnboardingWizard({
 					trackEvent(MixpanelEvent.OnboardingResumeUploaded, {
 						source: "pending",
 					});
-					setStep("linkedin");
+					setStep("resume");
 					return;
 				}
 			} catch (err) {
@@ -178,7 +181,12 @@ export function OnboardingWizard({
 
 			if (initialStep === "generate" && !generateStartedRef.current) {
 				generateStartedRef.current = true;
-				setGenerateStage("analyzing");
+				setGenerateStage(
+					startingGenerateStage(
+						Boolean(fileId),
+						Boolean(linkedinUrl.trim()),
+					),
+				);
 				void runGenerate();
 			}
 		})();
@@ -224,9 +232,14 @@ export function OnboardingWizard({
 		setMediaType("");
 	}
 
-	async function goLinkedIn() {
-		if (!fileId) {
-			setError("Upload your resume to continue.");
+	async function goToNotes() {
+		const trimmed = linkedinUrl.trim();
+		if (!fileId && !trimmed) {
+			setError("Add your resume or LinkedIn to continue.");
+			return;
+		}
+		if (trimmed && !isLinkedInProfileUrl(trimmed)) {
+			setError("Enter a valid LinkedIn profile URL, or leave it blank.");
 			return;
 		}
 		setError(null);
@@ -235,41 +248,16 @@ export function OnboardingWizard({
 			await saveOnboardingProgress({
 				step: "resume",
 				resumeFileId: fileId,
-			});
-			setStep("linkedin");
-		} catch (err) {
-			setError(
-				err instanceof Error ? err.message : "Could not save resume",
-			);
-		} finally {
-			setSavingStep(false);
-		}
-	}
-
-	async function goNotesFromLinkedIn(skip: boolean) {
-		const trimmed = linkedinUrl.trim();
-		if (!skip && trimmed && !isLinkedInProfileUrl(trimmed)) {
-			setError("Enter a valid LinkedIn profile URL, or skip this step.");
-			return;
-		}
-		const nextUrl = skip ? "" : trimmed;
-		if (skip) {
-			setLinkedinUrl("");
-		}
-		setError(null);
-		setSavingStep(true);
-		try {
-			await saveOnboardingProgress({
-				step: "linkedin",
-				linkedinUrl: nextUrl,
+				linkedinUrl: trimmed,
 			});
 			trackEvent(MixpanelEvent.OnboardingLinkedInSaved, {
-				skipped: skip,
+				has_resume: Boolean(fileId),
+				skipped: !trimmed,
 			});
 			setStep("notes");
 		} catch (err) {
 			setError(
-				err instanceof Error ? err.message : "Could not save LinkedIn",
+				err instanceof Error ? err.message : "Could not save your info",
 			);
 		} finally {
 			setSavingStep(false);
@@ -282,8 +270,8 @@ export function OnboardingWizard({
 	}
 
 	async function startGenerate(skipNotes = false) {
-		if (!fileId) {
-			setError("Upload your resume to continue.");
+		if (!fileId && !linkedinUrl.trim() && !notes.trim()) {
+			setError("Add your resume, LinkedIn, or notes to continue.");
 			setStep("resume");
 			return;
 		}
@@ -297,10 +285,6 @@ export function OnboardingWizard({
 		setError(null);
 		setSavingStep(true);
 		try {
-			await saveOnboardingProgress({
-				step: "linkedin",
-				linkedinUrl: linkedinUrl.trim(),
-			});
 			await saveOnboardingProgress({
 				step: "notes",
 				introduction,
@@ -336,23 +320,26 @@ export function OnboardingWizard({
 
 		generateStartedRef.current = true;
 		setProfilePreview("");
-		setGenerateStage("analyzing");
+		setGenerateStage(
+			startingGenerateStage(Boolean(fileId), Boolean(linkedinUrl.trim())),
+		);
 		setStep("generate");
 		void runGenerate();
 	}
 
 	async function runGenerate() {
 		setError(null);
-		setGenerateStage("analyzing");
+		const hasResume = Boolean(fileId);
+		const hasLinkedIn = Boolean(linkedinUrl.trim());
+		setGenerateStage(startingGenerateStage(hasResume, hasLinkedIn));
 		setProfilePreview("");
 		trackEvent(MixpanelEvent.OnboardingProfileGenerationStarted, {
-			has_linkedin: Boolean(linkedinUrl.trim()),
+			has_linkedin: hasLinkedIn,
 			has_notes: Boolean(notes.trim()),
 		});
 
-		const hasLinkedIn = Boolean(linkedinUrl.trim());
 		let linkedinTimer: ReturnType<typeof setTimeout> | null = null;
-		if (hasLinkedIn) {
+		if (hasResume && hasLinkedIn) {
 			linkedinTimer = setTimeout(() => {
 				setGenerateStage((current) =>
 					current === "analyzing" ? "linkedin" : current,
@@ -499,6 +486,7 @@ export function OnboardingWizard({
 		return (
 			<OnboardingGenerateStep
 				generateStage={generateStage}
+				hasResume={Boolean(fileId)}
 				hasLinkedIn={Boolean(linkedinUrl.trim())}
 				profilePreview={profilePreview}
 			/>
@@ -549,131 +537,107 @@ export function OnboardingWizard({
 			</div>
 
 			{step === "resume" ? (
-				<div className="flex flex-col gap-4">
-					<input
-						ref={fileInputRef}
-						type="file"
-						accept={ONBOARDING_UPLOAD_ACCEPT}
-						className="sr-only"
-						onChange={handleResumeSelected}
-					/>
-					{fileId ? (
-						<div className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3">
-							<div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-pastel-blush text-brand">
-								<FileArrowUpIcon size={22} weight="duotone" />
-							</div>
-							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium text-foreground">
-									{filename}
-								</p>
-								<p className="text-xs text-muted-foreground">
-									Ready to continue
-								</p>
-							</div>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon"
-								onClick={clearResume}
-								aria-label="Remove resume"
-							>
-								<TrashIcon size={16} />
-							</Button>
-						</div>
-					) : (
-						<button
-							type="button"
-							disabled={uploading}
-							onClick={() => fileInputRef.current?.click()}
-							className="flex min-h-44 cursor-pointer flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-border bg-surface-subtle/30 px-6 py-10 text-center transition-colors hover:border-brand/40 hover:bg-surface-subtle/50 disabled:cursor-not-allowed disabled:opacity-60"
-						>
-							{uploading ? (
-								<>
-									<Spinner className="size-6" />
-									<p className="text-sm text-muted-foreground">
-										Uploading… {uploadPercent}%
-									</p>
-								</>
-							) : (
-								<>
-									<span className="flex size-16 items-center justify-center rounded-[22px] bg-pastel-blush text-brand">
-										<FileArrowUpIcon
-											size={28}
-											weight="duotone"
-										/>
-									</span>
-									<div>
-										<p className="text-sm font-medium text-foreground">
-											Drop or choose your resume
-										</p>
-										<p className="mt-1 text-xs text-muted-foreground">
-											PDF, up to 10MB
-										</p>
-									</div>
-								</>
-							)}
-						</button>
-					)}
+				<div className="flex flex-col gap-6">
+					<div className="flex flex-col gap-2.5">
+						<Label>Resume</Label>
 
-					<div className="mt-4 flex justify-end">
+						<input
+							ref={fileInputRef}
+							type="file"
+							accept={ONBOARDING_UPLOAD_ACCEPT}
+							className="sr-only"
+							onChange={handleResumeSelected}
+						/>
+						{fileId ? (
+							<div className="flex items-center gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+								<div className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-pastel-blush text-brand">
+									<FileArrowUpIcon size={22} weight="duotone" />
+								</div>
+								<div className="min-w-0 flex-1">
+									<p className="truncate text-sm font-medium text-foreground">
+										{filename}
+									</p>
+									<p className="text-xs text-muted-foreground">
+										Ready to continue
+									</p>
+								</div>
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon"
+									onClick={clearResume}
+									aria-label="Remove resume"
+								>
+									<TrashIcon size={16} />
+								</Button>
+							</div>
+						) : (
+							<button
+								type="button"
+								disabled={uploading}
+								onClick={() => fileInputRef.current?.click()}
+								className="flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2.5 rounded-2xl border border-dashed border-border bg-surface-subtle/30 px-6 py-8 text-center transition-colors hover:border-brand/40 hover:bg-surface-subtle/50 disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								{uploading ? (
+									<>
+										<Spinner className="size-6" />
+										<p className="text-sm text-muted-foreground">
+											Uploading… {uploadPercent}%
+										</p>
+									</>
+								) : (
+									<>
+										<span className="flex size-14 items-center justify-center rounded-[20px] bg-pastel-blush text-brand">
+											<FileArrowUpIcon
+												size={26}
+												weight="duotone"
+											/>
+										</span>
+										<div>
+											<p className="text-sm font-medium text-foreground">
+												Drop or choose your resume
+											</p>
+											<p className="mt-1 text-xs text-muted-foreground">
+												PDF, up to 10MB
+											</p>
+										</div>
+									</>
+								)}
+							</button>
+						)}
+					</div>
+
+					<div className="flex flex-col gap-2.5">
+						<Label htmlFor="linkedin-url">LinkedIn</Label>
+						<div className="relative">
+							<LinkedinLogoIcon
+								size={18}
+								weight="fill"
+								className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-muted-foreground"
+							/>
+							<Input
+								id="linkedin-url"
+								type="url"
+								placeholder="https://www.linkedin.com/in/you"
+								value={linkedinUrl}
+								onChange={(event) =>
+									setLinkedinUrl(event.target.value)
+								}
+								className="h-11 pl-10"
+							/>
+						</div>
+					</div>
+
+					<div className="mt-1 flex justify-end">
 						<Button
 							size="lg"
-							disabled={!fileId || uploading || savingStep}
-							onClick={() => void goLinkedIn()}
+							disabled={uploading || savingStep}
+							onClick={() => void goToNotes()}
 							className="cursor-pointer"
 						>
 							{savingStep ? <Spinner className="size-4" /> : null}
 							Continue
 						</Button>
-					</div>
-				</div>
-			) : null}
-
-			{step === "linkedin" ? (
-				<div className="flex flex-col gap-4">
-					<div className="flex flex-col gap-2">
-						<Label htmlFor="linkedin-url">LinkedIn profile URL</Label>
-						<Input
-							id="linkedin-url"
-							type="url"
-							placeholder="https://www.linkedin.com/in/you"
-							value={linkedinUrl}
-							onChange={(event) =>
-								setLinkedinUrl(event.target.value)
-							}
-							className="h-11"
-						/>
-					</div>
-					<div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-						<Button
-							type="button"
-							variant="ghost"
-							disabled={savingStep}
-							onClick={() => setStep("resume")}
-							className="cursor-pointer"
-						>
-							Back
-						</Button>
-						<div className="flex gap-2">
-							<Button
-								type="button"
-								variant="outline"
-								disabled={savingStep}
-								onClick={() => void goNotesFromLinkedIn(true)}
-								className="cursor-pointer"
-							>
-								Skip
-							</Button>
-							<Button
-								type="button"
-								disabled={savingStep}
-								onClick={() => void goNotesFromLinkedIn(false)}
-								className="cursor-pointer"
-							>
-								{savingStep ? <Spinner className="size-4" /> : null}
-								Continue
-							</Button>
-						</div>
 					</div>
 				</div>
 			) : null}
@@ -702,7 +666,7 @@ export function OnboardingWizard({
 							type="button"
 							variant="ghost"
 							disabled={savingStep}
-							onClick={() => setStep("linkedin")}
+							onClick={() => setStep("resume")}
 							className="cursor-pointer"
 						>
 							Back
@@ -773,7 +737,7 @@ function PlanStep({
 		<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
 			<div className="mb-10 max-w-lg text-center">
 				<p className="text-sm font-medium text-muted-foreground">
-					Step 6 of 6 · You&apos;re almost in
+					Step 5 of 5 · You&apos;re almost in
 				</p>
 				<h1 className="font-display mt-2 text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
 					Choose how you pay

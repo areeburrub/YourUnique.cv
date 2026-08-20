@@ -22,9 +22,9 @@ import {
 import {
 	isLinkedInProfileUrl,
 	normalizeLinkedInProfileUrl,
-} from "@/lib/scrapecreators";
+} from "@/lib/linkedin-profile";
 
-type ProgressStep = "resume" | "linkedin" | "notes" | "profile" | "template";
+type ProgressStep = "resume" | "notes" | "profile" | "template";
 
 export async function GET() {
 	const { userId } = await auth();
@@ -73,7 +73,6 @@ export async function POST(req: Request) {
 
 	if (
 		step !== "resume" &&
-		step !== "linkedin" &&
 		step !== "notes" &&
 		step !== "profile" &&
 		step !== "template"
@@ -91,60 +90,45 @@ export async function POST(req: Request) {
 			typeof (body as { resumeFileId?: unknown })?.resumeFileId === "string"
 				? (body as { resumeFileId: string }).resumeFileId.trim()
 				: "";
-		if (!resumeFileId) {
-			return NextResponse.json(
-				{ error: "Resume file is required" },
-				{ status: 400 },
-			);
-		}
-		const file = await getUserFileForUser(resumeFileId, userId);
-		if (!file) {
-			return NextResponse.json(
-				{ error: "Resume file not found" },
-				{ status: 404 },
-			);
-		}
-		const context = await patchUserContextOnboarding({
-			userId,
-			sourceFileIds: [resumeFileId],
-		});
-		await ensureCustomTemplateFromFile({
-			userId,
-			fileId: resumeFileId,
-			name: "Your resume",
-		}).catch(() => undefined);
-		return NextResponse.json({
-			ok: true,
-			nextStep: resolveOnboardingStep(context),
-			context: serializeContext(context),
-		});
-	}
-
-	if (progressStep === "linkedin") {
-		const existing = await getUserContext(userId);
-		if (!existing?.sourceFileIds?.length) {
-			return NextResponse.json(
-				{ error: "Upload your resume before adding LinkedIn" },
-				{ status: 400 },
-			);
-		}
-		const linkedinRaw =
-			typeof (body as { linkedinUrl?: unknown })?.linkedinUrl === "string"
-				? (body as { linkedinUrl: string }).linkedinUrl.trim()
-				: "";
+		const linkedinKeyProvided =
+			typeof (body as { linkedinUrl?: unknown })?.linkedinUrl === "string";
+		const linkedinRaw = linkedinKeyProvided
+			? (body as { linkedinUrl: string }).linkedinUrl.trim()
+			: "";
 		if (linkedinRaw && !isLinkedInProfileUrl(linkedinRaw)) {
 			return NextResponse.json(
-				{ error: "Enter a valid LinkedIn profile URL, or skip this step" },
+				{ error: "Enter a valid LinkedIn profile URL, or leave it blank" },
 				{ status: 400 },
 			);
 		}
+
+		if (resumeFileId) {
+			const file = await getUserFileForUser(resumeFileId, userId);
+			if (!file) {
+				return NextResponse.json(
+					{ error: "Resume file not found" },
+					{ status: 404 },
+				);
+			}
+		}
+
 		const linkedinUrl = linkedinRaw
 			? normalizeLinkedInProfileUrl(linkedinRaw) || linkedinRaw
 			: "";
 		const context = await patchUserContextOnboarding({
 			userId,
-			linkedinUrl,
+			sourceFileIds: resumeFileId ? [resumeFileId] : [],
+			...(linkedinKeyProvided ? { linkedinUrl } : {}),
 		});
+
+		if (resumeFileId) {
+			await ensureCustomTemplateFromFile({
+				userId,
+				fileId: resumeFileId,
+				name: "Your resume",
+			}).catch(() => undefined);
+		}
+
 		return NextResponse.json({
 			ok: true,
 			nextStep: resolveOnboardingStep(context),
@@ -153,14 +137,6 @@ export async function POST(req: Request) {
 	}
 
 	if (progressStep === "notes") {
-		const existing = await getUserContext(userId);
-		if (!existing?.sourceFileIds?.length) {
-			return NextResponse.json(
-				{ error: "Upload your resume before adding an introduction" },
-				{ status: 400 },
-			);
-		}
-
 		const introduction =
 			typeof (body as { introduction?: unknown })?.introduction === "string"
 				? (body as { introduction: string }).introduction.trim()
@@ -169,7 +145,6 @@ export async function POST(req: Request) {
 		const context = await patchUserContextOnboarding({
 			userId,
 			introduction,
-			...(existing.linkedinUrl == null ? { linkedinUrl: "" } : {}),
 		});
 		return NextResponse.json({
 			ok: true,
@@ -197,12 +172,6 @@ export async function POST(req: Request) {
 				? (body as { introduction: string }).introduction.trim()
 				: undefined;
 
-		if (!fileId) {
-			return NextResponse.json(
-				{ error: "Resume file is required" },
-				{ status: 400 },
-			);
-		}
 		if (!profile) {
 			return NextResponse.json(
 				{ error: "Generated profile is empty" },
@@ -220,7 +189,7 @@ export async function POST(req: Request) {
 		const context = await upsertUserContext({
 			userId,
 			profile,
-			sourceFileIds: [fileId],
+			sourceFileIds: fileId ? [fileId] : existing?.sourceFileIds ?? [],
 			linkedinUrl,
 			introduction:
 				introduction !== undefined

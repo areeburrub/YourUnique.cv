@@ -11,10 +11,8 @@ import { getUserFileForUser } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { getUserById } from "@/lib/db/users";
 import { getR2Object } from "@/lib/r2";
-import {
-	fetchLinkedInProfile,
-	normalizeLinkedInProfileUrl,
-} from "@/lib/scrapecreators";
+import { fetchLinkedInProfile } from "@/lib/fetch-linkedin-profile";
+import { normalizeLinkedInProfileUrl } from "@/lib/linkedin-profile";
 
 export const maxDuration = 300;
 
@@ -23,7 +21,7 @@ type ModelContentPart = TextPart | FilePart;
 const SYSTEM_PROMPT = `You create a durable career profile markdown document for YourUnique.cv.
 
 Rules:
-- Use only facts from the resume file, optional LinkedIn JSON, and optional user notes.
+- Use only facts from the resume file (if provided), optional LinkedIn JSON, and optional user notes.
 - Never invent employers, dates, metrics, degrees, or skills.
 - Prefer the resume for employment detail when LinkedIn fields are sparse or redacted.
 - Include the LinkedIn URL in contact/links when one was provided.
@@ -136,14 +134,18 @@ export async function POST(req: Request) {
 			? (body as { notes: string }).notes.trim()
 			: "";
 
-	if (!fileId) {
-		return Response.json({ error: "Resume file is required" }, { status: 400 });
+	const linkedinUrl = normalizeLinkedInProfileUrl(linkedinRaw);
+	if (!fileId && !linkedinUrl && !notes) {
+		return Response.json(
+			{ error: "Add your resume, LinkedIn, or notes to continue" },
+			{ status: 400 },
+		);
 	}
 
 	const [dbUser, existingContext, fileParts] = await Promise.all([
 		getUserById(userId),
 		getUserContext(userId),
-		fileContentForModel({ userId, fileId }),
+		fileId ? fileContentForModel({ userId, fileId }) : Promise.resolve([]),
 	]);
 
 	if (dbUser?.onboardedAt && existingContext?.profile?.trim()) {
@@ -153,11 +155,10 @@ export async function POST(req: Request) {
 		);
 	}
 
-	if (!fileParts) {
+	if (fileId && !fileParts) {
 		return Response.json({ error: "Resume file not found" }, { status: 404 });
 	}
 
-	const linkedinUrl = normalizeLinkedInProfileUrl(linkedinRaw);
 	const linkedinProfile = linkedinUrl
 		? await fetchLinkedInProfile(linkedinUrl)
 		: null;
@@ -182,7 +183,9 @@ export async function POST(req: Request) {
 	}
 
 	const promptText = [
-		"Build the full career profile markdown from the attached resume and the context below.",
+		fileId
+			? "Build the full career profile markdown from the attached resume and the context below."
+			: "Build the full career profile markdown from the context below. No resume was provided, so rely on the LinkedIn profile and notes.",
 		...extraBlocks,
 	].join("\n\n");
 
@@ -196,7 +199,7 @@ export async function POST(req: Request) {
 				role: "user",
 				content: [
 					{ type: "text", text: promptText },
-					...fileParts,
+					...(fileParts ?? []),
 				],
 			},
 		],
@@ -208,7 +211,7 @@ export async function POST(req: Request) {
 			await upsertUserContext({
 				userId,
 				profile,
-				sourceFileIds: [fileId],
+				sourceFileIds: fileId ? [fileId] : [],
 				linkedinUrl: linkedinUrl || linkedinRaw.trim() || "",
 				introduction: notes || "",
 			});

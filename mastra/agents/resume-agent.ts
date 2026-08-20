@@ -112,10 +112,10 @@ ${RESUME_TAILORING_RULES}
 7. Call create_resume once with name + document. When tailored to a job, always include jobDescription plus companyName, roleTitle, and jobLink when the user provided a posting URL. Prefer a name like "Role @ Company".
 8. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Do not call compile_resume after create. Do not fetch the PDF yourself.
 9. One resume family per turn. If you already called create_resume, use patch_resume on the latest returned id. Do not create a second resume.
-10. In the same text reply (no extra tool calls):
+10. In the same text reply (no extra tool calls), always include the ATS table and gaps when a JD or target role is in play:
 ${RESUME_ATS_REPORT_RULES}
 
-For edits to an existing resume: get_resume then patch_resume with JSON Pointer ops for only the slots that change (replace / add / remove). Do not resend the full document. That creates a new version, queues a new PDF, and leaves earlier chat PDF cards on the previous version. Use the returned id for any later patch in this turn. If that edit was for a JD, include the same ATS note in the reply.
+For edits to an existing resume: get_resume then patch_resume with JSON Pointer ops for only the slots that change (replace / add / remove). Do not resend the full document. That creates a new version, queues a new PDF, and leaves earlier chat PDF cards on the previous version. Use the returned id for any later patch in this turn. If a JD or target role is in this conversation, the reply still includes the full ATS table and gaps — not a one-line confirmation.
 
 ## Check derived information, not just the field they asked to change
 

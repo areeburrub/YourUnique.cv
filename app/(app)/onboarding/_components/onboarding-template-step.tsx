@@ -228,7 +228,7 @@ export function OnboardingTemplateStep({
 		<div className="mx-auto w-full max-w-6xl px-4 py-8 pb-28 sm:px-6">
 			<div className="mb-8 max-w-2xl">
 				<p className="text-sm font-medium text-muted-foreground">
-					Step 5 of 6
+					Step 4 of 5
 				</p>
 				<h1 className="font-display mt-1 text-[24px] font-medium tracking-[-0.48px] text-foreground">
 					Choose a resume template
