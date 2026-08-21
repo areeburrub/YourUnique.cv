@@ -60,6 +60,14 @@ export const metadata: Metadata = {
 		"job description resume",
 		"career persona",
 		"resume PDF",
+		"your unique cv",
+		"Your Unique CV",
+		"your unique.cv",
+		"Your Unique.cv",
+		"yourunique.cv",
+		"YourUnique.cv",
+		"YourUnique CV",
+		"your unique",
 	],
 	alternates: {
 		canonical: "/",
@@ -133,12 +141,22 @@ const jsonLd = {
 		{
 			"@type": "WebSite",
 			name: SITE_NAME,
+			alternateName: [
+				"Your Unique CV",
+				"your unique cv",
+				"your unique.cv",
+			],
 			url: siteUrl,
 			description: SITE_DESCRIPTION,
 		},
 		{
 			"@type": "SoftwareApplication",
 			name: SITE_NAME,
+			alternateName: [
+				"Your Unique CV",
+				"your unique cv",
+				"your unique.cv",
+			],
 			applicationCategory: "BusinessApplication",
 			operatingSystem: "Web",
 			url: siteUrl,
@@ -163,6 +181,11 @@ const jsonLd = {
 		{
 			"@type": "Organization",
 			name: SITE_NAME,
+			alternateName: [
+				"Your Unique CV",
+				"your unique cv",
+				"your unique.cv",
+			],
 			url: siteUrl,
 			email: SITE_EMAIL,
 			logo: `${siteUrl}/logo.svg`,
