@@ -4,15 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 6700",
-    "build": "bun scripts/migrate.ts && next build",
-    "start": "bun scripts/migrate.ts && next start",
+    "build": "drizzle-kit migrate && next build",
+    "start": "drizzle-kit migrate && next start",
     "lint": "eslint",
     "mastra:dev": "mastra dev --dir mastra",
     "mastra:build": "mastra build --dir mastra",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "bun scripts/migrate.ts",
+    "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "deploy:trigger": "trigger deploy"
