@@ -158,7 +158,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 			where: eq(users.id, id),
 			columns: { planId: true },
 		});
-		return current?.planId ?? PlanId.FREE;
+		return current?.planId ?? PlanId.TRIAL;
 	}
 
 	if (!userId) {
@@ -180,12 +180,12 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		await db.transaction(async (tx) => {
 			await tx
 				.update(subscriptions)
-				.set({ status, planId: PlanId.FREE, updatedAt: new Date() })
+				.set({ status, planId: PlanId.TRIAL, updatedAt: new Date() })
 				.where(eq(subscriptions.id, data.subscription_id));
 			await tx
 				.update(users)
 				.set({
-					planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
+					planId: keepLifetime ? PlanId.LIFETIME : PlanId.TRIAL,
 					...(dodoCustomerId ? { dodoCustomerId } : {}),
 					updatedAt: new Date(),
 				})
@@ -203,14 +203,14 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 				id: data.subscription_id,
 				userId,
 				status,
-				planId: PlanId.FREE,
+				planId: PlanId.TRIAL,
 			})
 			.onConflictDoUpdate({
 				target: subscriptions.id,
 				set: {
 					userId,
 					status,
-					planId: PlanId.FREE,
+					planId: PlanId.TRIAL,
 					updatedAt: new Date(),
 				},
 			});
@@ -218,7 +218,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		await tx
 			.update(users)
 			.set({
-				planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
+				planId: keepLifetime ? PlanId.LIFETIME : PlanId.TRIAL,
 				...(dodoCustomerId ? { dodoCustomerId } : {}),
 				updatedAt: new Date(),
 			})

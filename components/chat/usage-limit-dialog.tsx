@@ -10,7 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { isPaidPlan } from "@/lib/plans";
+import { isPaidPlan, isTrialPlan, START_TRIAL_PATH } from "@/lib/plans";
 import {
 	formatDailyResetAt,
 	nextUtcMidnight,
@@ -30,6 +30,7 @@ export function UsageLimitDialog({
 	status,
 }: UsageLimitDialogProps) {
 	const isPaid = isPaidPlan(status.plan.id);
+	const isTrial = isTrialPlan(status.plan.id);
 	const resetLabel = formatDailyResetAt(
 		status.resetAt ? new Date(status.resetAt) : nextUtcMidnight(),
 	);
@@ -42,7 +43,9 @@ export function UsageLimitDialog({
 				: "You've hit today's limit."
 			: isPaid
 				? "You've reached your usage limit for now."
-				: "You've used this month's trial resumes."
+				: isTrial && status.isTrialActive === false
+					? "Your trial has ended."
+					: "You've used this trial's resumes."
 		: resetLabel
 			? `You've hit 90% of today's usage. It resets at ${resetLabel}.`
 			: "You've hit 90% of today's usage.";
@@ -53,9 +56,19 @@ export function UsageLimitDialog({
 			? status.scope === "daily"
 				? "Daily limit reached"
 				: "Usage limit reached"
-			: "Start your 7-day trial";
+			: status.canStartTrial
+				? "Start your 7-day trial"
+				: "Get Pro";
 
-	const checkoutHref = !isPaid ? "/api/checkout" : null;
+	const upgradeHref = isPaid
+		? null
+		: status.canStartTrial
+			? START_TRIAL_PATH
+			: "/api/checkout";
+	const upgradeLabel = status.canStartTrial ? "Start 7-day trial" : "Get Pro";
+	const upgradeEvent = status.canStartTrial
+		? MixpanelEvent.TrialStarted
+		: MixpanelEvent.CheckoutStarted;
 
 	const mailtoHref = supportEmail
 		? `mailto:${supportEmail}?subject=${encodeURIComponent("Higher usage limits")}`
@@ -85,19 +98,21 @@ export function UsageLimitDialog({
 								) : null}{" "}
 								and I'll add some more.
 							</>
-						) : (
+						) : status.canStartTrial ? (
 							"Start your 7-day trial to keep tailoring."
+						) : (
+							"Get Pro to keep tailoring."
 						)}
 					</DialogDescription>
 				</DialogHeader>
 				<DialogFooter className="sm:justify-end">
-					{checkoutHref ? (
+					{upgradeHref ? (
 						<a
-							href={checkoutHref}
+							href={upgradeHref}
 							className={cn(buttonVariants())}
 							onClick={() => {
 								trackEvent(
-									MixpanelEvent.CheckoutStarted,
+									upgradeEvent,
 									{
 										source: "usage_limit",
 									},
@@ -105,7 +120,7 @@ export function UsageLimitDialog({
 								);
 							}}
 						>
-							Start 7-day trial
+							{upgradeLabel}
 						</a>
 					) : null}
 					{isPaid && mailtoHref ? (

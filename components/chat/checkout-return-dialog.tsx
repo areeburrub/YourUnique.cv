@@ -34,7 +34,7 @@ function checkoutCopy(state: CheckoutReturnState) {
 		return {
 			eyebrow: "Pro",
 			title: "You're in",
-			body: "Your 7-day trial is on. Paste a job and we'll write a resume for it.",
+			body: "You're on Pro. Paste a job and we'll write a resume for it.",
 		};
 	}
 

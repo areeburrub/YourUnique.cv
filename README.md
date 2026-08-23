@@ -30,11 +30,12 @@ Included on Pro:
 
 ## Plans
 
-Pro is $5 a month after a 7-day trial. Lifetime is $150 once.
+Trial is free for 7 days, no card. Pro is $5 a month. Lifetime is $150 once.
 
 | Plan | Price | Volume |
 | --- | --- | --- |
-| Pro | $5/month after a 7-day trial | 500+ tailored resumes a month |
+| Trial | Free for 7 days, no card | 10+ tailored resumes |
+| Pro | $5/month | 500+ tailored resumes a month |
 | Lifetime | $150 once (40% off $250) | Same as Pro, lifetime access |
 
 Start at [yourunique.cv/sign-up](https://yourunique.cv/sign-up).

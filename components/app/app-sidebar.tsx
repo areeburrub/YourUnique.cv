@@ -74,6 +74,7 @@ import {
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
+import { isStartTrialPath } from "@/lib/trial";
 import { cn } from "@/lib/utils";
 
 const navIconSlot =
@@ -361,6 +362,7 @@ type AppSidebarProps = {
 	initialHasMore?: boolean;
 	showUpgrade?: boolean;
 	upgradeHref?: string;
+	upgradeLabel?: string;
 };
 
 export function AppSidebar({
@@ -369,6 +371,7 @@ export function AppSidebar({
 	initialHasMore = false,
 	showUpgrade = false,
 	upgradeHref = "/settings",
+	upgradeLabel = "Get Pro",
 }: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
@@ -613,7 +616,9 @@ export function AppSidebar({
 						href={upgradeHref}
 						onClick={() => {
 							trackEvent(
-								MixpanelEvent.CheckoutStarted,
+								isStartTrialPath(upgradeHref)
+									? MixpanelEvent.TrialStarted
+									: MixpanelEvent.CheckoutStarted,
 								{
 									source: "sidebar",
 								},
@@ -627,7 +632,7 @@ export function AppSidebar({
 							<SparkleIcon size={16} weight="fill" />
 						</span>
 						<span className="truncate pr-2">
-							Start 7-day trial
+							{upgradeLabel}
 						</span>
 					</a>
 				) : null}

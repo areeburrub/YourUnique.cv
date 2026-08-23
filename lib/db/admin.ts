@@ -7,7 +7,8 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { creditGrants, usageDaily, users } from "@/lib/db/schema";
-import { getPlan, isPlanId } from "@/lib/plans";
+import { getPlan, isPlanId, PlanId } from "@/lib/plans";
+import { addTrialDays } from "@/lib/trial";
 
 function utcDateDaysAgo(days: number) {
 	const now = new Date();
@@ -133,7 +134,11 @@ export async function updateUserPlan(userId: string, planId: string) {
 	}
 	await db
 		.update(users)
-		.set({ planId, updatedAt: new Date() })
+		.set({
+			planId,
+			updatedAt: new Date(),
+			...(planId === PlanId.TRIAL ? { trialEndsAt: addTrialDays() } : {}),
+		})
 		.where(eq(users.id, userId));
 	revalidatePath("/admin/users");
 	revalidatePath(`/admin/users/${userId}`);

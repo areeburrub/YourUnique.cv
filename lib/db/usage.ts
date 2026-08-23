@@ -1,8 +1,10 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
+import { expireUserTrialIfNeeded } from "@/lib/db/trials";
 import { usageDaily, users } from "@/lib/db/schema";
-import { getPlan, type PlanConfig } from "@/lib/plans";
+import { getPlan, isPaidPlan, type PlanConfig } from "@/lib/plans";
+import { canStartTrial, isTrialActive } from "@/lib/trial";
 
 const ROLLING_DAYS = 30;
 
@@ -16,6 +18,10 @@ export type UsageSummary = {
 	rolling30dUsd: number;
 	monthlyLimitUsd: number;
 	dailyLimitUsd: number;
+	trialEndsAt: Date | null;
+	canStartTrial: boolean;
+	isTrialActive: boolean;
+	monthlyResetAt: Date | null;
 };
 
 export type UsageLimitOk = {
@@ -98,6 +104,7 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 				userId: users.id,
 				bonusCreditsUsd: users.bonusCreditsUsd,
 				planId: users.planId,
+				trialEndsAt: users.trialEndsAt,
 			})
 			.from(users)
 			.where(eq(users.id, userId))
@@ -112,6 +119,7 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 		db
 			.select({
 				total: sql<string>`coalesce(sum(${usageDaily.costUsd}), 0)`,
+				oldestDate: sql<string | null>`min(${usageDaily.date})`,
 			})
 			.from(usageDaily)
 			.where(
@@ -127,8 +135,15 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 		throw new Error(`User not found: ${userId}`);
 	}
 
-	const plan = getPlan(row.planId);
+	const resolved = await expireUserTrialIfNeeded({
+		id: row.userId,
+		planId: row.planId,
+		trialEndsAt: row.trialEndsAt,
+	});
+	const plan = getPlan(resolved.planId);
 	const bonusCreditsUsd = toNumber(row.bonusCreditsUsd);
+	const trialActive = isTrialActive(resolved.planId, resolved.trialEndsAt);
+	const entitled = isPaidPlan(resolved.planId) || trialActive;
 
 	return {
 		userId,
@@ -136,15 +151,51 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 		bonusCreditsUsd,
 		todayUsd: toNumber(todayRow[0]?.costUsd),
 		rolling30dUsd: toNumber(rollingRow[0]?.total),
-		monthlyLimitUsd: plan.monthlyLimitUsd + bonusCreditsUsd,
-		dailyLimitUsd: plan.dailyLimitUsd,
+		monthlyLimitUsd: entitled
+			? plan.monthlyLimitUsd + bonusCreditsUsd
+			: bonusCreditsUsd,
+		dailyLimitUsd: entitled ? plan.dailyLimitUsd : 0,
+		trialEndsAt: resolved.trialEndsAt,
+		canStartTrial: canStartTrial(resolved.planId, resolved.trialEndsAt),
+		isTrialActive: trialActive,
+		monthlyResetAt: monthlyResetFromOldest(rollingRow[0]?.oldestDate),
 	};
+}
+
+function monthlyResetFromOldest(oldestDate: string | null | undefined) {
+	if (!oldestDate) {
+		return null;
+	}
+	const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(oldestDate);
+	if (!match) {
+		return null;
+	}
+	return new Date(
+		Date.UTC(
+			Number(match[1]),
+			Number(match[2]) - 1,
+			Number(match[3]) + ROLLING_DAYS,
+		),
+	);
 }
 
 export async function checkUsageLimit(
 	userId: string,
 ): Promise<UsageLimitResult> {
 	const summary = await getUsageSummary(userId);
+
+	if (
+		!summary.isTrialActive &&
+		!isPaidPlan(summary.plan.id) &&
+		!summary.canStartTrial
+	) {
+		return {
+			blocked: true,
+			scope: "monthly",
+			plan: summary.plan,
+			summary,
+		};
+	}
 
 	if (summary.todayUsd >= summary.dailyLimitUsd) {
 		return {

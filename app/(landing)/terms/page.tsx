@@ -17,7 +17,7 @@ export default function TermsPage() {
 		<LegalPage
 			eyebrow="Legal"
 			title="Terms of Service"
-			updated="August 19, 2026"
+			updated="August 24, 2026"
 		>
 			<section className="space-y-3">
 				<h2>The service</h2>
@@ -41,10 +41,10 @@ export default function TermsPage() {
 			<section className="space-y-3">
 				<h2>Plans and payment</h2>
 				<p>
-					Pro is $5 a month after a 7-day trial. Lifetime is $150
-					once. Payments are processed by Dodo Payments. Usage limits
-					apply so the product stays usable. Refunds are handled case
-					by case. Email{" "}
+					Trial is free for 7 days and does not need a card. Pro is
+					$5 a month. Lifetime is $150 once. Payments are processed
+					by Dodo Payments. Usage limits apply so the product stays
+					usable. Refunds are handled case by case. Email{" "}
 					<a href={`mailto:${SITE_EMAIL}`}>{SITE_EMAIL}</a> if
 					something went wrong.
 				</p>

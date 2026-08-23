@@ -164,10 +164,17 @@ const jsonLd = {
 			offers: [
 				{
 					"@type": "Offer",
+					price: "0",
+					priceCurrency: "USD",
+					name: "Trial",
+					description: `${TRIAL_DAYS}-day free trial, no card required`,
+				},
+				{
+					"@type": "Offer",
 					price: String(PRO_PRICE_USD),
 					priceCurrency: "USD",
 					name: "Pro",
-					description: `${TRIAL_DAYS}-day trial, then $${PRO_PRICE_USD} per month`,
+					description: `$${PRO_PRICE_USD} per month`,
 				},
 				{
 					"@type": "Offer",

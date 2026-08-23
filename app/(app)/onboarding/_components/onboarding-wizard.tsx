@@ -46,6 +46,11 @@ function startingGenerateStage(hasResume: boolean, hasLinkedIn: boolean): Genera
 
 const PLAN_CARDS = [
 	{
+		id: PlanId.TRIAL,
+		...PLAN_COPY.TRIAL,
+		featured: false,
+	},
+	{
 		id: PlanId.PRO,
 		...PLAN_COPY.PRO,
 		featured: true,
@@ -472,6 +477,14 @@ export function OnboardingWizard({
 					},
 					{ sendImmediately: true },
 				);
+			} else if (planId === PlanId.TRIAL) {
+				trackEvent(
+					MixpanelEvent.TrialStarted,
+					{
+						source: "onboarding",
+					},
+					{ sendImmediately: true },
+				);
 			}
 			window.location.href = data.redirectUrl;
 		} catch (err) {
@@ -734,55 +747,57 @@ function PlanStep({
 	const busy = submittingPlan !== null;
 
 	return (
-		<div className="mx-auto flex w-full max-w-3xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
+		<div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
 			<div className="mb-10 max-w-lg text-center">
 				<p className="text-sm font-medium text-muted-foreground">
 					Step 5 of 5 · You&apos;re almost in
 				</p>
 				<h1 className="font-display mt-2 text-3xl font-semibold tracking-[-0.6px] sm:text-4xl sm:tracking-[-0.8px]">
-					Choose how you pay
+					Choose a plan
 				</h1>
 				<p className="mt-3 text-base leading-6 text-muted-foreground">
-					Your profile is ready. Try Pro for {TRIAL_DAYS} days, then
-					${PRO_PRICE_USD} a month, or buy Lifetime once.
+					Your profile is ready. Start a {TRIAL_DAYS}-day trial with
+					no card, or subscribe for ${PRO_PRICE_USD} a month.
 				</p>
 			</div>
 
-			<div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
+			<div className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-5">
 				{PLAN_CARDS.map((plan) => {
 					const thisBusy = submittingPlan === plan.id;
 					return (
 						<article
 							key={plan.id}
 							className={cn(
-								"flex flex-col rounded-2xl border bg-background p-6 sm:p-7",
+								"flex min-w-0 flex-col rounded-2xl border bg-background p-5 ring-1 sm:p-6",
 								plan.featured
-									? "border-brand/50 ring-1 ring-brand/30"
-									: "border-border",
+									? "border-brand/50 ring-brand/30"
+									: "border-border ring-transparent",
 							)}
 						>
-							<div className="flex items-start justify-between gap-3">
+							<div className="flex items-start justify-between gap-2">
 								<p className="text-lg font-semibold tracking-[-0.2px] text-foreground">
 									{plan.name}
 								</p>
-								<span className="rounded-full bg-brand/10 px-3 py-1 text-[11px] font-medium tracking-wide text-brand uppercase">
+								<span className="shrink-0 rounded-full bg-brand/10 px-2.5 py-1 text-[10px] font-medium tracking-wide text-brand uppercase">
 									{plan.badge}
 								</span>
 							</div>
 
-							<div className="mt-4 flex items-end gap-2.5">
-								<span className="mb-1.5 font-display text-2xl font-semibold tracking-[-0.4px] text-muted-foreground line-through">
-									{plan.compareAt}
-								</span>
-								<span className="font-display text-4xl font-semibold tracking-[-0.8px] text-foreground sm:text-5xl sm:tracking-[-0.96px]">
+							<div className="mt-4 flex flex-wrap items-end gap-x-2 gap-y-1">
+								{"compareAt" in plan && plan.compareAt ? (
+									<span className="mb-1 font-display text-xl font-semibold tracking-[-0.4px] text-muted-foreground line-through">
+										{plan.compareAt}
+									</span>
+								) : null}
+								<span className="font-display text-[40px] leading-none font-semibold tracking-[-0.8px] text-foreground">
 									{plan.price}
 								</span>
-								<span className="mb-1.5 text-sm text-muted-foreground">
+								<span className="mb-1 text-sm text-muted-foreground">
 									{plan.period}
 								</span>
 							</div>
 
-							<p className="mt-3 min-h-18 text-sm leading-6 text-muted-foreground">
+							<p className="mt-3 min-h-12 text-sm leading-6 text-muted-foreground">
 								{plan.blurb}
 							</p>
 
@@ -795,7 +810,7 @@ function PlanStep({
 										<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand">
 											<CheckIcon size={12} weight="bold" />
 										</span>
-										{feature}
+										<span className="min-w-0">{feature}</span>
 									</li>
 								))}
 							</ul>
@@ -807,7 +822,7 @@ function PlanStep({
 									disabled={busy}
 									onClick={() => onComplete(plan.id)}
 									className={cn(
-										"h-11 w-full cursor-pointer text-base font-semibold",
+										"h-11 w-full cursor-pointer text-sm font-semibold sm:text-base",
 										plan.featured &&
 											"bg-brand text-brand-foreground hover:bg-brand/90",
 									)}

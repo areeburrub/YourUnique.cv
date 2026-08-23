@@ -6,8 +6,9 @@ Open-source resume agent at https://yourunique.cv. Start from a resume and optio
 
 Features on Pro and Lifetime: persona, chat memory, job-aware drafts, visible tool calls, profile updates, bring-your-own or library templates, ATS analysis, PDF export, version history.
 
-Plans (same product; about 500+ tailored resumes a month):
-- Pro: $5/month after a 7-day trial (50% off $10)
+Plans:
+- Trial: free for 7 days, no card (about 10+ tailored resumes)
+- Pro: $5/month (50% off $10), about 500+ tailored resumes a month
 - Lifetime: $150 once (40% off $250), lifetime access and updates
 
 - Templates: https://yourunique.cv/templates

@@ -2,6 +2,8 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
+import { PlanId } from "@/lib/plans";
+import { addTrialDays } from "@/lib/trial";
 
 export type SyncUserInput = {
 	id: string;
@@ -21,6 +23,8 @@ export async function upsertUser(input: SyncUserInput) {
 			firstName: input.firstName ?? null,
 			lastName: input.lastName ?? null,
 			imageUrl: input.imageUrl ?? null,
+			planId: PlanId.TRIAL,
+			trialEndsAt: addTrialDays(),
 		})
 		.onConflictDoUpdate({
 			target: users.id,

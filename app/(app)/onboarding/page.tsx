@@ -35,7 +35,7 @@ export default async function OnboardingPage({
 	]);
 
 	if (
-		!isPaidPlan(dbUser?.planId ?? PlanId.FREE) &&
+		!isPaidPlan(dbUser?.planId ?? PlanId.TRIAL) &&
 		(isProSignupIntent(plan) || isLifetimeSignupIntent(plan))
 	) {
 		redirect(

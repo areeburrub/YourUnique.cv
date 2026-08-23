@@ -1,11 +1,14 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { UsageBar } from "@/app/(app)/(shell)/settings/_components/usage-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { MixpanelCheckoutLink } from "@/components/mixpanel-checkout-link";
 import { getUsageSummary } from "@/lib/db/usage";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
-import { checkoutPath, isLifetimePlan, isPaidPlan, isProPlan, PlanId } from "@/lib/plans";
+import { checkoutPath, isLifetimePlan, isPaidPlan, isProPlan, isTrialPlan, PlanId } from "@/lib/plans";
+import { trialDaysRemaining } from "@/lib/trial";
+import { nextUtcMidnight } from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
 
 export default async function SettingsPage() {
@@ -27,16 +30,9 @@ export default async function SettingsPage() {
 		: await getUsageSummary(userId);
 	const isPro = isProPlan(summary.plan.id);
 	const isLifetime = isLifetimePlan(summary.plan.id);
+	const isTrial = isTrialPlan(summary.plan.id);
 	const isPaid = isPaidPlan(summary.plan.id);
-	const usagePct =
-		summary.monthlyLimitUsd > 0
-			? Math.min(
-					100,
-					Math.round(
-						(summary.rolling30dUsd / summary.monthlyLimitUsd) * 100,
-					),
-				)
-			: 100;
+	const daysLeft = trialDaysRemaining(summary.trialEndsAt);
 
 	return (
 		<div className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6">
@@ -55,6 +51,11 @@ export default async function SettingsPage() {
 						<p className="font-display text-xl font-semibold tracking-[-0.3px]">
 							{summary.plan.name}
 						</p>
+						{isTrial && daysLeft > 0 ? (
+							<p className="mt-1 text-sm text-muted-foreground">
+								{daysLeft} {daysLeft === 1 ? "day" : "days"} left
+							</p>
+						) : null}
 					</div>
 					<div className="flex flex-wrap items-center gap-2">
 						{isPro ? (
@@ -69,13 +70,22 @@ export default async function SettingsPage() {
 						) : null}
 						{!isPaid ? (
 							<>
-								<MixpanelCheckoutLink
-									href={checkoutPath(PlanId.PRO)}
-									source="settings"
-									className={cn(buttonVariants())}
-								>
-									Start trial
-								</MixpanelCheckoutLink>
+								{summary.canStartTrial ? (
+									<a
+										href="/api/start-trial"
+										className={cn(buttonVariants())}
+									>
+										Start trial
+									</a>
+								) : (
+									<MixpanelCheckoutLink
+										href={checkoutPath(PlanId.PRO)}
+										source="settings"
+										className={cn(buttonVariants())}
+									>
+										Get Pro
+									</MixpanelCheckoutLink>
+								)}
 								<MixpanelCheckoutLink
 									href={checkoutPath(PlanId.LIFETIME)}
 									source="settings_lifetime"
@@ -95,19 +105,24 @@ export default async function SettingsPage() {
 					</div>
 				</div>
 
-				<div className="space-y-2">
-					<div className="flex items-center justify-between gap-3 text-sm">
-						<span className="text-muted-foreground">Usage</span>
-						<span className="font-medium text-foreground">
-							{usagePct}%
-						</span>
-					</div>
-					<div className="h-2 overflow-hidden rounded-full bg-muted">
-						<div
-							className="h-full rounded-full bg-brand transition-[width]"
-							style={{ width: `${usagePct}%` }}
-						/>
-					</div>
+				<div className="space-y-5">
+					<UsageBar
+						label="Daily usage"
+						used={summary.todayUsd}
+						limit={summary.dailyLimitUsd}
+						resetAt={nextUtcMidnight().toISOString()}
+					/>
+					<UsageBar
+						label={isTrial ? "Trial usage" : "Monthly usage"}
+						used={summary.rolling30dUsd}
+						limit={summary.monthlyLimitUsd}
+						resetAt={
+							isTrial
+								? (summary.trialEndsAt?.toISOString() ?? null)
+								: (summary.monthlyResetAt?.toISOString() ?? null)
+						}
+						resetPrefix={isTrial ? "Ends" : "Resets"}
+					/>
 				</div>
 			</section>
 		</div>

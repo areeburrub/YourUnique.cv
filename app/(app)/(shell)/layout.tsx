@@ -6,10 +6,11 @@ import { cache } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { CHATS_PAGE_SIZE } from "@/lib/chats";
 import { db } from "@/lib/db";
+import { expireUserTrialIfNeeded } from "@/lib/db/trials";
 import { users } from "@/lib/db/schema";
 import { listChatThreads } from "@/lib/mastra-chats";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
-import { isPaidPlan } from "@/lib/plans";
+import { getUpgradeCta } from "@/lib/trial";
 
 const getCachedUser = cache(async () => currentUser());
 const getCachedPlanId = cache(
@@ -33,7 +34,7 @@ export default async function ShellLayout({
 		getCachedUser(),
 		db.query.users.findFirst({
 			where: eq(users.id, userId),
-			columns: { planId: true, onboardedAt: true },
+			columns: { planId: true, onboardedAt: true, trialEndsAt: true },
 		}),
 		listChatThreads(userId, {
 			limit: CHATS_PAGE_SIZE,
@@ -53,12 +54,20 @@ export default async function ShellLayout({
 		(email.includes("@") ? email.slice(0, email.indexOf("@")) : "") ||
 		"Account";
 
+	const resolved = await expireUserTrialIfNeeded({
+		id: userId,
+		planId: dbUser?.planId ?? "TRIAL",
+		trialEndsAt: dbUser?.trialEndsAt ?? null,
+	});
 	const planId = await getCachedPlanId(
 		userId,
 		email || null,
-		dbUser?.planId ?? null,
+		resolved.planId,
 	);
-	const showUpgrade = !isPaidPlan(planId ?? "FREE");
+	const upgrade = getUpgradeCta({
+		planId: planId ?? resolved.planId,
+		trialEndsAt: resolved.trialEndsAt,
+	});
 
 	return (
 		<AppShell
@@ -69,8 +78,9 @@ export default async function ShellLayout({
 			}}
 			recentThreads={recentResult.threads}
 			recentHasMore={recentResult.hasMore}
-			showUpgrade={showUpgrade}
-			upgradeHref="/api/checkout"
+			showUpgrade={Boolean(upgrade)}
+			upgradeHref={upgrade?.href ?? "/api/checkout"}
+			upgradeLabel={upgrade?.label}
 		>
 			{children}
 		</AppShell>

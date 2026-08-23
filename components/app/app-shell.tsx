@@ -21,6 +21,7 @@ type AppShellProps = {
 	recentHasMore?: boolean;
 	showUpgrade?: boolean;
 	upgradeHref?: string;
+	upgradeLabel?: string;
 	children: React.ReactNode;
 };
 
@@ -60,6 +61,7 @@ export function AppShell({
 	recentHasMore = false,
 	showUpgrade = false,
 	upgradeHref = "/settings",
+	upgradeLabel,
 	children,
 }: AppShellProps) {
 	useVisualViewportHeight();
@@ -76,6 +78,7 @@ export function AppShell({
 						<CommandPaletteProvider
 							showUpgrade={showUpgrade}
 							upgradeHref={upgradeHref}
+							upgradeLabel={upgradeLabel}
 						>
 							<AppSidebar
 								user={user}
@@ -83,6 +86,7 @@ export function AppShell({
 								initialHasMore={recentHasMore}
 								showUpgrade={showUpgrade}
 								upgradeHref={upgradeHref}
+								upgradeLabel={upgradeLabel}
 							/>
 							<SidebarInset className="min-h-0 overflow-hidden">
 								<div className="flex h-16 shrink-0 items-center px-4 md:hidden">

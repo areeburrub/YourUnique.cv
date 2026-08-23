@@ -32,6 +32,7 @@ export const MixpanelEvent = {
 	TemplateSelected: "Template Selected",
 	CustomTemplateUploadStarted: "Custom Template Upload Started",
 	CheckoutStarted: "Checkout Started",
+	TrialStarted: "Trial Started",
 } as const;
 
 export type MixpanelEventName =

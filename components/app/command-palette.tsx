@@ -44,6 +44,7 @@ import {
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
 import { MixpanelEvent, resetMixpanel, trackEvent } from "@/lib/mixpanel";
+import { isStartTrialPath } from "@/lib/trial";
 import {
 	resumeDownloadPath,
 	type ResumeListItem,
@@ -70,12 +71,14 @@ export function useCommandPalette() {
 type CommandPaletteProviderProps = {
 	showUpgrade?: boolean;
 	upgradeHref?: string;
+	upgradeLabel?: string;
 	children: ReactNode;
 };
 
 export function CommandPaletteProvider({
 	showUpgrade = false,
 	upgradeHref = "/settings",
+	upgradeLabel = "Get Pro",
 	children,
 }: CommandPaletteProviderProps) {
 	const [open, setOpen] = useState(false);
@@ -98,6 +101,7 @@ export function CommandPaletteProvider({
 			<CommandPaletteDialog
 				showUpgrade={showUpgrade}
 				upgradeHref={upgradeHref}
+				upgradeLabel={upgradeLabel}
 			/>
 		</CommandPaletteContext.Provider>
 	);
@@ -122,9 +126,11 @@ async function fetchResumes(): Promise<ResumeListItem[]> {
 function CommandPaletteDialog({
 	showUpgrade,
 	upgradeHref,
+	upgradeLabel,
 }: {
 	showUpgrade: boolean;
 	upgradeHref: string;
+	upgradeLabel: string;
 }) {
 	const { open, setOpen } = useCommandPalette();
 	const { openNewChat } = useSoftNav();
@@ -356,7 +362,9 @@ function CommandPaletteDialog({
 								value="upgrade pro plan billing"
 								onSelect={() => {
 									trackEvent(
-										MixpanelEvent.CheckoutStarted,
+										isStartTrialPath(upgradeHref)
+											? MixpanelEvent.TrialStarted
+											: MixpanelEvent.CheckoutStarted,
 										{
 											source: "command_palette",
 										},
@@ -366,7 +374,7 @@ function CommandPaletteDialog({
 								}}
 							>
 								<SparkleIcon size={16} weight="fill" />
-								<span>Start 7-day trial</span>
+								<span>{upgradeLabel}</span>
 							</CommandItem>
 						) : null}
 						<CommandItem

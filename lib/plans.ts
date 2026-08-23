@@ -1,5 +1,5 @@
 export const PlanId = {
-	FREE: "FREE",
+	TRIAL: "TRIAL",
 	PRO: "PRO",
 	LIFETIME: "LIFETIME",
 } as const;
@@ -14,21 +14,22 @@ export type PlanConfig = {
 	dodoProductId: string | null;
 };
 
+export const TRIAL_RESUMES_LABEL = "10+";
 export const PRO_MONTHLY_RESUMES_LABEL = "500+";
 
 export const PLANS: Record<PlanId, PlanConfig> = {
-	FREE: {
-		id: PlanId.FREE,
+	TRIAL: {
+		id: PlanId.TRIAL,
 		name: "Trial",
-		monthlyLimitUsd: 0.032,
-		dailyLimitUsd: 0.2,
+		monthlyLimitUsd: 1,
+		dailyLimitUsd: 0.5,
 		dodoProductId: null,
 	},
 	PRO: {
 		id: PlanId.PRO,
 		name: "Pro",
-		monthlyLimitUsd: 8,
-		dailyLimitUsd: 1.6,
+		monthlyLimitUsd: 4.5,
+		dailyLimitUsd: 1,
 		dodoProductId: process.env.DODO_PRO_PRODUCT_ID ?? null,
 	},
 	LIFETIME: {
@@ -40,14 +41,18 @@ export const PLANS: Record<PlanId, PlanConfig> = {
 	},
 };
 
-export const PLAN_IDS = [PlanId.FREE, PlanId.PRO, PlanId.LIFETIME] as const;
+export const PLAN_IDS = [PlanId.TRIAL, PlanId.PRO, PlanId.LIFETIME] as const;
 
 export function isPlanId(value: string): value is PlanId {
 	return (
-		value === PlanId.FREE ||
+		value === PlanId.TRIAL ||
 		value === PlanId.PRO ||
 		value === PlanId.LIFETIME
 	);
+}
+
+export function isTrialPlan(planId: string) {
+	return planId === PlanId.TRIAL || planId === "FREE";
 }
 
 export function isProPlan(planId: string) {
@@ -66,7 +71,7 @@ export function getPlan(planId: string): PlanConfig {
 	if (isPlanId(planId)) {
 		return PLANS[planId];
 	}
-	return PLANS.FREE;
+	return PLANS.TRIAL;
 }
 
 export function checkoutPath(planId: PlanId = PlanId.PRO) {
@@ -75,3 +80,5 @@ export function checkoutPath(planId: PlanId = PlanId.PRO) {
 	}
 	return "/api/checkout";
 }
+
+export const START_TRIAL_PATH = "/api/start-trial";

@@ -27,6 +27,9 @@ export async function GET() {
 			rolling30d: summary.rolling30dUsd,
 		},
 		bonusCreditsUsd: summary.bonusCreditsUsd,
+		canStartTrial: summary.canStartTrial,
+		isTrialActive: summary.isTrialActive,
+		trialEndsAt: summary.trialEndsAt?.toISOString() ?? null,
 		supportEmail: process.env.SUPPORT_EMAIL ?? null,
 	});
 }

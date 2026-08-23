@@ -14,6 +14,9 @@ export type UsageStatusResponse = {
 		rolling30d: number;
 	};
 	bonusCreditsUsd: number;
+	canStartTrial: boolean;
+	isTrialActive: boolean;
+	trialEndsAt: string | null;
 	supportEmail: string | null;
 };
 
