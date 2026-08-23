@@ -46,6 +46,6 @@ This template renders projects as compact one-liners: name, stack (if any), join
 
 - \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
 - \`patch_resume\` — \`{ id, patches[] }\` JSON Pointer ops on the saved document (also queues PDF). Do not resend the full document.
-- Give the user \`downloadUrl\`. Do not fetch the PDF yourself
-- If a JD or target role is in play, the same chat reply is always an ATS Analysis: score /100, dynamic Area/Match table, and 3–5 brief constructive gaps. No extra tools
+- Do not paste \`previewUrl\` or \`downloadUrl\`. The PDF card already appears in chat. Do not fetch the PDF yourself
+- If a JD or target role is in play, the same chat reply is always an ATS Analysis: score /100, projected score if in-profile gaps are filled, Area/Match table, safe-to-add vs not-in-profile snapshot, and 4–6 gaps with score lift. No extra tools
 `;

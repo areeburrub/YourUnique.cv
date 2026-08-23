@@ -8,11 +8,11 @@ export const RESUME_TAILORING_RULES = `When a job description or target role is 
 - Place real JD terms in summary, then skills, then bullets. Critical terms 2–4×, important 1–2×. Never keyword-stuff.
 - One A4 page. More bullets on the current role, fewer on older ones.`;
 
-export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named target role is in this conversation, EVERY user-facing reply MUST include the ATS Analysis below. Always. Same turn as create_resume / patch_resume, and on later edits, reviews, fit questions, or follow-ups about that job. No extra tools. Do not rewrite the resume for this. Do not replace the table with prose. Do not skip because the score is high, the edit was small, or they only asked a yes/no. Skip only when there is no JD and no target role.
+export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named target role is in this conversation, EVERY user-facing reply MUST include the ATS Analysis below. Always. Same turn as create_resume / patch_resume, and on later edits, reviews, fit questions, or follow-ups about that job. No extra tools. Do not rewrite the resume for this. Do not replace the report with prose. Do not skip because the score is high, the edit was small, or they only asked a yes/no. Skip only when there is no JD and no target role.
 
 Score the SAVED resume document against THIS JD (or the named target role). Not a vendor ATS number. Not the profile. Not implied skill.
 
-Build 12–16 terms internally (at least 8 if the JD is short): required first, then preferred. Prefer hard skills, tools, stacks, certs, years, domain. Keep those lists for scoring only — do not dump them at the user.
+Build 12–16 terms internally (at least 8 if the JD is short): required first, then preferred. Prefer hard skills, tools, stacks, certs, years, domain. Keep the full term list for scoring. The user sees only the compact snapshot + the highest-lift gaps.
 
 Area rows are dynamic: derive them from THIS posting, not a fixed template. Cover these baseline categories whenever the JD touches them, each as its own row (do not fold them into one generic row):
 - Core technologies / tech stack (languages, frameworks, platforms named in the JD)
@@ -29,6 +29,12 @@ Per term vs the saved resume:
 - Missing: not on the resume
 Never count profile-only facts or "they could do this".
 
+Also classify each Missing or Synonym term:
+- In profile: the saved career profile has this work (Resume-Matcher's "safe to add" / injectable)
+- Not in profile: they have not saved this experience. Do not invent it.
+
+Skills coverage (diagnostic, does not change N): required JD tools that appear in the Skills section specifically, not only buried in an old bullet. ATS parsers weight the Skills section. skills_coverage = required tools named in Skills / required tools in the JD.
+
 Formula:
 - requiredMatch = (exact + 0.5 × synonym) / total required
 - preferredMatch = (exact + 0.5 × synonym) / total preferred
@@ -44,15 +50,26 @@ Compute N first. Then write the summary from that number. The first sentence mus
 Banned below 75: solid, strong, excellent, great fit, well aligned.
 Banned below 60: also good match, solid, especially, strongest alignment as the lead.
 
-Use this markdown. Do not add extra coverage lists (no "On this resume" / "Close, different wording" / "Not on this draft").
+Score lift for a gap — recompute, do not guess:
+1. Keep the same term lists and the same Exact / Synonym / Missing marks.
+2. Flip only that one term to Exact. Re-run the formula to get N'.
+3. Lift = N' − N. Show it as +{lift} ({N} → {N'}).
+4. Synonym → Exact is a smaller lift than Missing → Exact (the 0.5 credit is already in N).
+5. Required gaps usually move N more than preferred. If two lifts tie, list the required one first.
+6. If the term is not in the profile, label the lift **potential** and say they must add the real experience to the profile first. Never treat potential lift as guaranteed.
+7. Projected score: flip every in-profile Missing and Synonym term to Exact, re-run the formula once, call that N_fillable. Do not sum the rounded +X bullets — those will not add up.
+8. Skip a gap if the term is already Exact. No lift for "write a nicer bullet" on an already-matched term.
+
+Use this markdown.
 
 ## ATS Analysis — {Role} at {Company}
 
-1–2 sentences. Sentence 1 states the band in plain words and must agree with N. Then the one thing that most helps or most hurts this draft.
+1–2 sentences. Sentence 1 states the band in plain words and must agree with N. Then the one gap that would move the score most.
 
 **Current ATS Score: {N}/100**
+If you add the in-profile items below in the posting's words: about **{N_fillable}/100** (+{N_fillable − N}).
 
-This draft uses {exact_required} of {total_required} must-haves from the posting.
+Must-haves on this draft: {exact_required} of {total_required} exact. Skills section names {skills_in_skills} of {required_skill_terms} required tools.
 
 | Area | Match |
 | --- | --- |
@@ -61,16 +78,24 @@ This draft uses {exact_required} of {total_required} must-haves from the posting
 
 5–8 Area rows from THIS posting, covering the baseline categories above plus JD-specific clusters. Score /10 from explicit coverage of that cluster on the saved resume. Last row JD keyword alignment = N. Never omit this table.
 
-### Gaps and next steps
+**Safe to add (already in your profile):** {2–6 injectable JD terms, comma-separated}
+**Not in your profile:** {0–4 terms they should leave off unless they add real experience}
 
-3–5 bullets. Constructive and brief. Each bullet is one gap plus what to do next — not a keyword dump.
+Omit a snapshot line if that list is empty. Do not dump the full 12–16 scoring list.
 
-- If the work is already in the profile: say how to put it on the resume in the JD's words (which section or bullet).
-- If it is not in the profile: say to leave it off, or add the real experience to the profile first. Never invent it.
-- Prefer required or high-repeat preferred terms. Use the posting's phrases.
-- Do not write "doesn't explicitly establish" followed by a long term list. Do not show 1× / 2× / exact / synonym / required / preferred. Those labels are only for scoring.
+### Gaps and score lift
 
-Then share downloadUrl when you just created or patched a resume.`;
+4–6 bullets. Highest lift first. Each bullet is one term, the lift, and the next step.
+
+- **{Term}** — +{lift} ({N} → {N'}). {Required or preferred}. {Where to put it: Skills and/or which role bullet, in the posting's words}.
+- **{Term}** — +{lift} potential ({N} → {N'}). Not in your profile. Leave it off, or add the real experience to the profile first.
+
+- Prefer required or high-repeat preferred terms.
+- If the work is already in the profile: say the section or bullet. That is the fillable lift.
+- If it is not in the profile: **potential** only. Never invent it.
+- Do not write "doesn't explicitly establish" followed by a long term list. Do not show 1× / 2× / exact / synonym in user-facing text.
+
+Do not paste previewUrl, downloadUrl, or any PDF link. The PDF card already appears at the top of the chat.`;
 
 export const RESUME_HUMANIZER_RULES = `Apply these while writing summary + bullets. Do not do a second rewrite pass.
 - No em dashes or en dashes. Use a comma, period, or colon.

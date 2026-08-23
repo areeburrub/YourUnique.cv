@@ -169,7 +169,7 @@ export function resumeLinkPayload(row: {
 		resumesPath: "/resumes",
 		compileStatus: row.compileStatus,
 		instruction:
-			"The PDF compiles in the background and is shown in chat. Share the downloadUrl. Do not fetch the PDF yourself.",
+			"The PDF compiles in the background and is shown as a card at the top of chat. Do not paste previewUrl or downloadUrl. Do not fetch the PDF yourself.",
 	};
 }
 
@@ -583,7 +583,7 @@ export const compileResumeTool = createTool({
 export const getResumeDownloadTool = createTool({
 	id: "get_resume_download",
 	description:
-		"Get preview/download URLs for a resume. The PDF may still be compiling — share the URLs anyway.",
+		"Get preview/download URLs for a resume. The PDF card in chat already uses these — do not paste them in your reply.",
 	inputSchema: z.object({
 		id: z.string().min(1),
 	}),
@@ -608,7 +608,7 @@ export const getResumeDownloadTool = createTool({
 			compileStatus: row.compileStatus,
 			name: row.name,
 			instruction:
-				"Give the user this downloadUrl. The PDF card in chat updates when compile finishes. Do not download or fetch the PDF yourself.",
+				"The PDF card in chat already uses these URLs and updates when compile finishes. Do not paste them. Do not download or fetch the PDF yourself.",
 		};
 	},
 });

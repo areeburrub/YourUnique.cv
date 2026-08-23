@@ -110,7 +110,7 @@ ${RESUME_HUMANIZER_RULES}
 6. If a job description or target role is present:
 ${RESUME_TAILORING_RULES}
 7. Call create_resume once with name + document. When tailored to a job, always include jobDescription plus companyName, roleTitle, and jobLink when the user provided a posting URL. Prefer a name like "Role @ Company".
-8. create_resume queues the PDF and returns previewUrl + downloadUrl. The PDF card appears in chat. Do not call compile_resume after create. Do not fetch the PDF yourself.
+8. create_resume queues the PDF and returns previewUrl + downloadUrl so the PDF card can render in chat. Do not paste those URLs, do not add a download/preview link in your reply, and do not call compile_resume after create. Do not fetch the PDF yourself.
 9. One resume family per turn. If you already called create_resume, use patch_resume on the latest returned id. Do not create a second resume.
 10. In the same text reply (no extra tool calls), always include the ATS table and gaps when a JD or target role is in play:
 ${RESUME_ATS_REPORT_RULES}
@@ -140,7 +140,7 @@ If they name a target role without a full JD (e.g. "full stack"), start from the
 - Only use facts from the profile above and the conversation. Do not invent employers, titles, metrics, or dates.
 - Every experience role and education entry must have \`dates\` as a ready-to-print range. Never leave it out or fabricate it — see "Dates are mandatory" above.
 - Keep to roughly one A4 page unless the template notes say otherwise.
-- When the user attaches a resume PDF or image, read it carefully before giving advice — still use the saved profile, and send any new durable facts to profile-edit-agent to persist.`;
+- When the user attaches a resume PDF or image, read it carefully before giving advice — still use the saved profile, and send any new durable facts to profile-edit-agent to persist. If the message includes extracted PDF links, treat those URLs as real (they are often hidden behind a GitHub / LinkedIn label) and save them on the profile / fill github, linkedin, website, and project url fields.`;
 	},
 	model: openrouter(OPENROUTER_CHAT_MODEL, {
 		plugins: openrouterFileParserPlugins,

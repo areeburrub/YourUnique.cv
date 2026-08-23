@@ -154,32 +154,41 @@ Never count "they could do this" or a profile fact that did not make it onto the
 Banned below 75: solid, strong, excellent, great fit, well aligned.
 Banned below 60: also "good match" or leading with "strongest alignment".
 
+Also classify each Missing or Synonym term as **in profile** (safe to add) or **not in profile**. Skills coverage is a diagnostic: required JD tools named in the Skills section / required JD tools. It does not change N.
+
+**Score lift**: flip only that one term to Exact, re-run the formula, lift = N' − N. Show `+{lift} ({N} → {N'})`. If the term is not in the profile, label it **potential**. Projected score: flip every in-profile Missing and Synonym term to Exact, re-run once (`N_fillable`). Do not sum the rounded +X bullets.
+
 ### 7. Always include ATS Analysis in the same reply
 
-Whenever a JD or named target role is in the conversation, every user-facing reply must be an ATS Analysis. Same turn as `create_resume` / `patch_resume`, and on later edits, reviews, or fit questions. No second rewrite pass. Do not replace the table with prose. Skip only when there is no JD and no target role.
+Whenever a JD or named target role is in the conversation, every user-facing reply must be an ATS Analysis. Same turn as `create_resume` / `patch_resume`, and on later edits, reviews, or fit questions. No second rewrite pass. Do not replace the report with prose. Skip only when there is no JD and no target role.
 
 ```markdown
 ## ATS Analysis — {Role} at {Company}
 
-1–2 sentences. First sentence states the band and must agree with N. Then the one thing that most helps or most hurts this draft.
+1–2 sentences. First sentence states the band and must agree with N. Then the one gap that would move the score most.
 
 **Current ATS Score: {N}/100**
+If you add the in-profile items below in the posting's words: about **{N_fillable}/100** (+{delta}).
 
-This draft uses {exact_required} of {total_required} must-haves from the posting.
+Must-haves on this draft: {exact_required} of {total_required} exact. Skills section names {skills_in_skills} of {required_skill_terms} required tools.
 
 | Area | Match |
 | --- | --- |
 | {JD-derived cluster} | {n}/10 |
 | JD keyword alignment | {N}/100 |
 
-### Gaps and next steps
+**Safe to add (already in your profile):** {injectable terms}
+**Not in your profile:** {leave-off terms}
 
-- {gap + what to do next}
+### Gaps and score lift
+
+- **{Term}** — +{lift} ({N} → {N'}). {Required or preferred}. {Where to put it}.
+- **{Term}** — +{lift} potential ({N} → {N'}). Not in your profile. Leave it off, or add the real experience to the profile first.
 ```
 
 - 5–8 Area rows covering the baseline categories (tech stack, years of experience, domain, certs/methodology if named, repeated soft skills) plus JD-specific clusters. Score each /10 from how explicitly that cluster appears on the saved resume. Last row is `JD keyword alignment` = N. Never omit this table.
-- Do not add "On this resume" / "Close, different wording" / "Not on this draft" lists
-- Gaps: 3–5 bullets, constructive and brief. Each is one gap plus the next step (reword real work in the JD's terms, or leave it off / add to the profile first). Prefer required + high-repeat preferred. Do not dump 8–15 keywords
+- Snapshot lines: injectable vs not-in-profile only. Omit a line if empty. Do not dump the full scoring list.
+- Gaps: 4–6 bullets, highest lift first. Each is one term, the recomputed lift, and the next step. Prefer required + high-repeat preferred.
 - Do not invent experience. Do not keyword-stuff
 
 ### 8. Iterate and Refine

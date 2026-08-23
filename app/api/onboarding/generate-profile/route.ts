@@ -13,6 +13,7 @@ import { getUserById } from "@/lib/db/users";
 import { getR2Object } from "@/lib/r2";
 import { fetchLinkedInProfile } from "@/lib/fetch-linkedin-profile";
 import { normalizeLinkedInProfileUrl } from "@/lib/linkedin-profile";
+import { extractPdfLinks, formatPdfLinksForModel } from "@/lib/pdf-links";
 
 export const maxDuration = 300;
 
@@ -25,8 +26,9 @@ Rules:
 - Never invent employers, dates, metrics, degrees, or skills.
 - Prefer the resume for employment detail when LinkedIn fields are sparse or redacted.
 - Include the LinkedIn URL in contact/links when one was provided.
+- Always keep GitHub, LinkedIn, website/portfolio, and project URLs from the resume. A "Links extracted from the resume PDF" list may be provided — those are real hyperlinks from the file, often behind a word like GitHub or an icon whose URL is not printed. Copy them into contact or the matching project. Write them as markdown [GitHub](https://github.com/...) so both the label and URL are kept. Never invent a URL that is not in the resume, the extracted list, LinkedIn JSON, or notes.
 - Output markdown only — no preamble, no code fences around the whole document.
-- Cover when known: contact/identity, professional summary, work experience (roles, companies, dates, concrete achievements), education, skills, projects/certifications, and target direction from notes.`;
+- Cover when known: contact/identity (including links), professional summary, work experience (roles, companies, dates, concrete achievements), education, skills, projects/certifications, and target direction from notes.`;
 
 async function fileContentForModel(input: {
 	userId: string;
@@ -54,11 +56,16 @@ async function fileContentForModel(input: {
 	const bytes = await body.transformToByteArray();
 
 	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
+		const linkText =
+			mediaType === "application/pdf"
+				? formatPdfLinksForModel(extractPdfLinks(bytes), filename)
+				: "";
 		return [
 			{
 				type: "text",
 				text: `Resume file: ${filename}`,
 			},
+			...(linkText ? [{ type: "text" as const, text: linkText }] : []),
 			{
 				type: "file",
 				mediaType,

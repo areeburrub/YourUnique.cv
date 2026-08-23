@@ -9,6 +9,7 @@ import {
 	getResumeTemplateForUser,
 	updateResumeTemplateForUser,
 } from "@/lib/db/templates";
+import { extractPdfLinks, formatPdfLinksForModel } from "@/lib/pdf-links";
 import { putR2Object, getR2Object } from "@/lib/r2";
 import {
 	isEmptyDocumentSchema,
@@ -115,6 +116,7 @@ async function loadSourcePageImages(input: {
 		mediaType: file.contentType,
 		pages: rasterized.pages,
 		sourcePageCount: rasterized.sourcePageCount,
+		bytes,
 	};
 }
 
@@ -164,6 +166,7 @@ async function requestSlots(input: {
 	filename: string;
 	pageParts: FilePart[];
 	sourcePageCount: number;
+	extractedLinks?: string;
 	retryHint?: boolean;
 }) {
 	// Deliberately not using Output.object here: schema-constrained decoding lets
@@ -197,6 +200,10 @@ ${sourceLayoutBrief({
 })}
 
 Read the page image(s) and return sampleData for every visible slot.${
+							input.extractedLinks
+								? `\n\n${input.extractedLinks}\n\nMap these into sampleData: github / linkedin / website as host/path, project url or links[].url when they belong to a project.`
+								: ""
+						}${
 							input.retryHint
 								? "\n\nYour previous reply had an empty sampleData. Fill it with the real resume content — do not return {}."
 								: ""
@@ -265,6 +272,7 @@ async function draftTemplate(input: {
 	filename: string;
 	pageParts: FilePart[];
 	sourcePageCount: number;
+	extractedLinks?: string;
 }): Promise<GeneratedTemplate> {
 	let slots = await requestSlots(input);
 	if (Object.keys(slots.sampleData).length === 0) {
@@ -499,6 +507,13 @@ export const generateResumeTemplate = schemaTask({
 				fileId: row.sourceFileId,
 			});
 			const pageParts = pageImageParts(source.pages);
+			const extractedLinks =
+				source.mediaType === "application/pdf"
+					? formatPdfLinksForModel(
+							extractPdfLinks(source.bytes),
+							source.filename,
+						)
+					: "";
 
 			logger.log("rasterized source for template generation", {
 				templateId: payload.templateId,
@@ -513,6 +528,7 @@ export const generateResumeTemplate = schemaTask({
 					filename: source.filename,
 					pageParts,
 					sourcePageCount: source.sourcePageCount,
+					extractedLinks,
 				}),
 			);
 			let preview = await renderPreview(draft);

@@ -6,6 +6,7 @@ import {
 	getUserFilesByKeys,
 } from "@/lib/db/files";
 import { getR2Object, getR2SignedGetUrl } from "@/lib/r2";
+import { extractPdfLinks, formatPdfLinksForModel } from "@/lib/pdf-links";
 import { fileAppUrl, parseFileIdFromAppUrl } from "@/lib/uploads";
 
 type MessagePart = UIMessage["parts"][number];
@@ -157,6 +158,10 @@ async function filePartToModelParts(
 	const bytes = await body.transformToByteArray();
 
 	if (mediaType.startsWith("image/") || mediaType === "application/pdf") {
+		const linkText =
+			mediaType === "application/pdf"
+				? formatPdfLinksForModel(extractPdfLinks(bytes), filename)
+				: "";
 		return [
 			{
 				type: "file",
@@ -164,6 +169,14 @@ async function filePartToModelParts(
 				filename,
 				url: `data:${mediaType};base64,${Buffer.from(bytes).toString("base64")}`,
 			},
+			...(linkText
+				? [
+						{
+							type: "text" as const,
+							text: linkText,
+						},
+					]
+				: []),
 		];
 	}
 
