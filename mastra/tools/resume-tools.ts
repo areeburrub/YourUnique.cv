@@ -406,14 +406,12 @@ export function makeCreateResumeTool(documentSchema: z.ZodType) {
 				userId,
 			});
 			return {
-				id: queued.resume.id,
-				name: queued.resume.name,
+				...resumeLinkPayload(queued.resume),
 				companyName: queued.resume.companyName,
 				roleTitle: queued.resume.roleTitle,
 				jobLink: queued.resume.jobLink,
 				templateRef: queued.resume.templateRef,
 				updatedAt: queued.resume.updatedAt.toISOString(),
-				...resumeLinkPayload(queued.resume),
 			};
 		});
 	},
@@ -501,12 +499,10 @@ export function makePatchResumeTool(documentSchema: z.ZodType) {
 			});
 			return {
 				ok: true,
-				id: queued.resume.id,
-				name: queued.resume.name,
+				...resumeLinkPayload(queued.resume),
 				applied: input.patches.length,
 				document,
 				updatedAt: queued.resume.updatedAt.toISOString(),
-				...resumeLinkPayload(queued.resume),
 			};
 		});
 	},
@@ -574,10 +570,8 @@ export const compileResumeTool = createTool({
 
 		return {
 			ok: true,
-			id: queued.resume.id,
-			name: queued.resume.name,
-			runId: queued.runId,
 			...resumeLinkPayload(queued.resume),
+			runId: queued.runId,
 		};
 	},
 });
