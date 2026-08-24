@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SparkleShuffle } from "@/components/ui/sparkle-shuffle";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
+import { markResumeGeneratedThisSession } from "@/lib/product-hunt-prompt";
 import {
 	isResumeCompiling,
 	resumeDownloadPath,
@@ -129,6 +130,7 @@ export function ResumePdfCard({
 
 	useEffect(() => {
 		if (wasPending.current && !pending && !failed) {
+			markResumeGeneratedThisSession();
 			trackEvent(MixpanelEvent.ResumePdfReady, {
 				resume_id: resumeId ?? "",
 			});

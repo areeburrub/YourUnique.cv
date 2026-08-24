@@ -1,0 +1,15 @@
+export const PRODUCT_HUNT_PRODUCT_URL =
+	"https://www.producthunt.com/products/yourunique-cv";
+
+export const PRODUCT_HUNT_BADGE_HREF = `${PRODUCT_HUNT_PRODUCT_URL}?embed=true&utm_source=badge-featured&utm_medium=badge&utm_campaign=badge-yourunique-cv`;
+
+export const PRODUCT_HUNT_UPVOTE_HREF = `${PRODUCT_HUNT_PRODUCT_URL}?utm_source=yourunique&utm_medium=app-drawer&utm_campaign=product-hunt-upvote`;
+
+export const PRODUCT_HUNT_BADGE_ALT =
+	"YourUnique.cv - Every job is different. Why send the same CV? | Product Hunt";
+
+export const PRODUCT_HUNT_BADGE_SRC_LIGHT =
+	"https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1230342&theme=light&t=1787565185159";
+
+export const PRODUCT_HUNT_BADGE_SRC_DARK =
+	"https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1230342&theme=dark&t=1787565185159";

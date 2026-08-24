@@ -6,6 +6,7 @@ import { cache } from "react";
 import { AppShell } from "@/components/app/app-shell";
 import { CHATS_PAGE_SIZE } from "@/lib/chats";
 import { db } from "@/lib/db";
+import { userHasReadyResume } from "@/lib/db/resumes";
 import { expireUserTrialIfNeeded } from "@/lib/db/trials";
 import { users } from "@/lib/db/schema";
 import { listChatThreads } from "@/lib/mastra-chats";
@@ -30,7 +31,7 @@ export default async function ShellLayout({
 		redirect("/sign-in");
 	}
 
-	const [user, dbUser, recentResult] = await Promise.all([
+	const [user, dbUser, recentResult, hasReadyResume] = await Promise.all([
 		getCachedUser(),
 		db.query.users.findFirst({
 			where: eq(users.id, userId),
@@ -40,6 +41,7 @@ export default async function ShellLayout({
 			limit: CHATS_PAGE_SIZE,
 			page: 0,
 		}),
+		userHasReadyResume(userId),
 	]);
 
 	if (!dbUser?.onboardedAt) {
@@ -81,6 +83,7 @@ export default async function ShellLayout({
 			showUpgrade={Boolean(upgrade)}
 			upgradeHref={upgrade?.href ?? "/api/checkout"}
 			upgradeLabel={upgrade?.label}
+			hasReadyResume={hasReadyResume}
 		>
 			{children}
 		</AppShell>

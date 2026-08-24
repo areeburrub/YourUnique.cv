@@ -5,6 +5,7 @@ import { useEffect } from "react";
 
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { CommandPaletteProvider } from "@/components/app/command-palette";
+import { HasReadyResumeProvider } from "@/components/app/has-ready-resume";
 import { type SidebarUser } from "@/components/app/sidebar-user-menu";
 import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
 import { QueryProvider } from "@/components/providers/query-provider";
@@ -22,6 +23,7 @@ type AppShellProps = {
 	showUpgrade?: boolean;
 	upgradeHref?: string;
 	upgradeLabel?: string;
+	hasReadyResume?: boolean;
 	children: React.ReactNode;
 };
 
@@ -62,6 +64,7 @@ export function AppShell({
 	showUpgrade = false,
 	upgradeHref = "/settings",
 	upgradeLabel,
+	hasReadyResume = false,
 	children,
 }: AppShellProps) {
 	useVisualViewportHeight();
@@ -72,42 +75,44 @@ export function AppShell({
 
 	return (
 		<QueryProvider>
-			<SoftNavProvider>
-				<TooltipProvider>
-					<SidebarProvider className="h-[var(--app-height,100dvh)] min-h-0 overflow-hidden">
-						<CommandPaletteProvider
-							showUpgrade={showUpgrade}
-							upgradeHref={upgradeHref}
-							upgradeLabel={upgradeLabel}
-						>
-							<AppSidebar
-								user={user}
-								initialThreads={recentThreads}
-								initialHasMore={recentHasMore}
+			<HasReadyResumeProvider hasReadyResume={hasReadyResume}>
+				<SoftNavProvider>
+					<TooltipProvider>
+						<SidebarProvider className="h-[var(--app-height,100dvh)] min-h-0 overflow-hidden">
+							<CommandPaletteProvider
 								showUpgrade={showUpgrade}
 								upgradeHref={upgradeHref}
 								upgradeLabel={upgradeLabel}
-							/>
-							<SidebarInset className="min-h-0 overflow-hidden">
-								<div className="flex h-16 shrink-0 items-center px-4 md:hidden">
-									<div className="flex w-20 shrink-0 items-center justify-start">
-										<SidebarTrigger className="text-muted-foreground" />
+							>
+								<AppSidebar
+									user={user}
+									initialThreads={recentThreads}
+									initialHasMore={recentHasMore}
+									showUpgrade={showUpgrade}
+									upgradeHref={upgradeHref}
+									upgradeLabel={upgradeLabel}
+								/>
+								<SidebarInset className="min-h-0 overflow-hidden">
+									<div className="flex h-16 shrink-0 items-center px-4 md:hidden">
+										<div className="flex w-20 shrink-0 items-center justify-start">
+											<SidebarTrigger className="text-muted-foreground" />
+										</div>
+										<div className="flex min-w-0 flex-1 items-center justify-center">
+											<MobileBrand />
+										</div>
+										<div className="flex w-20 shrink-0 items-center justify-end">
+											<MobileNewChatButton />
+										</div>
 									</div>
-									<div className="flex min-w-0 flex-1 items-center justify-center">
-										<MobileBrand />
+									<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+										{children}
 									</div>
-									<div className="flex w-20 shrink-0 items-center justify-end">
-										<MobileNewChatButton />
-									</div>
-								</div>
-								<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-									{children}
-								</div>
-							</SidebarInset>
-						</CommandPaletteProvider>
-					</SidebarProvider>
-				</TooltipProvider>
-			</SoftNavProvider>
+								</SidebarInset>
+							</CommandPaletteProvider>
+						</SidebarProvider>
+					</TooltipProvider>
+				</SoftNavProvider>
+			</HasReadyResumeProvider>
 		</QueryProvider>
 	);
 }

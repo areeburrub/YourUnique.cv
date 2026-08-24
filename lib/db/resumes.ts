@@ -44,6 +44,14 @@ async function groupResumesByFamily(userId: string): Promise<LatestResumeGroup> 
 	return { latest, versionCountByFamily };
 }
 
+export async function userHasReadyResume(userId: string) {
+	const row = await db.query.resumes.findFirst({
+		where: and(eq(resumes.userId, userId), eq(resumes.compileStatus, "ready")),
+		columns: { id: true },
+	});
+	return Boolean(row);
+}
+
 export async function listResumesForUser(userId: string) {
 	const { latest } = await groupResumesByFamily(userId);
 	return latest;

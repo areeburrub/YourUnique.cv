@@ -33,6 +33,9 @@ export const MixpanelEvent = {
 	CustomTemplateUploadStarted: "Custom Template Upload Started",
 	CheckoutStarted: "Checkout Started",
 	TrialStarted: "Trial Started",
+	ProductHuntPromptShown: "Product Hunt Prompt Shown",
+	ProductHuntPromptSnoozed: "Product Hunt Prompt Snoozed",
+	ProductHuntPromptClicked: "Product Hunt Prompt Clicked",
 } as const;
 
 export type MixpanelEventName =
