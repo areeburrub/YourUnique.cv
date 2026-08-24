@@ -2,6 +2,18 @@
 
 Each folder is a TypeScript module. The gallery shows `preview.png` (copied to `public/`).
 
+Current library:
+
+| id | Kind | Notes |
+| --- | --- | --- |
+| `classic-serif` | Traditional | Computer Modern, small-caps rules |
+| `engineering-compact` | Tech / SWE | Jake-style centered name, pipe contact |
+| `ats-classic` | ATS | Single column, Calibri-like, no graphics |
+| `navy-centered` | Professional | Centered header, navy rules |
+| `swiss-minimal` | Modern | Airy Inter, hairline rules |
+| `slate-sidebar` | Modern two-column | Dark left rail for contact + skills |
+| `executive-serif` | Executive | Playfair name, gold rule, title-first |
+
 ## Layout
 
 ```
@@ -10,7 +22,7 @@ templates/resume/<id>/
   template.ts        # Handlebars HTML + embedded CSS
   schema.ts          # Zod document schema for this template only
 
-Each template owns its document shape. Classic Serif has no top-level location or GPA; Navy Centered requires location and allows GPA. The resume agent receives that template's JSON schema in the briefing.
+Each template owns its document shape. Classic Serif has no top-level location or GPA; most newer layouts require location, and some render an optional headline or GPA. The resume agent receives that template's JSON schema in the briefing.
   notes.ts           # agent instructions
   sample-data.ts     # fictional fixture for preview generation
   preview.png        # source preview
@@ -20,7 +32,7 @@ In `index.ts`, set gallery metadata: `category`, `colors`, `formats`, `styleLabe
 
 ## Add a template
 
-1. Copy `classic-serif/` or `navy-centered/` to a new folder id (e.g. `modern-mono/`).
+1. Copy an existing folder (e.g. `classic-serif/` or `engineering-compact/`) to a new folder id.
 2. Edit `index.ts`, `template.ts`, `schema.ts`, `notes.ts`, `sample-data.ts`.
 3. Import and append it in `templates/resume/index.ts`.
 4. Run `bun scripts/generate-builtin-previews.ts`.
