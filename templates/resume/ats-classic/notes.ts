@@ -57,5 +57,5 @@ This template gives each project a title line and its own bullets.
 - \`create_resume\` — \`{ name, document, jobDescription?, companyName?, roleTitle?, jobLink? }\` (queues PDF; returns previewUrl / downloadUrl)
 - \`patch_resume\` — \`{ id, patches[] }\` JSON Pointer ops on the saved document (also queues PDF). Do not resend the full document.
 - Do not paste \`previewUrl\` or \`downloadUrl\`. The PDF card already appears in chat. Do not fetch the PDF yourself
-- If a JD or target role is in play, the same chat reply is always an ATS Analysis: score /100, projected score if in-profile gaps are filled, Area/Match table, safe-to-add vs not-in-profile snapshot, and 4–6 gaps with score lift. No extra tools
+- If a JD or target role is in play, the draft is already optimized from the profile (every in-profile JD term is on the page). The same chat reply is always an ATS Analysis: score /100, Area/Match table, and Biggest gaps (only terms they do not have, with potential lift if they add real experience). Never list in-profile phrasing as a user to-do. Patch missed in-profile terms before the report. Do not label the section "not in your profile".
 `;

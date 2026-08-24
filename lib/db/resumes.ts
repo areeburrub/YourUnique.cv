@@ -81,6 +81,16 @@ export async function listResumeVersionsForUser(
 	});
 }
 
+export async function getLatestResumeInFamily(
+	userId: string,
+	familyId: string,
+) {
+	return db.query.resumes.findFirst({
+		where: and(eq(resumes.userId, userId), eq(resumes.familyId, familyId)),
+		orderBy: [desc(resumes.version)],
+	});
+}
+
 export function getResumeDocument(row: ResumeRow): Record<string, unknown> {
 	return (row.sourceJson ?? {}) as Record<string, unknown>;
 }

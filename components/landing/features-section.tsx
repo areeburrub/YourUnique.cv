@@ -480,7 +480,7 @@ export function FeaturesSection() {
 					<FeatureRow
 						eyebrow="04 · ATS"
 						title="See the match and the gaps"
-						body="After a tailored draft you get a score for that posting, an area table, and the terms still missing from the page. If the work is real, say it in the JD's words. Don't invent it."
+						body="We write the optimized draft from your profile first. The ATS read then shows the score, the area table, and requirements you don't have yet. Those are the real gaps."
 						graphic={<AtsGraphic />}
 						flip
 					/>

@@ -24,6 +24,7 @@ import {
 import { fileTypeLabel } from "@/lib/file-type";
 import {
 	isResumePdfCardTool,
+	resumeIdFromDownloadUrl,
 	type ResumeListItem,
 } from "@/lib/resumes";
 export { isInternalToolName };
@@ -250,6 +251,10 @@ function resumeCardFromOutput(output: unknown) {
 		previewUrl,
 		downloadUrl,
 		compileStatus,
+		familyId:
+			typeof record.familyId === "string" && record.familyId
+				? record.familyId
+				: resumeIdFromDownloadUrl(previewUrl) ?? previewUrl,
 	};
 }
 
@@ -266,12 +271,13 @@ function resumeCardFromToolPart(part: ToolUIPart | DynamicToolUIPart) {
 
 function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 	if (part.state !== "output-available" || !part.output || typeof part.output !== "object") {
-		return [] as Array<{
-			name: string;
-			previewUrl: string;
-			downloadUrl: string;
-			compileStatus?: ResumeListItem["compileStatus"];
-		}>;
+	return [] as Array<{
+		name: string;
+		previewUrl: string;
+		downloadUrl: string;
+		compileStatus?: ResumeListItem["compileStatus"];
+		familyId: string;
+	}>;
 	}
 	const output = part.output as {
 		subAgentToolResults?: Array<{
@@ -319,54 +325,65 @@ export function renderAssistantParts(
 		);
 	}
 
-	const seenResumeIds = new Set<string>();
-	const pushResumeCard = (
+	const cards: Array<{
+		name: string;
+		previewUrl: string;
+		downloadUrl: string;
+		compileStatus?: ResumeListItem["compileStatus"];
+		familyId: string;
+	}> = [];
+
+	const collectCard = (
 		card: {
 			name: string;
 			previewUrl: string;
 			downloadUrl: string;
 			compileStatus?: ResumeListItem["compileStatus"];
+			familyId: string;
 		} | null,
-		key: string,
 	) => {
-		if (!card || seenResumeIds.has(card.previewUrl)) {
+		if (!card) {
 			return;
 		}
-		seenResumeIds.add(card.previewUrl);
-		nodes.push(
-			<ResumePdfCard
-				key={key}
-				name={card.name}
-				previewUrl={card.previewUrl}
-				downloadUrl={card.downloadUrl}
-				compileStatus={card.compileStatus}
-			/>,
-		);
+		cards.push(card);
 	};
 
-	for (const [index, part] of message.parts.entries()) {
+	for (const part of message.parts) {
 		if (!isChatToolPart(part)) {
 			continue;
 		}
-		pushResumeCard(
-			resumeCardFromToolPart(part),
-			`${message.id}-resume-${index}`,
-		);
-		for (const [cardIndex, card] of resumeCardsFromAgentToolOutput(
-			part,
-		).entries()) {
-			pushResumeCard(card, `${message.id}-nested-resume-${index}-${cardIndex}`);
+		collectCard(resumeCardFromToolPart(part));
+		for (const card of resumeCardsFromAgentToolOutput(part)) {
+			collectCard(card);
 		}
 	}
 
-	for (const [index, part] of agentDataPartsFromMessage(message).entries()) {
-		const outputs = resumeOutputsFromAgentData(part.data);
-		for (const [outputIndex, output] of outputs.entries()) {
-			pushResumeCard(
-				resumeCardFromOutput(output),
-				`${message.id}-agent-resume-${index}-${outputIndex}`,
-			);
+	for (const part of agentDataPartsFromMessage(message)) {
+		for (const output of resumeOutputsFromAgentData(part.data)) {
+			collectCard(resumeCardFromOutput(output));
 		}
+	}
+
+	const latestByFamily = new Map<string, (typeof cards)[number]>();
+	for (const card of cards) {
+		latestByFamily.set(card.familyId, card);
+	}
+	const seenFamilies = new Set<string>();
+	for (const card of cards) {
+		if (seenFamilies.has(card.familyId)) {
+			continue;
+		}
+		seenFamilies.add(card.familyId);
+		const latest = latestByFamily.get(card.familyId) ?? card;
+		nodes.push(
+			<ResumePdfCard
+				key={`${message.id}-resume-${latest.familyId}`}
+				name={latest.name}
+				previewUrl={latest.previewUrl}
+				downloadUrl={latest.downloadUrl}
+				compileStatus={latest.compileStatus}
+			/>,
+		);
 	}
 
 	message.parts.forEach((part, index) => {

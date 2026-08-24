@@ -2,7 +2,7 @@
 
 Full notes: https://yourunique.cv/llms.txt
 
-Open-source resume agent at https://yourunique.cv. Start from a resume and optional LinkedIn. In chat, share a job (text, PDF, or LinkedIn link), ask a question, or add a new fact. You get a CV for that role, a PDF, and an ATS read (score, area table, gaps). Keep the look of your own template or pick one from the library. New facts go on your profile.
+Open-source resume agent at https://yourunique.cv. Start from a resume and optional LinkedIn. In chat, share a job (text, PDF, or LinkedIn link), ask a question, or add a new fact. You get an optimized CV for that role, a PDF, and an ATS read (score, area table, and biggest gaps). Keep the look of your own template or pick one from the library. New facts go on your profile.
 
 Features on Pro and Lifetime: persona, chat memory, job-aware drafts, visible tool calls, profile updates, bring-your-own or library templates, ATS analysis, PDF export, version history.
 

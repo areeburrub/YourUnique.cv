@@ -8,6 +8,7 @@ import {
 	insertUserFileRow,
 } from "@/lib/db/files";
 import {
+	getLatestResumeInFamily,
 	getResumeDocument,
 	getResumeForUser,
 	updateResumeForUser,
@@ -91,6 +92,15 @@ export async function compileResumePdf(input: {
 	const resume = await getResumeForUser(input.resumeId, input.userId);
 	if (!resume) {
 		throw new Error("Resume not found");
+	}
+
+	const latest = await getLatestResumeInFamily(input.userId, resume.familyId);
+	if (latest && latest.id !== resume.id) {
+		await updateResumeForUser(input.resumeId, input.userId, {
+			compileStatus: resume.pdfFileId ? resume.compileStatus : "idle",
+			compileError: null,
+		});
+		return resume;
 	}
 
 	await updateResumeForUser(input.resumeId, input.userId, {

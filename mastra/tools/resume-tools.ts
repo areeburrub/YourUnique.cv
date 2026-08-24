@@ -18,6 +18,11 @@ import { normalizeJobPostingUrl } from "@/lib/job-postings";
 import { extractLinkedInJobId, isLinkedInJobUrl } from "@/lib/linkedin-jobs";
 import { queueResumeCompile } from "@/lib/resume-compile";
 import {
+	getTurnResumeId,
+	setTurnResumeId,
+	withResumeTurnLock,
+} from "@/lib/resume-turn";
+import {
 	resolveTemplate,
 	resolveUserSelectedTemplate,
 } from "@/lib/resume-templates/registry";
@@ -28,8 +33,6 @@ import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
 
 const JOB_POSTING_FALLBACK =
 	"We could not load this job posting. Ask the user to paste the job description text or send screenshots of the posting. Do not invent a job description and do not call create_resume until you have the posting.";
-
-const TURN_RESUME_ID_KEY = "turnResumeId";
 
 type ToolRequestContext = {
 	get: (key: string) => unknown;
@@ -44,21 +47,9 @@ function requireUserId(requestContext: ToolRequestContext | undefined) {
 	return userId;
 }
 
-function getTurnResumeId(requestContext: ToolRequestContext | undefined) {
-	const id = requestContext?.get(TURN_RESUME_ID_KEY);
-	return typeof id === "string" && id ? id : null;
-}
-
 function getThreadId(requestContext: ToolRequestContext | undefined) {
 	const id = requestContext?.get("threadId");
 	return typeof id === "string" && id ? id : null;
-}
-
-function setTurnResumeId(
-	requestContext: ToolRequestContext | undefined,
-	id: string,
-) {
-	requestContext?.set?.(TURN_RESUME_ID_KEY, id);
 }
 
 async function saveResumeDocumentInChat(input: {
@@ -160,10 +151,14 @@ function resumeDownloadUrl(resumeId: string) {
 
 export function resumeLinkPayload(row: {
 	id: string;
+	familyId?: string;
 	name: string;
 	compileStatus: string;
 }) {
 	return {
+		id: row.id,
+		familyId: row.familyId ?? row.id,
+		name: row.name,
 		previewUrl: resumePreviewUrl(row.id),
 		downloadUrl: resumeDownloadUrl(row.id),
 		resumesPath: "/resumes",
@@ -354,6 +349,7 @@ export function makeCreateResumeTool(documentSchema: z.ZodType) {
 	}),
 	outputSchema: z.object({
 		id: z.string(),
+		familyId: z.string(),
 		name: z.string(),
 		companyName: z.string().nullable(),
 		roleTitle: z.string().nullable(),
@@ -368,56 +364,58 @@ export function makeCreateResumeTool(documentSchema: z.ZodType) {
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
-		const threadId = getThreadId(context?.requestContext);
-		const turnResumeId = getTurnResumeId(context?.requestContext);
+		return withResumeTurnLock(context?.requestContext, async () => {
+			const threadId = getThreadId(context?.requestContext);
+			const turnResumeId = getTurnResumeId(context?.requestContext);
 
-		const existing = turnResumeId
-			? await getResumeForUser(turnResumeId, userId)
-			: null;
-		if (turnResumeId && !existing) {
-			throw new Error("Resume not found");
-		}
+			const existing = turnResumeId
+				? await getResumeForUser(turnResumeId, userId)
+				: null;
+			if (turnResumeId && !existing) {
+				throw new Error("Resume not found");
+			}
 
-		const contextRow = existing
-			? null
-			: await getUserContext(userId);
-		const template = await resolveTemplate(
-			normalizeTemplateRef(
-				existing?.templateRef ?? contextRow?.templateRef,
-			),
-			userId,
-		);
-		const document = template.validate(input.document);
-		const row = await saveResumeDocumentInChat({
-			userId,
-			threadId,
-			fromResumeId: existing?.id,
-			name: input.name,
-			document,
-			templateRef: template.ref,
-			jobDescription: input.jobDescription,
-			companyName: input.companyName,
-			roleTitle: input.roleTitle,
-			jobLink: input.jobLink,
+			const contextRow = existing
+				? null
+				: await getUserContext(userId);
+			const template = await resolveTemplate(
+				normalizeTemplateRef(
+					existing?.templateRef ?? contextRow?.templateRef,
+				),
+				userId,
+			);
+			const document = template.validate(input.document);
+			const row = await saveResumeDocumentInChat({
+				userId,
+				threadId,
+				fromResumeId: existing?.id,
+				name: input.name,
+				document,
+				templateRef: template.ref,
+				jobDescription: input.jobDescription,
+				companyName: input.companyName,
+				roleTitle: input.roleTitle,
+				jobLink: input.jobLink,
+			});
+			if (!row) {
+				throw new Error("Resume not found");
+			}
+			setTurnResumeId(context?.requestContext, row.id);
+			const queued = await queueResumeCompile({
+				resumeId: row.id,
+				userId,
+			});
+			return {
+				id: queued.resume.id,
+				name: queued.resume.name,
+				companyName: queued.resume.companyName,
+				roleTitle: queued.resume.roleTitle,
+				jobLink: queued.resume.jobLink,
+				templateRef: queued.resume.templateRef,
+				updatedAt: queued.resume.updatedAt.toISOString(),
+				...resumeLinkPayload(queued.resume),
+			};
 		});
-		if (!row) {
-			throw new Error("Resume not found");
-		}
-		setTurnResumeId(context?.requestContext, row.id);
-		const queued = await queueResumeCompile({
-			resumeId: row.id,
-			userId,
-		});
-		return {
-			id: queued.resume.id,
-			name: queued.resume.name,
-			companyName: queued.resume.companyName,
-			roleTitle: queued.resume.roleTitle,
-			jobLink: queued.resume.jobLink,
-			templateRef: queued.resume.templateRef,
-			updatedAt: queued.resume.updatedAt.toISOString(),
-			...resumeLinkPayload(queued.resume),
-		};
 	},
 });
 }
@@ -453,6 +451,7 @@ export function makePatchResumeTool(documentSchema: z.ZodType) {
 	outputSchema: z.object({
 		ok: z.boolean(),
 		id: z.string(),
+		familyId: z.string(),
 		name: z.string(),
 		applied: z.number(),
 		document: documentSchema,
@@ -465,49 +464,51 @@ export function makePatchResumeTool(documentSchema: z.ZodType) {
 	}),
 	execute: async (input, context) => {
 		const userId = requireUserId(context?.requestContext);
-		const threadId = getThreadId(context?.requestContext);
-		const existing = await getResumeForUser(input.id, userId);
-		if (!existing) {
-			throw new Error("Resume not found");
-		}
-		const template = await resolveTemplate(
-			normalizeTemplateRef(existing.templateRef),
-			userId,
-		);
-		const patched = applyResumePatches(
-			getResumeDocument(existing),
-			input.patches,
-		);
-		const document = template.validate(patched);
-		const row = await saveResumeDocumentInChat({
-			userId,
-			threadId,
-			fromResumeId: existing.id,
-			document,
-			templateRef: existing.templateRef,
-			name: existing.name,
-			jobDescription: existing.jobDescription,
-			companyName: existing.companyName,
-			roleTitle: existing.roleTitle,
-			jobLink: existing.jobLink,
+		return withResumeTurnLock(context?.requestContext, async () => {
+			const threadId = getThreadId(context?.requestContext);
+			const existing = await getResumeForUser(input.id, userId);
+			if (!existing) {
+				throw new Error("Resume not found");
+			}
+			const template = await resolveTemplate(
+				normalizeTemplateRef(existing.templateRef),
+				userId,
+			);
+			const patched = applyResumePatches(
+				getResumeDocument(existing),
+				input.patches,
+			);
+			const document = template.validate(patched);
+			const row = await saveResumeDocumentInChat({
+				userId,
+				threadId,
+				fromResumeId: existing.id,
+				document,
+				templateRef: existing.templateRef,
+				name: existing.name,
+				jobDescription: existing.jobDescription,
+				companyName: existing.companyName,
+				roleTitle: existing.roleTitle,
+				jobLink: existing.jobLink,
+			});
+			if (!row) {
+				throw new Error("Resume not found");
+			}
+			setTurnResumeId(context?.requestContext, row.id);
+			const queued = await queueResumeCompile({
+				resumeId: row.id,
+				userId,
+			});
+			return {
+				ok: true,
+				id: queued.resume.id,
+				name: queued.resume.name,
+				applied: input.patches.length,
+				document,
+				updatedAt: queued.resume.updatedAt.toISOString(),
+				...resumeLinkPayload(queued.resume),
+			};
 		});
-		if (!row) {
-			throw new Error("Resume not found");
-		}
-		setTurnResumeId(context?.requestContext, row.id);
-		const queued = await queueResumeCompile({
-			resumeId: row.id,
-			userId,
-		});
-		return {
-			ok: true,
-			id: queued.resume.id,
-			name: queued.resume.name,
-			applied: input.patches.length,
-			document,
-			updatedAt: queued.resume.updatedAt.toISOString(),
-			...resumeLinkPayload(queued.resume),
-		};
 	},
 });
 }
@@ -550,6 +551,7 @@ export const compileResumeTool = createTool({
 	outputSchema: z.object({
 		ok: z.boolean(),
 		id: z.string(),
+		familyId: z.string(),
 		name: z.string(),
 		compileStatus: z.string(),
 		runId: z.string(),
@@ -593,6 +595,7 @@ export const getResumeDownloadTool = createTool({
 		resumesPath: z.string(),
 		compileStatus: z.string(),
 		name: z.string(),
+		familyId: z.string(),
 		instruction: z.string(),
 	}),
 	execute: async (input, context) => {
@@ -602,11 +605,7 @@ export const getResumeDownloadTool = createTool({
 			throw new Error("Resume not found");
 		}
 		return {
-			previewUrl: resumePreviewUrl(row.id),
-			downloadUrl: resumeDownloadUrl(row.id),
-			resumesPath: "/resumes",
-			compileStatus: row.compileStatus,
-			name: row.name,
+			...resumeLinkPayload(row),
 			instruction:
 				"The PDF card in chat already uses these URLs and updates when compile finishes. Do not paste them. Do not download or fetch the PDF yourself.",
 		};

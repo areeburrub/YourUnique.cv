@@ -10,6 +10,7 @@ import { attachFilesToThread } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
 import { loadResumeBriefing } from "@/lib/resume-briefing";
+import { resumeRequestIdKey } from "@/lib/resume-turn";
 import { mastra } from "@/mastra";
 
 export const maxDuration = 300;
@@ -105,6 +106,7 @@ export async function POST(req: Request) {
 	requestContext.set("threadId", threadId);
 	requestContext.set("sourceFileIds", fileIds);
 	requestContext.set("chatSurface", chatSurface);
+	requestContext.set(resumeRequestIdKey(), crypto.randomUUID());
 	if (agentId === "resume-agent") {
 		requestContext.set("resumeBriefing", await loadResumeBriefing(userId));
 	}

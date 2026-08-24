@@ -14,11 +14,11 @@ Included on Pro:
 
 - Career persona from a resume upload and an optional LinkedIn URL (roles, skills, wins)
 - Chat with memory: paste a JD, share a LinkedIn job link or JD PDF, ask what to emphasize, or mention something new
-- Job-aware drafts for the role in front of you
+- Job-aware drafts for the role in front of you, already written in the posting's words for work you have
 - Visible agent tool calls (fetch a posting, read the profile, write the resume, update the profile)
 - Profile updates in chat: a new cert, job, or win is saved and used next time
 - Bring your own template (extracted from the upload) or pick one from the library
-- ATS analysis after a tailored draft: score /100, a dynamic Area / Match table, and a few constructive next steps. Do not invent experience; rephrase real work in the JD's words
+- ATS analysis after that optimized draft: score /100, a dynamic Area / Match table, and biggest gaps. Do not invent experience.
 - PDF export and a tailored file per role
 
 ## How it works

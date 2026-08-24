@@ -13,12 +13,12 @@ These are included on Pro and Lifetime:
 - Career persona: roles, skills, and wins stored as one profile the agent writes from
 - Onboarding from a resume upload and an optional LinkedIn profile URL
 - Chat with memory: paste a job description, share a LinkedIn job link or JD PDF, ask what to emphasize, or mention something new
-- Job-aware drafts: a tailored CV for the role in front of you
+- Job-aware drafts: a tailored CV for the role in front of you, already written in the posting's words for work you have
 - Agent tool calls you can see (fetch a posting, read the profile, write the resume, update the profile)
 - Profile updates in chat: a new cert, job, or win is saved and used next time
 - Bring your own template: the look of the uploaded resume is extracted so later drafts can stay in that design
 - Template library if you want a different layout
-- ATS analysis after a tailored draft: score out of 100, Area / Match table, and biggest gaps (terms still missing). Do not invent experience; rephrase real work in the JD's words
+- ATS analysis after that optimized draft: score out of 100, Area / Match table, and biggest gaps. Do not invent experience.
 - PDF export
 - Version history: a tailored file per role
 - Chat, profile, resumes, and templates in the signed-in app
