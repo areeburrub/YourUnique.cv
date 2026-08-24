@@ -647,7 +647,11 @@ export function ChatView({
 			snippetsRef.current,
 		);
 		const localFiles = message.files ?? [];
-		if ((!nextText && localFiles.length === 0) || status !== "ready") {
+		if (
+			(!nextText && localFiles.length === 0) ||
+			status === "submitted" ||
+			status === "streaming"
+		) {
 			return Promise.reject(new Error("Nothing to send"));
 		}
 
@@ -696,6 +700,9 @@ export function ChatView({
 			setUsageDialogOpen(true);
 			return;
 		}
+		if (status === "submitted" || status === "streaming") {
+			return;
+		}
 		if (!messages.some((message) => message.role === "user")) {
 			return;
 		}
@@ -727,7 +734,7 @@ export function ChatView({
 	);
 	const usageBlocked = Boolean(usageStatus.data?.blocked);
 	const showRetry = Boolean(error) || interrupted;
-	const busy = status !== "ready";
+	const isBusy = status === "submitted" || status === "streaming";
 	const canSubmit =
 		(Boolean(text.trim()) ||
 			hasReadyUploads ||
@@ -741,7 +748,6 @@ export function ChatView({
 	const lastUserHadFiles = Boolean(
 		lastUserMessage?.parts.some((part) => part.type === "file"),
 	);
-	const isBusy = status === "submitted" || status === "streaming";
 	const lastIsAssistant = lastMessage?.role === "assistant";
 	const lastHasAssistantText =
 		lastIsAssistant &&
@@ -793,7 +799,7 @@ export function ChatView({
 				onStop={stop}
 				status={status}
 				uploads={uploadStates}
-				busy={busy}
+				busy={isBusy}
 				canSubmit={canSubmit}
 				disabled={usageBlocked}
 				textareaRef={textareaRef}
@@ -825,7 +831,7 @@ export function ChatView({
 						{showRetry ? (
 							<ChatInterruptBanner
 								onRetry={handleRetry}
-								disabled={busy || usageBlocked}
+								disabled={isBusy || usageBlocked}
 							/>
 						) : null}
 					</>
