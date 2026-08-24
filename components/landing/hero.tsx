@@ -13,7 +13,7 @@ export function Hero() {
 						<p className="eyebrow animate-fade-rise delay-1 !text-brand mt-5 normal-case sm:mt-6">
 							{SITE_NAME}
 						</p>
-						<h1 className="font-display animate-fade-rise delay-2 mt-4 max-w-[480px] text-[36px] leading-[42px] font-semibold tracking-[-1px] text-foreground sm:mt-5 sm:text-[48px] sm:leading-[54px] sm:tracking-[-1.2px] md:text-[56px] md:leading-[64px] md:tracking-[-1.68px]">
+						<h1 className="font-display mt-4 max-w-[480px] text-[36px] leading-[42px] font-semibold tracking-[-1px] text-foreground sm:mt-5 sm:text-[48px] sm:leading-[54px] sm:tracking-[-1.2px] md:text-[56px] md:leading-[64px] md:tracking-[-1.68px]">
 							Every job is different. Why send the same CV?
 						</h1>
 						<p className="animate-fade-rise delay-3 mt-5 max-w-[400px] text-[16px] leading-7 text-muted-foreground sm:text-[17px]">
@@ -25,7 +25,7 @@ export function Hero() {
 						</div>
 					</div>
 
-					<div className="animate-fade-rise delay-4 min-h-0 min-w-0">
+					<div className="min-h-0 min-w-0">
 						<ProductPreview />
 					</div>
 				</div>

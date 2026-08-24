@@ -19,6 +19,7 @@ export function ProductHuntBadge({ className }: { className?: string }) {
 				height={54}
 				src={PRODUCT_HUNT_BADGE_SRC_LIGHT}
 				className="dark:hidden"
+				decoding="async"
 			/>
 			<img
 				alt=""
@@ -27,6 +28,8 @@ export function ProductHuntBadge({ className }: { className?: string }) {
 				src={PRODUCT_HUNT_BADGE_SRC_DARK}
 				className="hidden dark:block"
 				aria-hidden
+				loading="lazy"
+				decoding="async"
 			/>
 		</a>
 	);

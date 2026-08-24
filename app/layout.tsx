@@ -1,15 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ui } from "@clerk/ui";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Inter_Tight } from "next/font/google";
 import NextTopLoader from "nextjs-toploader";
 
-import { MixpanelProvider } from "@/components/mixpanel-provider";
+import { DeferredMetrics } from "@/components/deferred-metrics";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND } from "@/lib/brand";
-import { clerkAppearance } from "@/lib/clerk-appearance";
 import {
 	LIFETIME_PRICE_USD,
 	PRO_PRICE_USD,
@@ -33,11 +28,14 @@ import "./globals.css";
 const inter = Inter({
 	variable: "--font-body",
 	subsets: ["latin"],
+	display: "swap",
 });
 
 const interTight = Inter_Tight({
 	variable: "--font-display",
 	subsets: ["latin"],
+	display: "swap",
+	preload: true,
 });
 
 const siteUrl = getSiteUrl();
@@ -225,19 +223,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 					enableSystem
 					disableTransitionOnChange
 				>
-					<ClerkProvider
-						ui={ui}
-						appearance={clerkAppearance}
-						signInUrl="/sign-in"
-						signUpUrl="/sign-up"
-						signInFallbackRedirectUrl="/onboarding"
-						signUpFallbackRedirectUrl="/onboarding"
-					>
-						{children}
-						<MixpanelProvider />
-						<Analytics />
-						<SpeedInsights />
-					</ClerkProvider>
+					{children}
+					<DeferredMetrics />
 				</ThemeProvider>
 			</body>
 		</html>

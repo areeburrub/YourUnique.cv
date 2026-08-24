@@ -31,6 +31,8 @@ function LogoTrack({
 					src={company.src}
 					alt={ariaHidden ? "" : company.name}
 					className="h-7 w-auto max-w-30 object-contain opacity-60 grayscale dark:invert"
+					loading="lazy"
+					decoding="async"
 				/>
 			))}
 		</div>

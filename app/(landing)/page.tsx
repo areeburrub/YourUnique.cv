@@ -7,6 +7,8 @@ import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { UniqueFeatures } from "@/components/landing/unique-features";
 
+export const dynamic = "force-static";
+
 export default function LandingPage() {
 	return (
 		<div className="flex flex-1 flex-col bg-background">

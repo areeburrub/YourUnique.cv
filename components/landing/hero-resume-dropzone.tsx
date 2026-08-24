@@ -1,6 +1,5 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
 import { FileArrowUpIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 
@@ -21,7 +20,6 @@ import { cn } from "@/lib/utils";
 type DropStatus = "idle" | "saving" | "uploading" | "opening";
 
 export function HeroResumeDropzone() {
-	const { isLoaded, isSignedIn } = useAuth();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const dragDepth = useRef(0);
 	const [dragging, setDragging] = useState(false);
@@ -36,11 +34,12 @@ export function HeroResumeDropzone() {
 	}
 
 	async function handleFile(file: File) {
-		if (busy || !isLoaded) {
+		if (busy) {
 			return;
 		}
 
 		setError(null);
+		setStatus("saving");
 
 		try {
 			const mediaType = resolveOnboardingResume(file);
@@ -48,8 +47,8 @@ export function HeroResumeDropzone() {
 				? file
 				: new File([file], file.name, { type: mediaType });
 
-			if (!isSignedIn) {
-				setStatus("saving");
+			const progress = await fetchOnboardingProgress();
+			if (!progress) {
 				await savePendingResume(resume);
 				trackEvent(
 					MixpanelEvent.LandingResumeUploaded,
@@ -63,8 +62,7 @@ export function HeroResumeDropzone() {
 				return;
 			}
 
-			const progress = await fetchOnboardingProgress();
-			if (progress?.onboarded) {
+			if (progress.onboarded) {
 				setStatus("opening");
 				await discardPendingResume();
 				trackEvent(
@@ -131,7 +129,7 @@ export function HeroResumeDropzone() {
 			/>
 			<button
 				type="button"
-				disabled={busy || !isLoaded}
+				disabled={busy}
 				onClick={() => fileInputRef.current?.click()}
 				onDragEnter={(event) => {
 					if (!dataTransferHasFiles(event.dataTransfer)) {

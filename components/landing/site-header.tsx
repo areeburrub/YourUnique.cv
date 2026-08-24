@@ -1,10 +1,8 @@
-import { Show } from "@clerk/nextjs";
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/landing/brand-logo";
-import { HeaderUserMenu } from "@/components/landing/header-user-menu";
+import { SiteHeaderAuth } from "@/components/landing/site-header-auth";
 import { ModeToggle } from "@/components/mode-toggle";
-import { SlideButton } from "@/components/landing/slide-button";
 
 const navLinks = [
 	{ href: "/#how-it-works", label: "How it works" },
@@ -29,31 +27,7 @@ export function SiteHeader() {
 						))}
 					</nav>
 					<ModeToggle />
-					<Show when="signed-out">
-						<SlideButton
-							href="/sign-in"
-							variant="outline"
-							className="hidden h-11 px-5 text-[15px] sm:inline-flex"
-						>
-							Log in
-						</SlideButton>
-						<SlideButton
-							href="/sign-up"
-							className="h-11 px-5 text-[15px] sm:px-6"
-						>
-							Sign up
-						</SlideButton>
-					</Show>
-					<Show when="signed-in">
-						<SlideButton
-							href="/new-chat"
-							variant="outline"
-							className="h-11 px-5 text-[15px] sm:px-6"
-						>
-							Open app
-						</SlideButton>
-						<HeaderUserMenu />
-					</Show>
+					<SiteHeaderAuth />
 				</div>
 			</div>
 		</header>

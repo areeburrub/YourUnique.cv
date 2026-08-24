@@ -3,15 +3,11 @@
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useRef } from "react";
 
-import { identifyUser, initMixpanel, resetMixpanel } from "@/lib/mixpanel";
+import { identifyUser, resetMixpanel } from "@/lib/mixpanel";
 
-export function MixpanelProvider() {
+export function MixpanelIdentify() {
 	const { isLoaded, isSignedIn, user } = useUser();
 	const identifiedId = useRef<string | null>(null);
-
-	useEffect(() => {
-		void initMixpanel();
-	}, []);
 
 	useEffect(() => {
 		if (!isLoaded) {

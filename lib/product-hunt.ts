@@ -9,7 +9,7 @@ export const PRODUCT_HUNT_BADGE_ALT =
 	"YourUnique.cv - Every job is different. Why send the same CV? | Product Hunt";
 
 export const PRODUCT_HUNT_BADGE_SRC_LIGHT =
-	"https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1230342&theme=light&t=1787565185159";
+	"/assets/product-hunt/featured-light.svg";
 
 export const PRODUCT_HUNT_BADGE_SRC_DARK =
-	"https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1230342&theme=dark&t=1787565185159";
+	"/assets/product-hunt/featured-dark.svg";
