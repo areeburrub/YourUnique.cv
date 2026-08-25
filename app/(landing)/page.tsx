@@ -5,6 +5,7 @@ import { Hero } from "@/components/landing/hero";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
+import { TestimonialsSection } from "@/components/landing/testimonials-section";
 import { UniqueFeatures } from "@/components/landing/unique-features";
 
 export const dynamic = "force-static";
@@ -20,6 +21,8 @@ export default function LandingPage() {
 				<CompanyLogos />
 
 				<UniqueFeatures />
+
+				<TestimonialsSection />
 
 				<FeaturesSection />
 

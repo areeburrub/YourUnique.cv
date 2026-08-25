@@ -1,9 +1,8 @@
-const DONE_KEY = "yourunique:ph-upvote-done";
-const SNOOZE_UNTIL_KEY = "yourunique:ph-upvote-snooze-until";
-const LEGACY_DISMISSED_KEY = "yourunique:ph-upvote-dismissed";
+const DONE_KEY = "yourunique:peerlist-upvote-done";
+const SNOOZE_UNTIL_KEY = "yourunique:peerlist-upvote-snooze-until";
 const GENERATED_THIS_SESSION_KEY = "yourunique:ph-resume-this-session";
 
-export const PRODUCT_HUNT_SNOOZE_MS = 2 * 60 * 60 * 1000;
+export const PEERLIST_SNOOZE_MS = 2 * 60 * 60 * 1000;
 
 function canUseStorage() {
 	return typeof window !== "undefined";
@@ -64,17 +63,16 @@ export function wasResumeGeneratedThisSession() {
 	}
 }
 
-export function completeProductHuntUpvote() {
+export function completePeerlistUpvote() {
 	writeItem(DONE_KEY, "1");
 	removeItem(SNOOZE_UNTIL_KEY);
-	removeItem(LEGACY_DISMISSED_KEY);
 }
 
-export function snoozeProductHuntUpvote(durationMs = PRODUCT_HUNT_SNOOZE_MS) {
+export function snoozePeerlistUpvote(durationMs = PEERLIST_SNOOZE_MS) {
 	writeItem(SNOOZE_UNTIL_KEY, String(Date.now() + durationMs));
 }
 
-export function productHuntSnoozeRemainingMs() {
+export function peerlistSnoozeRemainingMs() {
 	if (readItem(DONE_KEY) === "1") {
 		return 0;
 	}
@@ -89,7 +87,7 @@ export function productHuntSnoozeRemainingMs() {
 	return Math.max(0, until - Date.now());
 }
 
-export function shouldShowProductHuntUpvote(hasReadyResume: boolean) {
+export function shouldShowPeerlistUpvote(hasReadyResume: boolean) {
 	if (!hasReadyResume) {
 		return false;
 	}
@@ -99,5 +97,5 @@ export function shouldShowProductHuntUpvote(hasReadyResume: boolean) {
 	if (wasResumeGeneratedThisSession()) {
 		return false;
 	}
-	return productHuntSnoozeRemainingMs() === 0;
+	return peerlistSnoozeRemainingMs() === 0;
 }

@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { SparkleShuffle } from "@/components/ui/sparkle-shuffle";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { markResumeGeneratedThisSession } from "@/lib/product-hunt-prompt";
+import { markResumeGeneratedThisSession } from "@/lib/peerlist-prompt";
 import {
 	isResumeCompiling,
 	resumeDownloadPath,

@@ -3,37 +3,24 @@
 import { ArrowUpIcon, XIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
+import { useHasReadyResume } from "@/components/app/has-ready-resume";
+import { PeerlistLogo } from "@/components/peerlist-logo";
 import { buttonVariants } from "@/components/ui/button";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { PRODUCT_HUNT_UPVOTE_HREF } from "@/lib/product-hunt";
+import { PEERLIST_UPVOTE_HREF } from "@/lib/peerlist";
 import {
-	completeProductHuntUpvote,
-	productHuntSnoozeRemainingMs,
-	shouldShowProductHuntUpvote,
-	snoozeProductHuntUpvote,
-} from "@/lib/product-hunt-prompt";
+	completePeerlistUpvote,
+	peerlistSnoozeRemainingMs,
+	shouldShowPeerlistUpvote,
+	snoozePeerlistUpvote,
+} from "@/lib/peerlist-prompt";
 import { cn } from "@/lib/utils";
 
-import { useHasReadyResume } from "@/components/app/has-ready-resume";
-
-function ProductHuntMark() {
-	return (
-		<span
-			className="flex size-9 shrink-0 items-center justify-center rounded-xl text-white"
-			style={{ backgroundColor: "#DA552F" }}
-			aria-hidden
-		>
-			<svg viewBox="0 0 40 40" className="size-5" fill="none">
-				<path
-					d="M22.667 20H16.667V13.333H22.667C24.508 13.333 26 14.826 26 16.667C26 18.508 24.508 20 22.667 20ZM22.667 9H12.667V31H16.667V24H22.667C26.716 24 30 20.716 30 16.667C30 12.618 26.716 9 22.667 9Z"
-					fill="currentColor"
-				/>
-			</svg>
-		</span>
-	);
+function PeerlistMark() {
+	return <PeerlistLogo className="size-9" />;
 }
 
-export function ProductHuntUpvoteBanner({ className }: { className?: string }) {
+export function PeerlistUpvoteBanner({ className }: { className?: string }) {
 	const hasReadyResume = useHasReadyResume();
 	const [visible, setVisible] = useState(false);
 	const [clock, setClock] = useState(0);
@@ -41,16 +28,16 @@ export function ProductHuntUpvoteBanner({ className }: { className?: string }) {
 
 	useEffect(() => {
 		function sync() {
-			const next = shouldShowProductHuntUpvote(hasReadyResume);
+			const next = shouldShowPeerlistUpvote(hasReadyResume);
 			setVisible(next);
 			if (next && !shownRef.current) {
 				shownRef.current = true;
-				trackEvent(MixpanelEvent.ProductHuntPromptShown);
+				trackEvent(MixpanelEvent.PeerlistPromptShown);
 			}
 		}
 
 		sync();
-		const remaining = productHuntSnoozeRemainingMs();
+		const remaining = peerlistSnoozeRemainingMs();
 		if (remaining <= 0) {
 			return;
 		}
@@ -66,18 +53,18 @@ export function ProductHuntUpvoteBanner({ className }: { className?: string }) {
 	}
 
 	const upvoteHandler = () => {
-		completeProductHuntUpvote();
+		completePeerlistUpvote();
 		shownRef.current = true;
 		setVisible(false);
-		trackEvent(MixpanelEvent.ProductHuntPromptClicked);
+		trackEvent(MixpanelEvent.PeerlistPromptClicked);
 	};
 
 	const snoozeHandler = () => {
-		snoozeProductHuntUpvote();
+		snoozePeerlistUpvote();
 		shownRef.current = false;
 		setVisible(false);
 		setClock((value) => value + 1);
-		trackEvent(MixpanelEvent.ProductHuntPromptSnoozed);
+		trackEvent(MixpanelEvent.PeerlistPromptSnoozed);
 	};
 
 	return (
@@ -89,10 +76,10 @@ export function ProductHuntUpvoteBanner({ className }: { className?: string }) {
 			)}
 		>
 			<div className="flex min-w-0 items-start gap-3 sm:flex-1 sm:items-center">
-				<ProductHuntMark />
+				<PeerlistMark />
 				<div className="min-w-0 flex-1 pt-0.5 sm:pt-0">
 					<p className="text-sm font-medium text-foreground">
-						We&apos;re live on Product Hunt
+						We&apos;re live on Peerlist
 					</p>
 					<p className="text-pretty text-xs leading-5 text-muted-foreground sm:truncate">
 						Enjoyed your resume? An upvote helps others find us.
@@ -109,7 +96,7 @@ export function ProductHuntUpvoteBanner({ className }: { className?: string }) {
 			</div>
 			<div className="flex shrink-0 items-center gap-2">
 				<a
-					href={PRODUCT_HUNT_UPVOTE_HREF}
+					href={PEERLIST_UPVOTE_HREF}
 					target="_blank"
 					rel="noopener noreferrer"
 					className={cn(
