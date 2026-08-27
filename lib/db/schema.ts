@@ -254,6 +254,48 @@ export const subscriptions = pgTable(
 	(table) => [index("subscriptions_user_id_idx").on(table.userId)],
 );
 
+export type ArticleFaq = {
+	question: string;
+	answer: string;
+};
+
+export const articles = pgTable(
+	"articles",
+	{
+		id: text("id").primaryKey(),
+		slug: text("slug").notNull(),
+		title: text("title").notNull(),
+		description: text("description").notNull(),
+		content: text("content").notNull(),
+		coverImageUrl: text("cover_image_url").notNull(),
+		coverImageAlt: text("cover_image_alt").notNull(),
+		authorName: text("author_name").notNull().default("Areeb ur Rub"),
+		authorUrl: text("author_url"),
+		seoTitle: text("seo_title"),
+		tldr: text("tldr"),
+		category: text("category"),
+		keywords: jsonb("keywords").$type<string[]>().notNull().default([]),
+		faq: jsonb("faq").$type<ArticleFaq[]>().notNull().default([]),
+		featured: boolean("featured").notNull().default(false),
+		published: boolean("published").notNull().default(false),
+		publishedAt: timestamp("published_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("articles_slug_uidx").on(table.slug),
+		index("articles_published_published_at_idx").on(
+			table.published,
+			table.publishedAt,
+		),
+		index("articles_featured_published_idx").on(table.featured, table.published),
+	],
+);
+
 export const usersRelations = relations(users, ({ many, one }) => ({
 	files: many(userFiles),
 	context: one(userContexts, {

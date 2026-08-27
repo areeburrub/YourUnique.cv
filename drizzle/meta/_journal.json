@@ -183,6 +183,13 @@
       "when": 1786627000000,
       "tag": "0025_trial_default_plan",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1786628000000,
+      "tag": "0026_articles",
+      "breakpoints": true
     }
   ]
 }

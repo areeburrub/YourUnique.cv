@@ -1,6 +1,9 @@
-# YourUnique.cv
+import { listPublishedArticles } from "@/lib/db/articles";
+import { getSiteUrl } from "@/lib/site";
 
-> Open-source resume agent. Start from your resume and LinkedIn. Share a job in chat and get a CV written for that role, plus an ATS read.
+const PRODUCT_LLMS_TXT = `# YourUnique.cv
+
+> Resume agent. Start from your resume and LinkedIn. Share a job in chat and get a CV written for that role, plus an ATS read.
 
 YourUnique.cv is a web app at https://yourunique.cv. Every job is different, so you should not send the same CV to every posting.
 
@@ -43,14 +46,34 @@ Start a 7-day trial, get Pro, or buy Lifetime at https://yourunique.cv/sign-up, 
 ## Links
 
 - [Home](https://yourunique.cv/): overview, how it works, and pricing
+- [Articles](https://yourunique.cv/articles): featured writing on resumes, ATS, and job search
 - [Templates](https://yourunique.cv/templates): built-in resume layouts
 - [Sign up](https://yourunique.cv/sign-up)
 - [Sign in](https://yourunique.cv/sign-in)
-- [GitHub](https://github.com/areeburrub/YourUnique.cv): source
 - [Author](https://areeburrub.dev): Areeb ur Rub
 - [Contact](mailto:contact@areeburrub.dev): contact@areeburrub.dev
 - [llm.txt](https://yourunique.cv/llm.txt): short summary
+`;
 
-## Optional
+export async function buildLlmsTxt() {
+	const siteUrl = getSiteUrl();
+	let articlesBlock = "";
 
-Signed-in pages (chats, profile, resumes, templates, settings) need an account and are not meant for crawlers.
+	try {
+		const articles = await listPublishedArticles();
+		if (articles.length > 0) {
+			const items = articles
+				.map((article) => {
+					const url = `${siteUrl}/articles/${article.slug}`;
+					const markdown = `${url}/markdown`;
+					return `- [${article.title}](${url}): ${article.description}\n  Markdown: ${markdown}`;
+				})
+				.join("\n");
+			articlesBlock = `\n## Articles\n\nPublished guides. Prefer the markdown URL when quoting.\n\n${items}\n`;
+		}
+	} catch {
+		articlesBlock = "";
+	}
+
+	return `${PRODUCT_LLMS_TXT}${articlesBlock}\n## Optional\n\nSigned-in pages (chats, profile, resumes, templates, settings) need an account and are not meant for crawlers.\n`;
+}
