@@ -13,6 +13,18 @@ const columns = [
 		],
 	},
 	{
+		title: "Free Tool",
+		links: [
+			{ href: "/free-tool", label: "See all" },
+			{ href: "/free-tool/ats-resume-checker", label: "ATS resume checker" },
+			{
+				href: "/free-tool/job-description-keyword-extractor",
+				label: "Keyword extractor",
+			},
+			{ href: "/free-tool/resume-job-match", label: "Resume vs job match" },
+		],
+	},
+	{
 		title: "Account",
 		links: [
 			{ href: "/sign-in", label: "Log in" },
@@ -23,6 +35,7 @@ const columns = [
 		title: "Company",
 		links: [
 			{ href: `mailto:${SITE_EMAIL}`, label: "Contact" },
+			{ href: "/articles", label: "Articles" },
 			{ href: "/terms", label: "Terms" },
 			{ href: "/privacy", label: "Privacy Policy" },
 		],
@@ -33,7 +46,7 @@ export function SiteFooter() {
 	return (
 		<footer>
 			<div className="rail px-5 py-16 sm:px-8 md:px-10">
-				<div className="grid gap-12 rounded-[32px] bg-card px-6 py-10 sm:px-8 md:grid-cols-[1.2fr_1fr] md:px-10">
+				<div className="grid gap-12 rounded-[32px] bg-card px-6 py-10 sm:px-8 lg:grid-cols-[minmax(16rem,0.7fr)_minmax(0,1.3fr)] md:px-10">
 					<div className="max-w-sm">
 						<BrandLogo />
 						<p className="mt-4 text-base leading-7 text-muted-foreground">
@@ -41,7 +54,7 @@ export function SiteFooter() {
 							for the job you’re actually applying to.
 						</p>
 					</div>
-					<div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+					<div className="grid grid-cols-2 gap-8 sm:grid-cols-2 lg:grid-cols-4">
 						{columns.map((column) => (
 							<div key={column.title}>
 								<p className="text-[13px] font-medium tracking-[0.06em] text-foreground uppercase">

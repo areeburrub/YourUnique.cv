@@ -53,6 +53,10 @@ export const metadata: Metadata = {
 	publisher: SITE_NAME,
 	category: "productivity",
 	keywords: [
+		"free tool",
+		"ATS resume checker",
+		"resume keyword extractor",
+		"resume job match",
 		"resume builder",
 		"AI resume",
 		"tailored CV",

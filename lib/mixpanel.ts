@@ -36,6 +36,10 @@ export const MixpanelEvent = {
 	PeerlistPromptShown: "Peerlist Prompt Shown",
 	PeerlistPromptSnoozed: "Peerlist Prompt Snoozed",
 	PeerlistPromptClicked: "Peerlist Prompt Clicked",
+	ToolRunStarted: "Tool Run Started",
+	ToolRunCompleted: "Tool Run Completed",
+	ToolRunFailed: "Tool Run Failed",
+	ToolCtaClicked: "Tool CTA Clicked",
 } as const;
 
 export type MixpanelEventName =

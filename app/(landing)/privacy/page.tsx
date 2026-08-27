@@ -53,8 +53,14 @@ export default function PrivacyPage() {
 						number.
 					</li>
 					<li>
+						Resume PDFs and job-description text you submit on the
+						public tools. We scan the PDF to produce the result. We
+						do not save it to an account.
+					</li>
+					<li>
 						Product analytics in production (Mixpanel): events like
-						sign-up, onboarding, and checkout. Local use is skipped.
+						sign-up, onboarding, checkout, and public tool use.
+						Local use is skipped.
 					</li>
 				</ul>
 			</section>
@@ -74,7 +80,8 @@ export default function PrivacyPage() {
 				<p>
 					Processors that help run the app: Clerk (auth), Dodo
 					Payments (billing), OpenRouter (language models), Cloudflare
-					R2 (file storage), and Trigger.dev (PDF compile). They only
+					R2 (file storage), Cloudflare Turnstile (bot check on
+					public tools), and Trigger.dev (PDF compile). They only
 					get what they need to do that job.
 				</p>
 			</section>

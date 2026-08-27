@@ -7,6 +7,7 @@ type SlideButtonProps = {
 	children: string;
 	variant?: "primary" | "outline" | "on-brand";
 	className?: string;
+	onClick?: () => void;
 };
 
 export function SlideButton({
@@ -14,6 +15,7 @@ export function SlideButton({
 	children,
 	variant = "primary",
 	className,
+	onClick,
 }: SlideButtonProps) {
 	const classNames = cn(
 		"inline-flex h-12 items-center justify-center rounded-full border px-7 text-base font-medium transition-all duration-200 hover:-translate-y-px",
@@ -28,14 +30,14 @@ export function SlideButton({
 
 	if (href.startsWith("#")) {
 		return (
-			<a href={href} className={classNames}>
+			<a href={href} className={classNames} onClick={onClick}>
 				{children}
 			</a>
 		);
 	}
 
 	return (
-		<Link href={href} className={classNames}>
+		<Link href={href} className={classNames} onClick={onClick}>
 			{children}
 		</Link>
 	);

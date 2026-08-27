@@ -22,6 +22,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 			priority: 0.8,
 		},
 		{
+			url: `${siteUrl}/free-tool`,
+			lastModified: new Date(),
+			changeFrequency: "weekly",
+			priority: 0.9,
+		},
+		{
+			url: `${siteUrl}/free-tool/ats-resume-checker`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.9,
+		},
+		{
+			url: `${siteUrl}/free-tool/job-description-keyword-extractor`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.9,
+		},
+		{
+			url: `${siteUrl}/free-tool/resume-job-match`,
+			lastModified: new Date(),
+			changeFrequency: "monthly",
+			priority: 0.9,
+		},
+		{
 			url: `${siteUrl}/templates`,
 			lastModified: new Date(),
 			changeFrequency: "monthly",

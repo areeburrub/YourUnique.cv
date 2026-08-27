@@ -46,6 +46,10 @@ Start a 7-day trial, get Pro, or buy Lifetime at https://yourunique.cv/sign-up, 
 ## Links
 
 - [Home](https://yourunique.cv/): overview, how it works, and pricing
+- [Free Tool](https://yourunique.cv/free-tool): ATS resume checker, job-description keyword extractor, resume vs job match
+- [ATS resume checker](https://yourunique.cv/free-tool/ats-resume-checker)
+- [Job description keyword extractor](https://yourunique.cv/free-tool/job-description-keyword-extractor)
+- [Resume vs job match](https://yourunique.cv/free-tool/resume-job-match)
 - [Articles](https://yourunique.cv/articles): featured writing on resumes, ATS, and job search
 - [Templates](https://yourunique.cv/templates): built-in resume layouts
 - [Sign up](https://yourunique.cv/sign-up)

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-	serverExternalPackages: ["@mastra/*", "handlebars"],
+	serverExternalPackages: ["@mastra/*", "handlebars", "pdfjs-dist"],
 	outputFileTracingIncludes: {
 		"/**": ["./templates/resume/**/*", "./mastra/skills/**/*"],
 	},
