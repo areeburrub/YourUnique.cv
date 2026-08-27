@@ -98,10 +98,10 @@ export function ArticlePage({
 							<p className="eyebrow mt-8 text-brand!">
 								{article.category ?? "Guide"}
 							</p>
-							<h1 className="article-title font-display mt-4 max-w-[760px] text-[36px] leading-11 font-semibold tracking-[-0.9px] text-balance text-foreground sm:text-[48px] sm:leading-14 sm:tracking-[-0.96px] md:text-[56px] md:leading-16 md:tracking-[-1.2px]">
+							<h1 className="article-title font-display mt-4 text-[36px] leading-11 font-semibold tracking-[-0.9px] text-balance text-foreground sm:text-[48px] sm:leading-14 sm:tracking-[-0.96px] md:text-[56px] md:leading-16 md:tracking-[-1.2px]">
 								{article.title}
 							</h1>
-							<p className="article-description mt-5 max-w-[640px] text-base leading-7 text-pretty text-muted-foreground sm:text-[17px]">
+							<p className="article-description mt-5 text-base leading-7 text-pretty text-muted-foreground sm:text-[17px]">
 								{article.description}
 							</p>
 							<p className="mt-5 text-[15px] text-muted-foreground">
