@@ -69,7 +69,7 @@ export function ToolPageBody({
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 			/>
 			<section>
-				<div className="rail px-5 pt-10 pb-8 sm:px-8 md:px-10 md:pt-14">
+				<div className="rail px-5 pt-6 pb-5 sm:px-8 md:px-10 md:pt-8">
 					<nav className="text-sm text-muted-foreground">
 						<Link href="/" className="hover:text-foreground">
 							Home
@@ -81,19 +81,14 @@ export function ToolPageBody({
 						<span className="px-2">/</span>
 						<span className="text-foreground">{tool.name}</span>
 					</nav>
-					<ToolImage
-						slug={tool.slug}
-						size="page"
-						className="mt-6 rounded-2xl"
-					/>
-					<p className="eyebrow text-brand! mt-5">{tool.eyebrow}</p>
-					<h1 className="font-display mt-4 max-w-[680px] text-[40px] leading-12 font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-14 sm:tracking-[-0.96px]">
+					<p className="eyebrow text-brand! mt-3">{tool.eyebrow}</p>
+					<h1 className="font-display mt-1.5 max-w-[680px] text-[32px] leading-10 font-semibold tracking-[-0.64px] text-foreground sm:text-[40px] sm:leading-12 sm:tracking-[-0.8px]">
 						{tool.h1}
 					</h1>
-					<p className="mt-5 max-w-[640px] text-base leading-7 text-muted-foreground">
+					<p className="mt-3 max-w-[640px] text-base leading-7 text-muted-foreground">
 						{tool.description}
 					</p>
-					<ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
+					<ul className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5">
 						{TRUST_POINTS.map((point) => (
 							<li
 								key={point}

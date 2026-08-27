@@ -1,4 +1,13 @@
-import { generateText, Output, type FilePart, type TextPart } from "ai";
+import {
+	generateText,
+	NoObjectGeneratedError,
+	NoOutputGeneratedError,
+	Output,
+	wrapLanguageModel,
+	extractJsonMiddleware,
+	type FilePart,
+	type TextPart,
+} from "ai";
 import type { z } from "zod";
 
 import { OPENROUTER_TOOLS_MODEL, openrouter } from "@/lib/ai/openrouter";
@@ -28,7 +37,14 @@ function clip(text: string, max: number) {
 }
 
 function toolsModel() {
-	return openrouter(OPENROUTER_TOOLS_MODEL);
+	return wrapLanguageModel({
+		model: openrouter(OPENROUTER_TOOLS_MODEL, {
+			plugins: [{ id: "response-healing" }],
+			usage: { include: true },
+			structuredOutputs: { strict: false },
+		}),
+		middleware: extractJsonMiddleware(),
+	});
 }
 
 type OpenRouterUsageMeta = { cost?: number };
@@ -46,6 +62,93 @@ function costFromProviderMetadata(metadata: unknown): number {
 		: 0;
 }
 
+type ResumePrompt =
+	| { prompt: string }
+	| { messages: Array<{ role: "user"; content: Array<TextPart | FilePart> }> };
+
+function resumePrompt(
+	resume: ScannedResume | { kind: "none" },
+	job?: string,
+): ResumePrompt {
+	if (resume.kind === "none") {
+		return { prompt: job ? `${job}\n\nRESUME: (none)` : "RESUME: (none)" };
+	}
+	if (resume.kind === "text") {
+		return {
+			prompt: job ? `RESUME:\n${resume.text}\n\n${job}` : resume.text,
+		};
+	}
+	return {
+		messages: [
+			{
+				role: "user",
+				content: [
+					{
+						type: "text",
+						text: job
+							? `Scan the attached resume PDF. ${job}${
+									resume.links ? `\n\n${resume.links}` : ""
+								}`
+							: "Scan the attached resume PDF.",
+					},
+					{
+						type: "file",
+						mediaType: "application/pdf",
+						filename: resume.filename,
+						data: resume.bytes,
+					},
+				],
+			},
+		],
+	};
+}
+
+async function generateStructured<T>(input: {
+	schema: z.ZodType<T>;
+	name: string;
+	maxOutputTokens: number;
+	instructions: string;
+	resume: ScannedResume | { kind: "none" };
+	job?: string;
+}): Promise<{ data: T; costUsd: number }> {
+	const prompt = resumePrompt(input.resume, input.job);
+	const result = await generateText({
+		model: toolsModel(),
+		output: Output.object({
+			schema: input.schema,
+			name: input.name,
+		}),
+		maxOutputTokens: input.maxOutputTokens,
+		temperature: 0,
+		instructions: input.instructions,
+		providerOptions: {
+			openrouter: {
+				reasoning: { effort: "none" },
+			},
+		},
+		...prompt,
+	});
+
+	try {
+		return {
+			data: result.output,
+			costUsd: costFromProviderMetadata(result.providerMetadata),
+		};
+	} catch (error) {
+		if (
+			NoOutputGeneratedError.isInstance(error) ||
+			NoObjectGeneratedError.isInstance(error)
+		) {
+			console.error("structured tool output missing", {
+				finishReason: result.finishReason,
+				text: result.text?.slice(0, 500),
+				cause: "cause" in error ? error.cause : undefined,
+			});
+		}
+		throw error;
+	}
+}
+
 async function generateToolObject<T>(input: {
 	schema: z.ZodType<T>;
 	maxOutputTokens: number;
@@ -53,60 +156,11 @@ async function generateToolObject<T>(input: {
 	resume: ScannedResume | { kind: "none" };
 	job: string;
 }): Promise<{ data: T; costUsd: number }> {
-	const job = `JOB:\n${input.job}`;
-	const base = {
-		model: toolsModel(),
-		output: Output.object({ schema: input.schema }),
-		maxOutputTokens: input.maxOutputTokens,
-		temperature: 0,
-		instructions: input.instructions,
-	};
-
-	if (input.resume.kind === "none") {
-		const { output, providerMetadata } = await generateText({
-			...base,
-			prompt: `${job}\n\nRESUME: (none)`,
-		});
-		if (!output) {
-			throw new Error("empty_tool_output");
-		}
-		return { data: output, costUsd: costFromProviderMetadata(providerMetadata) };
-	}
-
-	if (input.resume.kind === "text") {
-		const { output, providerMetadata } = await generateText({
-			...base,
-			prompt: `RESUME:\n${input.resume.text}\n\n${job}`,
-		});
-		if (!output) {
-			throw new Error("empty_tool_output");
-		}
-		return { data: output, costUsd: costFromProviderMetadata(providerMetadata) };
-	}
-
-	const parts: Array<TextPart | FilePart> = [
-		{
-			type: "text",
-			text: `Scan the attached resume PDF. ${job}${
-				input.resume.links ? `\n\n${input.resume.links}` : ""
-			}`,
-		},
-		{
-			type: "file",
-			mediaType: "application/pdf",
-			filename: input.resume.filename,
-			data: input.resume.bytes,
-		},
-	];
-
-	const { output, providerMetadata } = await generateText({
-		...base,
-		messages: [{ role: "user", content: parts }],
+	return generateStructured({
+		...input,
+		name: "tool_result",
+		job: `JOB:\n${input.job}`,
 	});
-	if (!output) {
-		throw new Error("empty_tool_output");
-	}
-	return { data: output, costUsd: costFromProviderMetadata(providerMetadata) };
 }
 
 async function extractLeadInfo(
@@ -116,43 +170,20 @@ async function extractLeadInfo(
 		return { lead: { name: null, email: null }, costUsd: 0 };
 	}
 
-	const base = {
-		model: toolsModel(),
-		output: Output.object({ schema: leadInfoSchema }),
-		maxOutputTokens: 80,
-		temperature: 0,
-		instructions:
-			"Extract the candidate's full name and email address from this resume. Return null for a field that is not present. Do not invent values.",
-	};
-
-	if (resume.kind === "text") {
-		const { output, providerMetadata } = await generateText({
-			...base,
-			prompt: resume.text,
+	try {
+		const { data, costUsd } = await generateStructured({
+			schema: leadInfoSchema,
+			name: "lead_info",
+			maxOutputTokens: 256,
+			instructions:
+				"Extract the candidate's full name and email address from this resume. Return null for a field that is not present. Do not invent values.",
+			resume,
 		});
-		return {
-			lead: output ?? { name: null, email: null },
-			costUsd: costFromProviderMetadata(providerMetadata),
-		};
+		return { lead: data, costUsd };
+	} catch (error) {
+		console.error("lead extract failed", error);
+		return { lead: { name: null, email: null }, costUsd: 0 };
 	}
-
-	const parts: Array<TextPart | FilePart> = [
-		{ type: "text", text: "Scan the attached resume PDF." },
-		{
-			type: "file",
-			mediaType: "application/pdf",
-			filename: resume.filename,
-			data: resume.bytes,
-		},
-	];
-	const { output, providerMetadata } = await generateText({
-		...base,
-		messages: [{ role: "user", content: parts }],
-	});
-	return {
-		lead: output ?? { name: null, email: null },
-		costUsd: costFromProviderMetadata(providerMetadata),
-	};
 }
 
 export type PublicToolRun = {
@@ -195,7 +226,7 @@ async function runPrimaryTool(
 	if (tool === "ats-resume-checker") {
 		const { data, costUsd } = await generateToolObject({
 			schema: atsResultSchema,
-			maxOutputTokens: 420,
+			maxOutputTokens: 1500,
 			instructions: `${SHARED_RULES}
 Score this resume vs this JD (0-100). Areas: keywords, skills, tools, seniority, evidence. Verdict: one short sentence.`,
 			resume,
@@ -207,7 +238,7 @@ Score this resume vs this JD (0-100). Areas: keywords, skills, tools, seniority,
 	if (tool === "job-description-keyword-extractor") {
 		const { data, costUsd } = await generateToolObject({
 			schema: keywordsResultSchema,
-			maxOutputTokens: 380,
+			maxOutputTokens: 1500,
 			instructions: `${SHARED_RULES}
 Extract ATS keywords from the JD. mustHave = required skills/phrases. niceToHave = optional. tools = software/stack. missing = mustHave/tools not in the resume; empty array if no resume.`,
 			resume,
@@ -221,7 +252,7 @@ Extract ATS keywords from the JD. mustHave = required skills/phrases. niceToHave
 
 	const { data, costUsd } = await generateToolObject({
 		schema: matchResultSchema,
-		maxOutputTokens: 400,
+		maxOutputTokens: 1500,
 		instructions: `${SHARED_RULES}
 Fit of resume to this JD. match 0-100. fit: strong >=75, partial >=45, else weak. overlapping = skills both share. gaps = JD needs not in resume. note: one short sentence.`,
 		resume,

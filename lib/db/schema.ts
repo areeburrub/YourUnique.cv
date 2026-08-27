@@ -268,6 +268,7 @@ export const freeToolLeads = pgTable(
 		costUsd: numeric("cost_usd", { precision: 10, scale: 6 })
 			.notNull()
 			.default("0"),
+		durationMs: integer("duration_ms"),
 		ip: text("ip"),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()

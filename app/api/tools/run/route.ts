@@ -1,9 +1,17 @@
 import { after } from "next/server";
 import { z } from "zod";
 
-import { runPublicTool } from "@/lib/tools/run";
+import { recordFreeToolLead } from "@/lib/db/free-tool-leads";
+import { putR2Object } from "@/lib/r2";
 import { isToolSlug } from "@/lib/tools/catalog";
 import { JOB_CHAR_LIMIT, TOOL_PDF_MAX_BYTES } from "@/lib/tools/constants";
+import {
+	analyzeStatusLabel,
+	type ToolStreamEvent,
+} from "@/lib/tools/events";
+import { jobFetchStatus, resolveJobText } from "@/lib/tools/fetch-job";
+import { classifyJobInput, isJobInputReady } from "@/lib/tools/job-input";
+import { runPublicTool } from "@/lib/tools/run";
 import { clientIpFromHeaders, verifyTurnstileToken } from "@/lib/turnstile";
 import {
 	isAllowedOnboardingUploadMediaType,
@@ -11,50 +19,81 @@ import {
 	resolveUploadMediaType,
 	sanitizeFilename,
 } from "@/lib/uploads";
-import { recordFreeToolLead } from "@/lib/db/free-tool-leads";
-import { putR2Object } from "@/lib/r2";
 
-export const maxDuration = 45;
+export const maxDuration = 90;
 
 function formString(form: FormData, key: string) {
 	const value = form.get(key);
 	return typeof value === "string" ? value : "";
 }
 
+function jsonError(error: string, status: number) {
+	return Response.json({ error }, { status });
+}
+
+function streamEvents(
+	run: (send: (event: ToolStreamEvent) => void) => Promise<void>,
+) {
+	const encoder = new TextEncoder();
+	const stream = new ReadableStream({
+		async start(controller) {
+			const send = (event: ToolStreamEvent) => {
+				controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+			};
+			try {
+				await run(send);
+			} catch (error) {
+				console.error("public tool failed", error);
+				send({
+					type: "error",
+					error:
+						error instanceof Error &&
+						/^(Could not|That posting)/.test(error.message)
+							? error.message
+							: "Could not run this tool. Try again in a moment.",
+				});
+			} finally {
+				controller.close();
+			}
+		},
+	});
+
+	return new Response(stream, {
+		headers: {
+			"Content-Type": "application/x-ndjson; charset=utf-8",
+			"Cache-Control": "no-cache",
+		},
+	});
+}
+
 export async function POST(request: Request) {
 	if (!process.env.OPENROUTER_API_KEY) {
-		return Response.json(
-			{ error: "This tool is temporarily unavailable" },
-			{ status: 503 },
-		);
+		return jsonError("This tool is temporarily unavailable", 503);
 	}
 
 	let form: FormData;
 	try {
 		form = await request.formData();
 	} catch {
-		return Response.json({ error: "Invalid form data" }, { status: 400 });
+		return jsonError("Invalid form data", 400);
 	}
 
 	const tool = formString(form, "tool").trim();
-	const jobText = formString(form, "jobText").trim();
+	const jobInput = formString(form, "jobText").trim();
 	const turnstileToken = formString(form, "turnstileToken").trim();
 	const resumeFile = form.get("resume");
 
 	if (!isToolSlug(tool)) {
-		return Response.json({ error: "Unknown tool" }, { status: 400 });
+		return jsonError("Unknown tool", 400);
 	}
 	if (turnstileToken.length < 1 || turnstileToken.length > 4096) {
-		return Response.json(
-			{ error: "Complete the bot check before running the tool" },
-			{ status: 400 },
-		);
+		return jsonError("Complete the bot check before running the tool", 400);
 	}
-	if (jobText.length < 40 || jobText.length > JOB_CHAR_LIMIT + 200) {
-		return Response.json(
-			{ error: "Paste more of the job description" },
-			{ status: 400 },
-		);
+	if (jobInput.length < 8 || jobInput.length > JOB_CHAR_LIMIT + 200) {
+		return jsonError("Paste a job description or a job link", 400);
+	}
+	if (!isJobInputReady(jobInput)) {
+		return jsonError("Paste more of the job description, or a job link", 400);
 	}
 
 	const resumeRequired = tool !== "job-description-keyword-extractor";
@@ -67,31 +106,22 @@ export async function POST(request: Request) {
 				mediaType: resumeFile.type || mediaTypeFromFilename(resumeFile.name),
 			}) || resumeFile.type;
 		if (!isAllowedOnboardingUploadMediaType(mediaType)) {
-			return Response.json(
-				{ error: "Upload a PDF resume" },
-				{ status: 400 },
-			);
+			return jsonError("Upload a PDF resume", 400);
 		}
 		if (resumeFile.size > TOOL_PDF_MAX_BYTES) {
-			return Response.json(
-				{ error: "Resume must be 8MB or smaller" },
-				{ status: 400 },
-			);
+			return jsonError("Resume must be 8MB or smaller", 400);
 		}
 		resumePdf = {
 			filename: sanitizeFilename(resumeFile.name),
 			bytes: new Uint8Array(await resumeFile.arrayBuffer()),
 		};
 	} else if (resumeRequired) {
-		return Response.json(
-			{ error: "Upload a PDF resume" },
-			{ status: 400 },
-		);
+		return jsonError("Upload a PDF resume", 400);
 	}
 
 	const parsedToken = z.string().min(1).max(4096).safeParse(turnstileToken);
 	if (!parsedToken.success) {
-		return Response.json({ error: "Invalid bot check" }, { status: 400 });
+		return jsonError("Invalid bot check", 400);
 	}
 
 	const verified = await verifyTurnstileToken({
@@ -99,23 +129,44 @@ export async function POST(request: Request) {
 		ip: clientIpFromHeaders(request.headers),
 	});
 	if (!verified.ok) {
-		return Response.json({ error: verified.error }, { status: 403 });
+		return jsonError(verified.error, 403);
 	}
 
-	try {
+	const classified = classifyJobInput(jobInput);
+	const fetchStatus = jobFetchStatus(classified);
+	const ip = clientIpFromHeaders(request.headers);
+
+	return streamEvents(async (send) => {
+		if (fetchStatus) {
+			send({ type: "status", id: fetchStatus.id, label: fetchStatus.label });
+		}
+
+		const jobText = await resolveJobText(jobInput);
+
+		send({
+			type: "status",
+			id: "analyze",
+			label: analyzeStatusLabel(tool),
+		});
+
+		const startedAt = Date.now();
 		const { result, usage } = await runPublicTool({ tool, jobText, resumePdf });
-		const ip = clientIpFromHeaders(request.headers);
+		const durationMs = Date.now() - startedAt;
+
 		after(() =>
-			persistFreeToolUsage({ tool, jobText, resumePdf, result, usage, ip }),
+			persistFreeToolUsage({
+				tool,
+				jobText,
+				resumePdf,
+				result,
+				usage,
+				durationMs,
+				ip,
+			}),
 		);
-		return Response.json({ result });
-	} catch (error) {
-		console.error("public tool failed", error);
-		return Response.json(
-			{ error: "Could not run this tool. Try again in a moment." },
-			{ status: 502 },
-		);
-	}
+
+		send({ type: "result", result });
+	});
 }
 
 async function persistFreeToolUsage(input: {
@@ -124,6 +175,7 @@ async function persistFreeToolUsage(input: {
 	resumePdf?: { filename: string; bytes: Uint8Array };
 	result: unknown;
 	usage: { costUsd: number; lead: { name: string | null; email: string | null } };
+	durationMs: number;
 	ip: string | null;
 }) {
 	try {
@@ -149,6 +201,7 @@ async function persistFreeToolUsage(input: {
 			jobText: input.jobText || null,
 			resultJson: input.result as Record<string, unknown>,
 			costUsd: input.usage.costUsd,
+			durationMs: input.durationMs,
 			ip: input.ip,
 		});
 	} catch (error) {

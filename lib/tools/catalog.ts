@@ -47,7 +47,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		h1: "Free ATS resume checker",
 		eyebrow: FREE_TOOL_NAME,
 		description:
-			"Upload your resume PDF and paste a job description. Get an ATS match score, missing keywords, and the real gaps before you apply.",
+			"Upload your resume PDF and paste a job description or LinkedIn job link. Get an ATS match score, missing keywords, and the real gaps before you apply.",
 		intro: `A quick read of your current file against one posting. ${SITE_NAME} then writes a CV for that role from your profile, in the posting's words, and scores the new draft.`,
 		keywords: [
 			"free tools",
@@ -64,7 +64,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		howToName: "Check a resume against a job description",
 		steps: [
 			"Upload the resume PDF you would send today",
-			"Paste the job description",
+			"Paste the job description or a LinkedIn job link",
 			"Read the score, keyword gaps, and what is already a match",
 		],
 		faq: [
@@ -72,6 +72,11 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 				question: "Is this the same score Workday or Greenhouse would give?",
 				answer:
 					"No. It is a keyword and requirement read of your text against this posting, not a vendor ATS number. Use it to see missing phrases and real gaps before you send the file.",
+			},
+			{
+				question: "Can I paste a LinkedIn job link?",
+				answer:
+					"Yes. Paste a LinkedIn jobs URL (or another public job link) instead of the full description. We fetch the posting first, then score it.",
 			},
 			{
 				question: "Do I need an account?",
@@ -100,7 +105,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		h1: "Job description keyword extractor",
 		eyebrow: FREE_TOOL_NAME,
 		description:
-			"Paste a job description and pull the resume keywords ATS will scan for: must-haves, tools, and nice-to-haves. Optional: upload your resume PDF to see what is missing.",
+			"Paste a job description or LinkedIn job link and pull the resume keywords ATS will scan for: must-haves, tools, and nice-to-haves. Optional: upload your resume PDF to see what is missing.",
 		intro: `Use this when you are still writing the resume yourself. When you want those phrases written into a CV for this posting, ${SITE_NAME} does that in chat.`,
 		keywords: [
 			"free tools",
@@ -115,7 +120,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		submitLabel: "Extract keywords",
 		howToName: "Extract resume keywords from a job description",
 		steps: [
-			"Paste the job description",
+			"Paste the job description or a LinkedIn job link",
 			"Optionally upload your resume PDF to mark missing keywords",
 			"Copy the must-haves and tools into your draft, or rewrite the whole CV in chat",
 		],
@@ -147,7 +152,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		h1: "Resume vs job match",
 		eyebrow: FREE_TOOL_NAME,
 		description:
-			"Upload your resume PDF and paste a job description. See overlap, skills gaps, and a fit score before you spend time applying.",
+			"Upload your resume PDF and paste a job description or LinkedIn job link. See overlap, skills gaps, and a fit score before you spend time applying.",
 		intro: `A fit read for one posting. If you apply, ${SITE_NAME} can write the CV for that role so the overlap is the work you already have, written in the job's words.`,
 		keywords: [
 			"free tools",
@@ -163,7 +168,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 		howToName: "Match a resume to a job description",
 		steps: [
 			"Upload your resume PDF",
-			"Paste the job description",
+			"Paste the job description or a LinkedIn job link",
 			"Read the fit score, overlapping skills, and gaps you should not claim",
 		],
 		faq: [

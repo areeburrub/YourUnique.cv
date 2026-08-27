@@ -11,6 +11,7 @@ export async function recordFreeToolLead(input: {
 	jobText: string | null;
 	resultJson: Record<string, unknown>;
 	costUsd: number;
+	durationMs: number | null;
 	ip: string | null;
 }) {
 	await db.insert(freeToolLeads).values({
@@ -23,6 +24,7 @@ export async function recordFreeToolLead(input: {
 		jobText: input.jobText,
 		resultJson: input.resultJson,
 		costUsd: input.costUsd.toFixed(6),
+		durationMs: input.durationMs,
 		ip: input.ip,
 	});
 }

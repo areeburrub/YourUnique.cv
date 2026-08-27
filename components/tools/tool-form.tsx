@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition, type FormEvent } from "reac
 
 import { ToolResumePicker } from "@/components/tools/tool-resume-picker";
 import { ToolResultPanel } from "@/components/tools/tool-result";
+import { ToolRunStatus, type ToolRunStatusStep } from "@/components/tools/tool-run-status";
 import { ToolStep } from "@/components/tools/tool-step";
 import {
 	TurnstileWidget,
@@ -15,6 +16,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
 import type { ToolDefinition } from "@/lib/tools/catalog";
 import { JOB_CHAR_LIMIT } from "@/lib/tools/constants";
+import type { ToolStreamEvent } from "@/lib/tools/events";
+import { classifyJobInput, isJobInputReady } from "@/lib/tools/job-input";
 import type { ToolRunResult } from "@/lib/tools/schemas";
 
 type ToolFormProps = {
@@ -28,6 +31,7 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 	const [jobText, setJobText] = useState("");
 	const [error, setError] = useState<string | null>(null);
 	const [result, setResult] = useState<ToolRunResult | null>(null);
+	const [statusSteps, setStatusSteps] = useState<ToolRunStatusStep[]>([]);
 	const [pending, startTransition] = useTransition();
 	const [verifying, setVerifying] = useState(false);
 	const turnstileRef = useRef<TurnstileWidgetHandle>(null);
@@ -39,7 +43,8 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 	const showResume =
 		resumeNeeded || tool.slug === "job-description-keyword-extractor";
 	const resumeFirst = resumeNeeded;
-	const jobReady = jobText.trim().length >= 40;
+	const jobReady = isJobInputReady(jobText);
+	const jobKind = classifyJobInput(jobText).kind;
 	const resumeReady = !resumeNeeded || Boolean(resumeFile);
 	const formReady = jobReady && resumeReady && !pending && !verifying;
 
@@ -59,8 +64,39 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 		}
 	}
 
+	function applyStatus(id: string, label: string) {
+		setStatusSteps((current) => {
+			const next = current.map((step) =>
+				step.state === "running" ? { ...step, state: "done" as const } : step,
+			);
+			const existing = next.find((step) => step.id === id);
+			if (existing) {
+				existing.label = label;
+				existing.state = "running";
+				return [...next];
+			}
+			return [...next, { id, label, state: "running" }];
+		});
+	}
+
+	function finishStatuses(failed?: boolean) {
+		setStatusSteps((current) =>
+			current.map((step) => ({
+				...step,
+				state:
+					step.state === "running"
+						? failed
+							? "failed"
+							: "done"
+						: step.state,
+			})),
+		);
+	}
+
 	function runTool(turnstileToken: string) {
 		setError(null);
+		setResult(null);
+		setStatusSteps([]);
 		trackEvent(MixpanelEvent.ToolRunStarted, { tool: tool.slug });
 
 		startTransition(async () => {
@@ -77,12 +113,11 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 					method: "POST",
 					body,
 				});
-				const payload = (await response.json()) as {
-					error?: string;
-					result?: ToolRunResult;
-				};
-				turnstileRef.current?.reset();
-				if (!response.ok || !payload.result) {
+				const contentType = response.headers.get("content-type") ?? "";
+
+				if (!contentType.includes("ndjson")) {
+					const payload = (await response.json()) as { error?: string };
+					turnstileRef.current?.reset();
 					const message =
 						payload.error ?? "Could not run this tool. Try again.";
 					setError(message);
@@ -92,10 +127,80 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 					});
 					return;
 				}
-				setResult(payload.result);
-				trackEvent(MixpanelEvent.ToolRunCompleted, { tool: tool.slug });
+
+				if (!response.body) {
+					throw new Error("empty_stream");
+				}
+
+				const reader = response.body.getReader();
+				const decoder = new TextDecoder();
+				let buffer = "";
+				let gotResult = false;
+				let gotError = false;
+
+				while (true) {
+					const { done, value } = await reader.read();
+					if (done) {
+						break;
+					}
+					buffer += decoder.decode(value, { stream: true });
+					const lines = buffer.split("\n");
+					buffer = lines.pop() ?? "";
+					for (const line of lines) {
+						if (!line.trim()) {
+							continue;
+						}
+						const event = JSON.parse(line) as ToolStreamEvent;
+						if (event.type === "status") {
+							applyStatus(event.id, event.label);
+						} else if (event.type === "result") {
+							gotResult = true;
+							finishStatuses();
+							setResult(event.result);
+							trackEvent(MixpanelEvent.ToolRunCompleted, {
+								tool: tool.slug,
+							});
+						} else if (event.type === "error") {
+							gotError = true;
+							finishStatuses(true);
+							setError(event.error);
+							trackEvent(MixpanelEvent.ToolRunFailed, {
+								tool: tool.slug,
+							});
+						}
+					}
+				}
+
+				if (buffer.trim()) {
+					const event = JSON.parse(buffer) as ToolStreamEvent;
+					if (event.type === "status") {
+						applyStatus(event.id, event.label);
+					} else if (event.type === "result") {
+						gotResult = true;
+						finishStatuses();
+						setResult(event.result);
+						trackEvent(MixpanelEvent.ToolRunCompleted, {
+							tool: tool.slug,
+						});
+					} else if (event.type === "error") {
+						gotError = true;
+						finishStatuses(true);
+						setError(event.error);
+						trackEvent(MixpanelEvent.ToolRunFailed, {
+							tool: tool.slug,
+						});
+					}
+				}
+
+				turnstileRef.current?.reset();
+				if (!gotResult && !gotError) {
+					finishStatuses(true);
+					setError("Could not run this tool. Try again.");
+					trackEvent(MixpanelEvent.ToolRunFailed, { tool: tool.slug });
+				}
 			} catch {
 				turnstileRef.current?.reset();
+				finishStatuses(true);
 				setError("Network error. Try again.");
 				trackEvent(MixpanelEvent.ToolRunFailed, { tool: tool.slug });
 			}
@@ -137,7 +242,7 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 	const jobStep = (
 		<ToolStep
 			index={resumeFirst || !showResume ? (showResume ? 2 : 1) : 1}
-			title="Paste the job description"
+			title="Paste the job or a LinkedIn link"
 			done={jobReady}
 		>
 			<Textarea
@@ -147,13 +252,17 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 				onChange={(event) =>
 					setJobText(event.target.value.slice(0, JOB_CHAR_LIMIT))
 				}
-				placeholder="Paste the posting"
+				placeholder="Paste the posting or a LinkedIn job URL"
 				className="max-h-80 min-h-36 overflow-y-auto"
 				maxLength={JOB_CHAR_LIMIT}
 				required
 			/>
 			<p className="mt-2 text-[13px] text-muted-foreground">
-				{jobText.length}/{JOB_CHAR_LIMIT}
+				{jobKind === "linkedin"
+					? "We'll fetch this LinkedIn posting."
+					: jobKind === "job_url"
+						? "We'll fetch this job posting."
+						: `${jobText.length}/${JOB_CHAR_LIMIT}`}
 			</p>
 		</ToolStep>
 	);
@@ -199,12 +308,15 @@ export function ToolForm({ tool, turnstileSiteKey }: ToolFormProps) {
 							{pending || verifying ? (
 								<>
 									<Spinner />
-									{verifying ? "Checking" : "Scanning"}
+									{verifying ? "Checking" : "Working"}
 								</>
 							) : (
 								tool.submitLabel
 							)}
 						</Button>
+						{statusSteps.length > 0 ? (
+							<ToolRunStatus steps={statusSteps} />
+						) : null}
 					</ToolStep>
 				</ol>
 			</form>
