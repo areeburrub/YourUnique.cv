@@ -20,6 +20,11 @@ export const keywordsResultSchema = z.object({
 	missing: z.array(z.string()),
 });
 
+export const leadInfoSchema = z.object({
+	name: z.string().nullable(),
+	email: z.string().nullable(),
+});
+
 export const matchResultSchema = z.object({
 	match: z.number().min(0).max(100),
 	fit: z.enum(["strong", "partial", "weak"]),
@@ -28,6 +33,7 @@ export const matchResultSchema = z.object({
 	note: z.string(),
 });
 
+export type LeadInfo = z.infer<typeof leadInfoSchema>;
 export type AtsResult = z.infer<typeof atsResultSchema>;
 export type KeywordsResult = z.infer<typeof keywordsResultSchema>;
 export type MatchResult = z.infer<typeof matchResultSchema>;

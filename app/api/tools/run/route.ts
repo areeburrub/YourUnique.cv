@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { z } from "zod";
 
 import { runPublicTool } from "@/lib/tools/run";
@@ -10,6 +11,8 @@ import {
 	resolveUploadMediaType,
 	sanitizeFilename,
 } from "@/lib/uploads";
+import { recordFreeToolLead } from "@/lib/db/free-tool-leads";
+import { putR2Object } from "@/lib/r2";
 
 export const maxDuration = 45;
 
@@ -100,7 +103,11 @@ export async function POST(request: Request) {
 	}
 
 	try {
-		const result = await runPublicTool({ tool, jobText, resumePdf });
+		const { result, usage } = await runPublicTool({ tool, jobText, resumePdf });
+		const ip = clientIpFromHeaders(request.headers);
+		after(() =>
+			persistFreeToolUsage({ tool, jobText, resumePdf, result, usage, ip }),
+		);
 		return Response.json({ result });
 	} catch (error) {
 		console.error("public tool failed", error);
@@ -108,5 +115,43 @@ export async function POST(request: Request) {
 			{ error: "Could not run this tool. Try again in a moment." },
 			{ status: 502 },
 		);
+	}
+}
+
+async function persistFreeToolUsage(input: {
+	tool: string;
+	jobText: string;
+	resumePdf?: { filename: string; bytes: Uint8Array };
+	result: unknown;
+	usage: { costUsd: number; lead: { name: string | null; email: string | null } };
+	ip: string | null;
+}) {
+	try {
+		const id = crypto.randomUUID();
+		let resumeFileKey: string | null = null;
+
+		if (input.resumePdf) {
+			resumeFileKey = `free-tool-leads/${id}.pdf`;
+			await putR2Object({
+				key: resumeFileKey,
+				body: input.resumePdf.bytes,
+				contentType: "application/pdf",
+			});
+		}
+
+		await recordFreeToolLead({
+			id,
+			tool: input.tool,
+			leadName: input.usage.lead.name,
+			leadEmail: input.usage.lead.email,
+			resumeFileKey,
+			resumeFilename: input.resumePdf?.filename ?? null,
+			jobText: input.jobText || null,
+			resultJson: input.result as Record<string, unknown>,
+			costUsd: input.usage.costUsd,
+			ip: input.ip,
+		});
+	} catch (error) {
+		console.error("failed to persist free tool usage", error);
 	}
 }

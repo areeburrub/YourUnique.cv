@@ -254,6 +254,32 @@ export const subscriptions = pgTable(
 	(table) => [index("subscriptions_user_id_idx").on(table.userId)],
 );
 
+export const freeToolLeads = pgTable(
+	"free_tool_leads",
+	{
+		id: text("id").primaryKey(),
+		tool: text("tool").notNull(),
+		leadName: text("lead_name"),
+		leadEmail: text("lead_email"),
+		resumeFileKey: text("resume_file_key"),
+		resumeFilename: text("resume_filename"),
+		jobText: text("job_text"),
+		resultJson: jsonb("result_json").$type<Record<string, unknown>>(),
+		costUsd: numeric("cost_usd", { precision: 10, scale: 6 })
+			.notNull()
+			.default("0"),
+		ip: text("ip"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("free_tool_leads_created_at_idx").on(table.createdAt),
+		index("free_tool_leads_lead_email_idx").on(table.leadEmail),
+		index("free_tool_leads_tool_idx").on(table.tool),
+	],
+);
+
 export type ArticleFaq = {
 	question: string;
 	answer: string;
