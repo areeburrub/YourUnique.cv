@@ -16,9 +16,9 @@ export const dynamic = "force-static";
 
 export const metadata: Metadata = {
 	title: FREE_TOOL_NAME,
-	description: `Free Tool: ATS resume checker, job description keyword extractor, and resume vs job match from ${SITE_NAME}. Upload a PDF, no account to run. Rewrite the CV in a ${TRIAL_DAYS}-day trial.`,
+	description: `Free Tools: ATS resume checker, job description keyword extractor, and resume vs job match from ${SITE_NAME}. Upload a PDF, no account to run. Rewrite the CV in a ${TRIAL_DAYS}-day trial.`,
 	keywords: [
-		"free tool",
+		"free tools",
 		"ATS resume checker",
 		"job description keyword extractor",
 		"resume job match",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 	openGraph: {
 		type: "website",
 		title: `${FREE_TOOL_NAME} | ${SITE_NAME}`,
-		description: `Free Tool: ATS checker, keyword extractor, and job-match from ${SITE_NAME}.`,
+		description: `Free Tools: ATS checker, keyword extractor, and job-match from ${SITE_NAME}.`,
 		url: FREE_TOOL_PATH,
 	},
 };
@@ -91,7 +91,7 @@ export default function ToolsIndexPage() {
 										{tool.description}
 									</p>
 									<p className="mt-1.5 flex items-center gap-1.5 text-[13px] font-medium text-brand">
-										Open Free Tool
+										Open Free Tools
 										<ArrowRightIcon
 											size={14}
 											weight="bold"

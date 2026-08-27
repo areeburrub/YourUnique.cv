@@ -85,7 +85,7 @@ export function toolsIndexJsonLd() {
 		"@context": "https://schema.org",
 		"@type": "CollectionPage",
 		name: `${FREE_TOOL_NAME} | ${SITE_NAME}`,
-		description: `Free Tool: ATS checker, job-description keyword extractor, and resume vs job match from ${SITE_NAME}.`,
+		description: `Free Tools: ATS checker, job-description keyword extractor, and resume vs job match from ${SITE_NAME}.`,
 		url: `${siteUrl}${FREE_TOOL_PATH}`,
 		isPartOf: {
 			"@type": "WebSite",

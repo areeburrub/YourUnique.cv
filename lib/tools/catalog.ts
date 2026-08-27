@@ -1,8 +1,8 @@
 import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { SITE_NAME } from "@/lib/site";
 
-export const FREE_TOOL_PATH = "/free-tool";
-export const FREE_TOOL_NAME = "Free Tool";
+export const FREE_TOOL_PATH = "/free-tools";
+export const FREE_TOOL_NAME = "Free Tools";
 
 export const TOOL_SLUGS = [
 	"ats-resume-checker",
@@ -50,7 +50,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			"Upload your resume PDF and paste a job description. Get an ATS match score, missing keywords, and the real gaps before you apply.",
 		intro: `A quick read of your current file against one posting. ${SITE_NAME} then writes a CV for that role from your profile, in the posting's words, and scores the new draft.`,
 		keywords: [
-			"free tool",
+			"free tools",
 			"ATS resume checker",
 			"resume checker",
 			"ATS score",
@@ -103,7 +103,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			"Paste a job description and pull the resume keywords ATS will scan for: must-haves, tools, and nice-to-haves. Optional: upload your resume PDF to see what is missing.",
 		intro: `Use this when you are still writing the resume yourself. When you want those phrases written into a CV for this posting, ${SITE_NAME} does that in chat.`,
 		keywords: [
-			"free tool",
+			"free tools",
 			"job description keywords",
 			"resume keywords from job description",
 			"keyword scanner resume",
@@ -150,7 +150,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			"Upload your resume PDF and paste a job description. See overlap, skills gaps, and a fit score before you spend time applying.",
 		intro: `A fit read for one posting. If you apply, ${SITE_NAME} can write the CV for that role so the overlap is the work you already have, written in the job's words.`,
 		keywords: [
-			"free tool",
+			"free tools",
 			"resume job match",
 			"skills gap analysis resume",
 			"does my resume match the job description",
@@ -195,5 +195,5 @@ export function isToolSlug(value: string): value is ToolSlug {
 }
 
 export function toolSignupHref(slug: ToolSlug) {
-	return `/sign-up?from=free-tool-${slug}`;
+	return `/sign-up?from=free-tools-${slug}`;
 }

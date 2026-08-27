@@ -13,15 +13,15 @@ const columns = [
 		],
 	},
 	{
-		title: "Free Tool",
+		title: "Free Tools",
 		links: [
-			{ href: "/free-tool", label: "See all" },
-			{ href: "/free-tool/ats-resume-checker", label: "ATS resume checker" },
+			{ href: "/free-tools", label: "See all" },
+			{ href: "/free-tools/ats-resume-checker", label: "ATS resume checker" },
 			{
-				href: "/free-tool/job-description-keyword-extractor",
+				href: "/free-tools/job-description-keyword-extractor",
 				label: "Keyword extractor",
 			},
-			{ href: "/free-tool/resume-job-match", label: "Resume vs job match" },
+			{ href: "/free-tools/resume-job-match", label: "Resume vs job match" },
 		],
 	},
 	{

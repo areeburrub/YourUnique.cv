@@ -23,7 +23,7 @@ const SIZE = {
 } as const;
 
 export function toolImageSrc(slug: ToolSlug) {
-	return `/free-tool/${slug}.webp`;
+	return `/free-tools/${slug}.webp`;
 }
 
 export function ToolImage({

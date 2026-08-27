@@ -18,7 +18,7 @@ function RelatedTools({ current }: { current: ToolSlug }) {
 		<section>
 			<div className="rail border-t border-border px-5 py-16 sm:px-8 md:px-10">
 				<h2 className="font-display text-[24px] leading-8 font-semibold tracking-[-0.4px] text-foreground">
-					More Free Tool
+					More Free Tools
 				</h2>
 				<ul className="mt-6 grid gap-4 sm:grid-cols-2">
 					{others.map((tool) => (
@@ -36,7 +36,7 @@ function RelatedTools({ current }: { current: ToolSlug }) {
 										{tool.description}
 									</p>
 									<p className="mt-3 flex items-center gap-1.5 text-sm font-medium text-brand">
-										Open Free Tool
+										Open Free Tools
 										<ArrowRightIcon
 											size={14}
 											weight="bold"

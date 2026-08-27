@@ -33,7 +33,7 @@ export default function TermsPage() {
 				<h2>Your account</h2>
 				<p>
 					You need an account to save a profile, chat, and PDFs. The
-					public Free Tool pages on /free-tool can be used without an
+					public Free Tools pages on /free-tools can be used without an
 					account. Keep
 					your sign-in details to yourself. You are responsible for
 					what you upload, paste, and send in chat.

@@ -23,7 +23,7 @@ export async function generateMetadata({
 	const { slug } = await params;
 	if (!isToolSlug(slug)) {
 		return {
-			title: "Free Tool not found",
+			title: "Free Tools not found",
 			robots: { index: false, follow: false },
 		};
 	}
