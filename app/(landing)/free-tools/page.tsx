@@ -10,7 +10,7 @@ import { toolsIndexJsonLd } from "@/lib/tools/jsonld";
 import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { SITE_NAME } from "@/lib/site";
 
-const TRUST_POINTS = ["No account needed", "PDF stays private", "Free to use"];
+const TRUST_POINTS = ["No account needed", "PDF stays private", "Results in seconds"];
 
 export const dynamic = "force-static";
 
@@ -45,31 +45,40 @@ export default function ToolsIndexPage() {
 				dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
 			/>
 			<section>
-				<div className="rail px-5 pt-12 pb-8 sm:px-8 md:px-10 md:pt-16">
-					<p className="eyebrow text-brand!">{FREE_TOOL_NAME}</p>
-					<h1 className="font-display mt-4 max-w-[560px] text-[40px] leading-12 font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-14 sm:tracking-[-0.96px]">
-						Check the resume you have. Then write one for the job.
-					</h1>
-					<p className="mt-5 max-w-[480px] text-base leading-7 text-muted-foreground">
-						Upload a resume PDF, paste the job, get a short read.
-						No account. When you want a CV written for that
-						posting, start a {TRIAL_DAYS}-day trial on {SITE_NAME}.
-					</p>
-					<ul className="mt-6 flex flex-wrap gap-x-6 gap-y-2">
-						{TRUST_POINTS.map((point) => (
-							<li
-								key={point}
-								className="flex items-center gap-1.5 text-sm text-muted-foreground"
-							>
-								<CheckCircleIcon
-									size={16}
-									weight="fill"
-									className="text-brand"
-								/>
-								{point}
-							</li>
-						))}
-					</ul>
+				<div className="rail px-5 pt-10 pb-10 sm:px-8 md:px-10 md:pt-14 md:pb-12">
+					<div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-16">
+						<div className="max-w-[640px]">
+							<p className="eyebrow text-brand!">
+								{FREE_TOOL_NAME}
+							</p>
+							<h1 className="font-display mt-3 text-[36px] leading-11 font-semibold tracking-[-0.72px] text-balance text-foreground sm:mt-4 sm:text-[48px] sm:leading-14 sm:tracking-[-0.96px]">
+								Check your resume against the job
+							</h1>
+						</div>
+						<div className="max-w-[420px] lg:pb-1">
+							<p className="text-pretty text-base leading-7 text-muted-foreground">
+								ATS score, missing keywords, and a match
+								read. Upload a PDF, paste the posting. No
+								account.
+							</p>
+							<ul className="mt-5 flex flex-col gap-2">
+								{TRUST_POINTS.map((point) => (
+									<li
+										key={point}
+										className="flex items-center gap-1.5 text-sm text-foreground/80"
+									>
+										<CheckCircleIcon
+											size={16}
+											weight="fill"
+											className="text-brand"
+											aria-hidden
+										/>
+										{point}
+									</li>
+								))}
+							</ul>
+						</div>
+					</div>
 				</div>
 			</section>
 
