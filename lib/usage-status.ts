@@ -13,6 +13,7 @@ export type UsageStatusResponse = {
 		today: number;
 		rolling30d: number;
 	};
+	monthlyResetAt: string | null;
 	bonusCreditsUsd: number;
 	canStartTrial: boolean;
 	isTrialActive: boolean;
@@ -22,6 +23,13 @@ export type UsageStatusResponse = {
 };
 
 export const usageStatusKey = ["usage-status"] as const;
+
+export function usagePercent(used: number, limit: number) {
+	if (!(limit > 0)) {
+		return used > 0 ? 100 : 0;
+	}
+	return Math.min(100, Math.round((used / limit) * 100));
+}
 
 export const DAILY_USAGE_WARNING_RATIO = 0.9;
 

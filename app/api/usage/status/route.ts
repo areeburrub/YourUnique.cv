@@ -26,6 +26,7 @@ export async function GET() {
 			today: summary.todayUsd,
 			rolling30d: summary.rolling30dUsd,
 		},
+		monthlyResetAt: summary.monthlyResetAt?.toISOString() ?? null,
 		bonusCreditsUsd: summary.bonusCreditsUsd,
 		canStartTrial: summary.canStartTrial,
 		isTrialActive: summary.isTrialActive,

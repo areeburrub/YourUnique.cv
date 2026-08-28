@@ -7,6 +7,7 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { CommandPaletteProvider } from "@/components/app/command-palette";
 import { HasReadyResumeProvider } from "@/components/app/has-ready-resume";
 import {
+	MobileUserSidebarTrigger,
 	SidebarUserMenu,
 	type SidebarUser,
 } from "@/components/app/sidebar-user-menu";
@@ -14,7 +15,7 @@ import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Button } from "@/components/ui/button";
-import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useVisualViewportHeight } from "@/hooks/use-visual-viewport-height";
 import type { ChatThreadListItem } from "@/lib/chats";
@@ -90,16 +91,16 @@ export function AppShell({
 								upgradeLabel={upgradeLabel}
 							>
 								<AppSidebar
-									initialThreads={recentThreads}
-									initialHasMore={recentHasMore}
+									user={user}
 									showUpgrade={showUpgrade}
 									upgradeHref={upgradeHref}
-									upgradeLabel={upgradeLabel}
+									initialThreads={recentThreads}
+									initialHasMore={recentHasMore}
 								/>
 								<SidebarInset className="min-h-0 overflow-hidden">
 									<header className="flex h-16 shrink-0 items-center gap-2 px-4 md:h-12 md:px-5">
 										<div className="shrink-0 md:hidden">
-											<SidebarTrigger className="text-muted-foreground" />
+											<MobileUserSidebarTrigger user={user} />
 										</div>
 										<div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden md:hidden">
 											<MobileBrand />
@@ -108,10 +109,16 @@ export function AppShell({
 											<div className="md:hidden">
 												<MobileNewChatButton />
 											</div>
-											<SidebarUserMenu user={user} />
+											<div className="hidden md:block">
+												<SidebarUserMenu
+													user={user}
+													showUpgrade={showUpgrade}
+													upgradeHref={upgradeHref}
+												/>
+											</div>
 										</div>
 									</header>
-									<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+									<div className="flex min-h-0 flex-1 flex-col overflow-y-auto">
 										{children}
 									</div>
 								</SidebarInset>

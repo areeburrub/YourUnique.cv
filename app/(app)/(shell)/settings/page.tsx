@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { AccountSettings } from "@/app/(app)/(shell)/settings/_components/account-settings";
 import { NotificationSettings } from "@/app/(app)/(shell)/settings/_components/notification-settings";
 import { SettingsBackButton } from "@/app/(app)/(shell)/settings/_components/settings-back-button";
-import { UsageBar } from "@/app/(app)/(shell)/settings/_components/usage-bar";
+import { UsageBar } from "@/components/usage-bar";
 import { ProCheckoutButton } from "@/components/billing/pro-checkout-button";
 import { buttonVariants } from "@/components/ui/button";
 import { getUserById } from "@/lib/db/users";

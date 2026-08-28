@@ -233,6 +233,19 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
 		preference: "promotional",
 	},
 	{
+		alias: "yucv-pricing-free",
+		name: "Pricing · free plan",
+		subject: "YourUnique.cv now have a FREE plan 🎉",
+		preheader: "No trial clock. Keep tailoring CVs. No card.",
+		headline: "YourUnique.cv now have a FREE plan 🎉",
+		paragraphs: [
+			"Hi {{{NAME}}}. That's the news. We dropped the trial. YourUnique.cv is free, and it stays on.",
+			"If you were on trial, you're already there. About 20 tailored CVs a month, no card. Paste the next job and keep going. Pro is $8 a month if you start applying every week.",
+		],
+		ctaLabel: "Paste a job",
+		preference: "important",
+	},
+	{
 		alias: "yucv-limit-daily",
 		name: "Daily usage limit",
 		subject: "Today's tailored-CV limit is used",

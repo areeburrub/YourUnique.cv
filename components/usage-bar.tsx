@@ -1,13 +1,6 @@
 "use client";
 
-import { formatDailyResetAt } from "@/lib/usage-status";
-
-function usagePercent(used: number, limit: number) {
-	if (!(limit > 0)) {
-		return used > 0 ? 100 : 0;
-	}
-	return Math.min(100, Math.round((used / limit) * 100));
-}
+import { formatDailyResetAt, usagePercent } from "@/lib/usage-status";
 
 export function UsageBar({
 	label,
