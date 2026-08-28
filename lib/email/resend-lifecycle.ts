@@ -1,7 +1,8 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
+import { nanoid } from "nanoid";
 
 import { db } from "@/lib/db";
-import { resumes } from "@/lib/db/schema";
+import { emailSends, resumes, users } from "@/lib/db/schema";
 import { getResendClient } from "@/lib/email/resend";
 import {
 	ResendEvent,
@@ -50,7 +51,7 @@ async function sendEvent(
 ) {
 	const resend = getResendClient();
 	if (!resend) {
-		return;
+		return false;
 	}
 	const { error } = await resend.events.send({
 		event,
@@ -59,7 +60,9 @@ async function sendEvent(
 	});
 	if (error) {
 		console.error("Resend event failed", event, error.message);
+		return false;
 	}
+	return true;
 }
 
 function runInBackground(work: () => Promise<void>) {
@@ -92,7 +95,6 @@ export function notifyUserSignedUp(user: {
 			promotionalEnabled: user.emailRemindersEnabled ?? true,
 		});
 		await sendEvent(ResendEvent.SignedUp, user.email, { name });
-		await sendEvent(ResendEvent.TrialStarted, user.email, { name });
 	});
 }
 
@@ -164,5 +166,95 @@ export function notifyLeadCaptured(input: {
 			name: firstName,
 			score: input.score,
 		});
+	});
+}
+
+function isUniqueViolation(error: unknown) {
+	const record = error as {
+		code?: string;
+		cause?: { code?: string };
+		message?: string;
+	};
+	return (
+		record.code === "23505" ||
+		record.cause?.code === "23505" ||
+		/duplicate key|unique constraint/i.test(record.message ?? "")
+	);
+}
+
+async function claimLimitEmail(input: {
+	userId: string;
+	email: string;
+	alias: string;
+	dripCycle: string;
+}) {
+	try {
+		await db.insert(emailSends).values({
+			id: nanoid(),
+			userId: input.userId,
+			email: input.email,
+			templateAlias: input.alias,
+			dripCycle: input.dripCycle,
+		});
+		return true;
+	} catch (error) {
+		if (isUniqueViolation(error)) {
+			return false;
+		}
+		throw error;
+	}
+}
+
+export function notifyUsageLimitHit(
+	userId: string,
+	scope: "daily" | "monthly",
+) {
+	runInBackground(async () => {
+		const user = await db.query.users.findFirst({
+			where: eq(users.id, userId),
+			columns: {
+				id: true,
+				email: true,
+				firstName: true,
+			},
+		});
+		if (!user?.email) {
+			return;
+		}
+		const now = new Date();
+		const date = now.toISOString().slice(0, 10);
+		const month = date.slice(0, 7);
+		const alias =
+			scope === "daily" ? "yucv-limit-daily" : "yucv-limit-monthly";
+		const claimed = await claimLimitEmail({
+			userId: user.id,
+			email: user.email.trim().toLowerCase(),
+			alias,
+			dripCycle: scope === "daily" ? date : month,
+		});
+		if (!claimed) {
+			return;
+		}
+		const sent = await sendEvent(
+			scope === "daily"
+				? ResendEvent.DailyLimit
+				: ResendEvent.MonthlyLimit,
+			user.email,
+			{ name: eventName(user) },
+		);
+		if (!sent) {
+			await db
+				.delete(emailSends)
+				.where(
+					and(
+						eq(emailSends.email, user.email.trim().toLowerCase()),
+						eq(emailSends.templateAlias, alias),
+						eq(
+							emailSends.dripCycle,
+							scope === "daily" ? date : month,
+						),
+					),
+				);
+		}
 	});
 }

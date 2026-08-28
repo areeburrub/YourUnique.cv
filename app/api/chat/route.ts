@@ -9,7 +9,7 @@ import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { fileIdsFromMessages, prepareMessagesForModel } from "@/lib/chat-files";
 import { attachFilesToThread } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
-import { enqueueLifecycleEmail } from "@/lib/email/enqueue";
+import { notifyUsageLimitHit } from "@/lib/email/resend-lifecycle";
 import { touchUserActivity } from "@/lib/email/activity";
 import { ensureChatThreadForUser } from "@/lib/mastra-chats";
 import { loadResumeBriefing } from "@/lib/resume-briefing";
@@ -55,20 +55,7 @@ export async function POST(req: Request) {
 
 	const limit = await checkUsageLimit(userId);
 	if (limit.blocked) {
-		after(async () => {
-			const { getUserById } = await import("@/lib/db/users");
-			const user = await getUserById(userId);
-			if (!user?.email) {
-				return;
-			}
-			await enqueueLifecycleEmail({
-				alias: "yucv-usage-limit",
-				to: user.email,
-				userId,
-				dripCycle: new Date().toISOString().slice(0, 10),
-				ctaPath: "/api/checkout",
-			});
-		});
+		after(() => notifyUsageLimitHit(userId, limit.scope));
 		return Response.json(
 			{
 				error: "usage_limit",
