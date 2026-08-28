@@ -1,6 +1,7 @@
 "use client";
 
 import { useClerk } from "@clerk/nextjs";
+import { SatelliteDish } from "lucide-react";
 import {
 	ChatCircleIcon,
 	DesktopIcon,
@@ -248,6 +249,14 @@ function CommandPaletteDialog({
 						>
 							<LayoutIcon size={16} weight="duotone" />
 							<span>Templates</span>
+						</CommandItem>
+						<CommandItem
+							value="job radar roles postings"
+							keywords={["jobs", "radar", "roles", "postings"]}
+							onSelect={() => go("/job-radar")}
+						>
+							<SatelliteDish size={16} />
+							<span>Job Radar</span>
 						</CommandItem>
 						<CommandItem
 							value="settings billing plan usage subscription"
