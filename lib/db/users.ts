@@ -68,6 +68,7 @@ export async function markUserOnboarded(userId: string) {
 		.update(users)
 		.set({
 			onboardedAt: new Date(),
+			lastActivityAt: new Date(),
 			updatedAt: new Date(),
 		})
 		.where(eq(users.id, userId))

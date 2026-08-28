@@ -15,7 +15,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "deploy:trigger": "trigger deploy"
+    "deploy:trigger": "trigger deploy",
+    "email:sync-templates": "bun scripts/sync-resend-templates.ts"
   },
   "dependencies": {
     "@ai-sdk/react": "^4.0.61",
@@ -73,6 +74,7 @@
     "react-dom": "19.2.8",
     "react-markdown": "^10.1.0",
     "remark-gfm": "^4.0.1",
+    "resend": "^6.24.0",
     "server-only": "^0.0.1",
     "shadcn": "^4.16.2",
     "shiki": "^4.4.2",

@@ -2,6 +2,7 @@ import { after } from "next/server";
 import { z } from "zod";
 
 import { recordFreeToolLead } from "@/lib/db/free-tool-leads";
+import { enqueueLifecycleEmail } from "@/lib/email/enqueue";
 import { putR2Object } from "@/lib/r2";
 import { isToolSlug } from "@/lib/tools/catalog";
 import { JOB_CHAR_LIMIT, TOOL_PDF_MAX_BYTES } from "@/lib/tools/constants";
@@ -204,6 +205,38 @@ async function persistFreeToolUsage(input: {
 			durationMs: input.durationMs,
 			ip: input.ip,
 		});
+
+		const leadEmail = input.usage.lead.email?.trim().toLowerCase();
+		if (leadEmail) {
+			const result = input.result as Record<string, unknown>;
+			const data =
+				result.data && typeof result.data === "object"
+					? (result.data as Record<string, unknown>)
+					: result;
+			const scoreValue =
+				typeof data.score === "number"
+					? data.score
+					: typeof data.match === "number"
+						? data.match
+						: null;
+			await enqueueLifecycleEmail(
+				{
+					alias: "yucv-lead-score",
+					to: leadEmail,
+					dripCycle: id,
+					variables: {
+						SCORE:
+							scoreValue === null
+								? "your"
+								: String(Math.round(scoreValue)),
+						NAME:
+							input.usage.lead.name?.split(" ")[0] || "there",
+					},
+					ctaPath: "/sign-up?from=email-lead",
+				},
+				{ delay: "1h" },
+			);
+		}
 	} catch (error) {
 		console.error("failed to persist free tool usage", error);
 	}

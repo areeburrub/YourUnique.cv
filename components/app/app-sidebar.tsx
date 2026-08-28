@@ -57,7 +57,6 @@ import {
 } from "@/components/ui/sidebar";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { useCommandPalette } from "@/components/app/command-palette";
-import { SidebarUserMenu, type SidebarUser } from "@/components/app/sidebar-user-menu";
 import { useSoftNav, useSoftPathname } from "@/components/app/soft-nav";
 import {
 	type ChatThreadListItem,
@@ -357,7 +356,6 @@ function ThreadLink({
 }
 
 type AppSidebarProps = {
-	user: SidebarUser;
 	initialThreads: ChatThreadListItem[];
 	initialHasMore?: boolean;
 	showUpgrade?: boolean;
@@ -366,7 +364,6 @@ type AppSidebarProps = {
 };
 
 export function AppSidebar({
-	user,
 	initialThreads,
 	initialHasMore = false,
 	showUpgrade = false,
@@ -610,8 +607,8 @@ export function AppSidebar({
 				) : null}
 			</SidebarContent>
 
-			<SidebarFooter className="overflow-hidden px-1.5 py-2">
-				{showUpgrade ? (
+			{showUpgrade ? (
+				<SidebarFooter className="overflow-hidden px-1.5 py-2">
 					<a
 						href={upgradeHref}
 						onClick={() => {
@@ -626,7 +623,7 @@ export function AppSidebar({
 							);
 							setOpenMobile(false);
 						}}
-						className="mb-1 flex h-9 items-center overflow-hidden rounded-full bg-brand text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90"
+						className="flex h-9 items-center overflow-hidden rounded-full bg-brand text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90"
 					>
 						<span className={navIconSlot}>
 							<SparkleIcon size={16} weight="fill" />
@@ -635,9 +632,8 @@ export function AppSidebar({
 							{upgradeLabel}
 						</span>
 					</a>
-				) : null}
-				<SidebarUserMenu user={user} />
-			</SidebarFooter>
+				</SidebarFooter>
+			) : null}
 
 			<SidebarRail />
 		</Sidebar>

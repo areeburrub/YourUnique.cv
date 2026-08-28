@@ -6,8 +6,12 @@ import { useEffect } from "react";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { CommandPaletteProvider } from "@/components/app/command-palette";
 import { HasReadyResumeProvider } from "@/components/app/has-ready-resume";
-import { type SidebarUser } from "@/components/app/sidebar-user-menu";
+import {
+	SidebarUserMenu,
+	type SidebarUser,
+} from "@/components/app/sidebar-user-menu";
 import { SoftNavProvider, useSoftNav } from "@/components/app/soft-nav";
+import { LogoMark } from "@/components/brand/logo-mark";
 import { QueryProvider } from "@/components/providers/query-provider";
 import { Button } from "@/components/ui/button";
 import { SidebarInset, SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -34,9 +38,10 @@ function MobileBrand() {
 		<button
 			type="button"
 			onClick={openNewChat}
-			className="truncate font-display text-[18px] font-semibold tracking-[-0.4px] text-foreground"
+			className="inline-flex min-w-0 max-w-full items-center gap-1.5 font-display text-[18px] font-semibold tracking-[-0.4px] text-foreground"
 		>
-			YourUnique.cv
+			<LogoMark size={20} className="text-brand" />
+			<span className="truncate">YourUnique.cv</span>
 		</button>
 	);
 }
@@ -85,7 +90,6 @@ export function AppShell({
 								upgradeLabel={upgradeLabel}
 							>
 								<AppSidebar
-									user={user}
 									initialThreads={recentThreads}
 									initialHasMore={recentHasMore}
 									showUpgrade={showUpgrade}
@@ -93,17 +97,20 @@ export function AppShell({
 									upgradeLabel={upgradeLabel}
 								/>
 								<SidebarInset className="min-h-0 overflow-hidden">
-									<div className="flex h-16 shrink-0 items-center px-4 md:hidden">
-										<div className="flex w-20 shrink-0 items-center justify-start">
+									<header className="flex h-16 shrink-0 items-center gap-2 px-4 md:h-12 md:px-5">
+										<div className="shrink-0 md:hidden">
 											<SidebarTrigger className="text-muted-foreground" />
 										</div>
-										<div className="flex min-w-0 flex-1 items-center justify-center">
+										<div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden md:hidden">
 											<MobileBrand />
 										</div>
-										<div className="flex w-20 shrink-0 items-center justify-end">
-											<MobileNewChatButton />
+										<div className="ml-auto flex shrink-0 items-center gap-1">
+											<div className="md:hidden">
+												<MobileNewChatButton />
+											</div>
+											<SidebarUserMenu user={user} />
 										</div>
-									</div>
+									</header>
 									<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
 										{children}
 									</div>

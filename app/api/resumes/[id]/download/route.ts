@@ -1,7 +1,9 @@
+import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
 import { getUserFileForUser } from "@/lib/db/files";
 import { getResumeForUser } from "@/lib/db/resumes";
+import { touchUserActivity } from "@/lib/email/activity";
 import { getR2Object } from "@/lib/r2";
 
 export const runtime = "nodejs";
@@ -46,6 +48,7 @@ export async function GET(req: Request, { params }: ResumeDownloadRouteProps) {
 
 	const bytes = await body.transformToByteArray();
 	const asDownload = new URL(req.url).searchParams.get("download") === "1";
+	after(() => touchUserActivity(userId));
 	const safeName = file.filename.replaceAll('"', "");
 
 	return new Response(Buffer.from(bytes), {

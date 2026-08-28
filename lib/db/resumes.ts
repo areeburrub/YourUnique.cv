@@ -6,6 +6,7 @@ import {
 	type CompileStatus,
 	resumes,
 } from "@/lib/db/schema";
+import { touchUserActivity } from "@/lib/email/activity";
 import { DEFAULT_TEMPLATE_REF } from "@/lib/resume-templates/types";
 
 export type ResumeRow = typeof resumes.$inferSelect;
@@ -165,6 +166,7 @@ export async function createResume(input: {
 		})
 		.returning();
 
+	void touchUserActivity(input.userId);
 	return row;
 }
 
@@ -223,6 +225,7 @@ export async function createResumeVersion(input: {
 		})
 		.returning();
 
+	void touchUserActivity(input.userId);
 	return row ?? null;
 }
 

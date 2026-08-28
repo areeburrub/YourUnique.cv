@@ -1,8 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 
+import { after } from "next/server";
+
 import { getUserContext } from "@/lib/db/contexts";
 import { getUserById, markUserOnboarded } from "@/lib/db/users";
+import { enqueueLifecycleEmail } from "@/lib/email/enqueue";
 import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
@@ -52,7 +55,16 @@ export async function POST(req: Request) {
 	}
 
 	const dbUser = await getUserById(userId);
-	await markUserOnboarded(userId);
+	const onboarded = await markUserOnboarded(userId);
+	if (onboarded?.email) {
+		after(() =>
+			enqueueLifecycleEmail({
+				alias: "yucv-profile-ready",
+				to: onboarded.email,
+				userId,
+			}),
+		);
+	}
 
 	if (isPaidPlan(dbUser?.planId ?? PlanId.TRIAL)) {
 		return NextResponse.json({ redirectUrl: "/new-chat" });

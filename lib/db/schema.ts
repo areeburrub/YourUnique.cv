@@ -54,6 +54,25 @@ export const users = pgTable("users", {
 	dodoCustomerId: text("dodo_customer_id"),
 	onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
 	trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+	lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
+	emailProductEnabled: boolean("email_product_enabled").notNull().default(true),
+	emailRemindersEnabled: boolean("email_reminders_enabled")
+		.notNull()
+		.default(true),
+	emailTrialEnabled: boolean("email_trial_enabled").notNull().default(true),
+	quietDripStep: integer("quiet_drip_step").notNull().default(0),
+	quietDripStartedAt: timestamp("quiet_drip_started_at", {
+		withTimezone: true,
+	}),
+	quietDripLastSentAt: timestamp("quiet_drip_last_sent_at", {
+		withTimezone: true,
+	}),
+	quietDripLastCycleAt: timestamp("quiet_drip_last_cycle_at", {
+		withTimezone: true,
+	}),
+	lastMarketingEmailAt: timestamp("last_marketing_email_at", {
+		withTimezone: true,
+	}),
 	createdAt: timestamp("created_at", { withTimezone: true })
 		.defaultNow()
 		.notNull(),
@@ -254,6 +273,40 @@ export const subscriptions = pgTable(
 	(table) => [index("subscriptions_user_id_idx").on(table.userId)],
 );
 
+export const emailSends = pgTable(
+	"email_sends",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id").references(() => users.id, {
+			onDelete: "cascade",
+		}),
+		email: text("email").notNull(),
+		templateAlias: text("template_alias").notNull(),
+		dripCycle: text("drip_cycle").notNull().default("once"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("email_sends_email_alias_cycle_uidx").on(
+			table.email,
+			table.templateAlias,
+			table.dripCycle,
+		),
+		index("email_sends_user_id_created_at_idx").on(
+			table.userId,
+			table.createdAt,
+		),
+	],
+);
+
+export const emailUnsubscribes = pgTable("email_unsubscribes", {
+	email: text("email").primaryKey(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
 export const freeToolLeads = pgTable(
 	"free_tool_leads",
 	{
@@ -335,6 +388,7 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 	creditGrants: many(creditGrants, { relationName: "grantee" }),
 	grantsGiven: many(creditGrants, { relationName: "granter" }),
 	subscriptions: many(subscriptions),
+	emailSends: many(emailSends),
 }));
 
 export const userFilesRelations = relations(userFiles, ({ one, many }) => ({
@@ -408,6 +462,13 @@ export const creditGrantsRelations = relations(creditGrants, ({ one }) => ({
 export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 	user: one(users, {
 		fields: [subscriptions.userId],
+		references: [users.id],
+	}),
+}));
+
+export const emailSendsRelations = relations(emailSends, ({ one }) => ({
+	user: one(users, {
+		fields: [emailSends.userId],
 		references: [users.id],
 	}),
 }));

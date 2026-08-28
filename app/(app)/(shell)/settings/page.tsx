@@ -1,9 +1,13 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 
+import { AccountSettings } from "@/app/(app)/(shell)/settings/_components/account-settings";
+import { NotificationSettings } from "@/app/(app)/(shell)/settings/_components/notification-settings";
+import { SettingsBackButton } from "@/app/(app)/(shell)/settings/_components/settings-back-button";
 import { UsageBar } from "@/app/(app)/(shell)/settings/_components/usage-bar";
 import { buttonVariants } from "@/components/ui/button";
 import { MixpanelCheckoutLink } from "@/components/mixpanel-checkout-link";
+import { getUserById } from "@/lib/db/users";
 import { getUsageSummary } from "@/lib/db/usage";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
 import { checkoutPath, isLifetimePlan, isPaidPlan, isProPlan, isTrialPlan, PlanId } from "@/lib/plans";
@@ -19,7 +23,10 @@ export default async function SettingsPage() {
 
 	const user = await currentUser();
 	const email = user?.primaryEmailAddress?.emailAddress ?? null;
-	const existing = await getUsageSummary(userId);
+	const [existing, dbUser] = await Promise.all([
+		getUsageSummary(userId),
+		getUserById(userId),
+	]);
 	await syncPaidPlanFromDodo({
 		userId,
 		email,
@@ -36,13 +43,24 @@ export default async function SettingsPage() {
 
 	return (
 		<div className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6">
-			<div className="mb-8">
+			<div className="mb-8 flex items-center gap-2">
+				<SettingsBackButton />
 				<h1 className="font-display text-2xl font-semibold tracking-[-0.4px]">
 					Settings
 				</h1>
 			</div>
 
-			<section className="space-y-6 rounded-[28px] bg-card p-7">
+			<AccountSettings
+				name={
+					user?.fullName?.trim() ||
+					user?.firstName?.trim() ||
+					"Account"
+				}
+				email={email ?? ""}
+				imageUrl={user?.imageUrl}
+			/>
+
+			<section className="mt-6 space-y-6 rounded-[28px] bg-card p-7">
 				<div className="flex flex-wrap items-center justify-between gap-3">
 					<div>
 						<p className="text-sm text-muted-foreground">
@@ -125,6 +143,12 @@ export default async function SettingsPage() {
 					/>
 				</div>
 			</section>
+
+			<div className="mt-6">
+				<NotificationSettings
+					promotionalEnabled={dbUser?.emailRemindersEnabled ?? true}
+				/>
+			</div>
 		</div>
 	);
 }

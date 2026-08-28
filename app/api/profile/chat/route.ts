@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { handleChatStream } from "@mastra/ai-sdk";
 import { RequestContext } from "@mastra/core/request-context";
@@ -6,6 +7,7 @@ import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { lastUserMessageText, resolveChatAgentId } from "@/lib/chat-intent";
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { checkUsageLimit } from "@/lib/db/usage";
+import { touchUserActivity } from "@/lib/email/activity";
 import { loadResumeBriefing } from "@/lib/resume-briefing";
 import { resumeRequestIdKey } from "@/lib/resume-turn";
 import {
@@ -63,6 +65,8 @@ export async function POST(req: Request) {
 			{ status: 402 },
 		);
 	}
+
+	after(() => touchUserActivity(userId));
 
 	const threadId =
 		typeof params?.threadId === "string" ? params.threadId : undefined;
