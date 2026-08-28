@@ -4,14 +4,14 @@ import { ArrowRightIcon, CheckIcon, SparkleIcon } from "@phosphor-icons/react";
 
 import { SlideButton } from "@/components/landing/slide-button";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { PLAN_COPY, TRIAL_DAYS } from "@/lib/plan-copy";
+import { PLAN_COPY } from "@/lib/plan-copy";
 import type { ToolSlug } from "@/lib/tools/catalog";
 import { toolSignupHref } from "@/lib/tools/catalog";
 
 const PROMO_FEATURES = [
-	PLAN_COPY.TRIAL.features[0],
+	PLAN_COPY.FREE.features[0],
 	"AI Agent for Resume",
-	PLAN_COPY.TRIAL.features[2],
+	PLAN_COPY.FREE.features[2],
 ] as const;
 
 type ToolPromoCtaProps = {
@@ -70,7 +70,7 @@ export function ToolPromoCta({
 						{button}
 					</SlideButton>
 					<p className="mt-3 text-center text-xs text-muted-foreground">
-						{TRIAL_DAYS}-day trial &middot; no card required
+						Free to start &middot; no card required
 					</p>
 				</div>
 			</div>

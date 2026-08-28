@@ -17,6 +17,7 @@ export type UsageStatusResponse = {
 	canStartTrial: boolean;
 	isTrialActive: boolean;
 	trialEndsAt: string | null;
+	proExpiresAt: string | null;
 	supportEmail: string | null;
 };
 

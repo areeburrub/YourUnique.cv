@@ -21,7 +21,7 @@ import {
 	saveOnboardingProgress,
 	uploadOnboardingResume,
 } from "@/lib/onboarding/client";
-import { PLAN_COPY, PRO_PRICE_USD, TRIAL_DAYS } from "@/lib/plan-copy";
+import { PLAN_COPY } from "@/lib/plan-copy";
 import { PlanId, type PlanId as PlanIdType } from "@/lib/plans";
 import { isLinkedInProfileUrl } from "@/lib/linkedin-profile";
 import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
@@ -46,19 +46,14 @@ function startingGenerateStage(hasResume: boolean, hasLinkedIn: boolean): Genera
 
 const PLAN_CARDS = [
 	{
-		id: PlanId.TRIAL,
-		...PLAN_COPY.TRIAL,
+		id: PlanId.FREE,
+		...PLAN_COPY.FREE,
 		featured: false,
 	},
 	{
 		id: PlanId.PRO,
 		...PLAN_COPY.PRO,
 		featured: true,
-	},
-	{
-		id: PlanId.LIFETIME,
-		...PLAN_COPY.LIFETIME,
-		featured: false,
 	},
 ] as const;
 
@@ -477,7 +472,7 @@ export function OnboardingWizard({
 					},
 					{ sendImmediately: true },
 				);
-			} else if (planId === PlanId.TRIAL) {
+			} else if (planId === PlanId.FREE) {
 				trackEvent(
 					MixpanelEvent.TrialStarted,
 					{
@@ -747,7 +742,7 @@ function PlanStep({
 	const busy = submittingPlan !== null;
 
 	return (
-		<div className="mx-auto flex w-full max-w-5xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
+		<div className="mx-auto flex w-full max-w-4xl flex-1 flex-col items-center px-4 py-10 sm:px-6 sm:py-14">
 			<div className="mb-10 max-w-lg text-center">
 				<p className="text-sm font-medium text-muted-foreground">
 					Step 5 of 5 · You&apos;re almost in
@@ -756,12 +751,11 @@ function PlanStep({
 					Choose a plan
 				</h1>
 				<p className="mt-3 text-base leading-6 text-muted-foreground">
-					Your profile is ready. Start a {TRIAL_DAYS}-day trial with
-					no card, or subscribe for ${PRO_PRICE_USD} a month.
+					Stay on Free, or subscribe to Pro for a higher limit.
 				</p>
 			</div>
 
-			<div className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-3 lg:gap-5">
+			<div className="grid w-full grid-cols-1 items-stretch gap-4 lg:grid-cols-2 lg:gap-5">
 				{PLAN_CARDS.map((plan) => {
 					const thisBusy = submittingPlan === plan.id;
 					return (
@@ -785,9 +779,10 @@ function PlanStep({
 
 							<div className="mt-4 flex flex-wrap items-end gap-x-2 gap-y-1">
 								{"compareAt" in plan && plan.compareAt ? (
-									<span className="mb-1 font-display text-xl font-semibold tracking-[-0.4px] text-muted-foreground line-through">
+									<s className="mb-1 font-display text-[28px] leading-none font-semibold tracking-[-0.4px] text-muted-foreground">
+										<span className="sr-only">Was </span>
 										{plan.compareAt}
-									</span>
+									</s>
 								) : null}
 								<span className="font-display text-[40px] leading-none font-semibold tracking-[-0.8px] text-foreground">
 									{plan.price}
@@ -802,7 +797,7 @@ function PlanStep({
 							</p>
 
 							<ul className="mt-6 flex flex-1 flex-col gap-2.5">
-								{plan.features.map((feature) => (
+								{plan.features.map((feature, index) => (
 									<li
 										key={feature}
 										className="flex items-start gap-2.5 text-sm leading-5 text-foreground"
@@ -810,7 +805,15 @@ function PlanStep({
 										<span className="mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full bg-surface-subtle text-brand">
 											<CheckIcon size={12} weight="bold" />
 										</span>
-										<span className="min-w-0">{feature}</span>
+										<span
+											className={
+												index === 0
+													? "min-w-0 font-semibold"
+													: "min-w-0"
+											}
+										>
+											{feature}
+										</span>
 									</li>
 								))}
 							</ul>

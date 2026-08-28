@@ -1,4 +1,5 @@
 export const PlanId = {
+	FREE: "FREE",
 	TRIAL: "TRIAL",
 	PRO: "PRO",
 	LIFETIME: "LIFETIME",
@@ -14,45 +15,68 @@ export type PlanConfig = {
 	dodoProductId: string | null;
 };
 
-export const TRIAL_RESUMES_LABEL = "10+";
-export const PRO_MONTHLY_RESUMES_LABEL = "500+";
+export const FREE_RESUMES_LABEL = "20+";
+export const PRO_RESUMES_LABEL = "200+";
+
+export const PRO_PRICE_USD = 8;
+export const PRO_LIST_PRICE_USD = 20;
+export const PRO_DISCOUNT_PERCENT = 60;
 
 export const PLANS: Record<PlanId, PlanConfig> = {
+	FREE: {
+		id: PlanId.FREE,
+		name: "Free",
+		monthlyLimitUsd: 0.5,
+		dailyLimitUsd: 0.5,
+		dodoProductId: null,
+	},
 	TRIAL: {
 		id: PlanId.TRIAL,
-		name: "Trial",
-		monthlyLimitUsd: 1,
+		name: "Free",
+		monthlyLimitUsd: 0.5,
 		dailyLimitUsd: 0.5,
 		dodoProductId: null,
 	},
 	PRO: {
 		id: PlanId.PRO,
 		name: "Pro",
-		monthlyLimitUsd: 4.5,
-		dailyLimitUsd: 1,
+		monthlyLimitUsd: 5,
+		dailyLimitUsd: 5,
 		dodoProductId: process.env.DODO_PRO_PRODUCT_ID ?? null,
 	},
 	LIFETIME: {
 		id: PlanId.LIFETIME,
 		name: "Lifetime",
-		monthlyLimitUsd: 8,
-		dailyLimitUsd: 1.6,
+		monthlyLimitUsd: 5,
+		dailyLimitUsd: 5,
 		dodoProductId: process.env.DODO_LIFETIME_PRODUCT_ID ?? null,
 	},
 };
 
-export const PLAN_IDS = [PlanId.TRIAL, PlanId.PRO, PlanId.LIFETIME] as const;
+export const PLAN_IDS = [
+	PlanId.FREE,
+	PlanId.TRIAL,
+	PlanId.PRO,
+	PlanId.LIFETIME,
+] as const;
+
+export const ADMIN_PLAN_IDS = [PlanId.FREE, PlanId.PRO, PlanId.LIFETIME] as const;
 
 export function isPlanId(value: string): value is PlanId {
 	return (
+		value === PlanId.FREE ||
 		value === PlanId.TRIAL ||
 		value === PlanId.PRO ||
 		value === PlanId.LIFETIME
 	);
 }
 
+export function isFreePlan(planId: string) {
+	return planId === PlanId.FREE || planId === PlanId.TRIAL;
+}
+
 export function isTrialPlan(planId: string) {
-	return planId === PlanId.TRIAL || planId === "FREE";
+	return isFreePlan(planId);
 }
 
 export function isProPlan(planId: string) {
@@ -71,7 +95,7 @@ export function getPlan(planId: string): PlanConfig {
 	if (isPlanId(planId)) {
 		return PLANS[planId];
 	}
-	return PLANS.TRIAL;
+	return PLANS.FREE;
 }
 
 export function checkoutPath(planId: PlanId = PlanId.PRO) {

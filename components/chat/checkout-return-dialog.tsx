@@ -30,18 +30,10 @@ function checkoutCopy(state: CheckoutReturnState) {
 		return null;
 	}
 
-	if (state.subscriptionId || status === "active") {
-		return {
-			eyebrow: "Pro",
-			title: "You're in",
-			body: "You're on Pro. Paste a job and we'll write a resume for it.",
-		};
-	}
-
 	return {
-		eyebrow: "Lifetime",
-		title: "You're in for good",
-		body: "You paid once. Every feature and update stays yours.",
+		eyebrow: "Pro",
+		title: "You're in",
+		body: "You're on Pro. Paste a job and we'll write a resume for it.",
 	};
 }
 

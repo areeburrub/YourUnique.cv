@@ -7,7 +7,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { CHATS_PAGE_SIZE } from "@/lib/chats";
 import { db } from "@/lib/db";
 import { userHasReadyResume } from "@/lib/db/resumes";
-import { expireUserTrialIfNeeded } from "@/lib/db/trials";
+import { expirePaidAccessIfNeeded } from "@/lib/db/trials";
 import { users } from "@/lib/db/schema";
 import { listChatThreads } from "@/lib/mastra-chats";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
@@ -35,7 +35,12 @@ export default async function ShellLayout({
 		getCachedUser(),
 		db.query.users.findFirst({
 			where: eq(users.id, userId),
-			columns: { planId: true, onboardedAt: true, trialEndsAt: true },
+			columns: {
+				planId: true,
+				onboardedAt: true,
+				trialEndsAt: true,
+				proExpiresAt: true,
+			},
 		}),
 		listChatThreads(userId, {
 			limit: CHATS_PAGE_SIZE,
@@ -56,10 +61,11 @@ export default async function ShellLayout({
 		(email.includes("@") ? email.slice(0, email.indexOf("@")) : "") ||
 		"Account";
 
-	const resolved = await expireUserTrialIfNeeded({
+	const resolved = await expirePaidAccessIfNeeded({
 		id: userId,
-		planId: dbUser?.planId ?? "TRIAL",
+		planId: dbUser?.planId ?? "FREE",
 		trialEndsAt: dbUser?.trialEndsAt ?? null,
+		proExpiresAt: dbUser?.proExpiresAt ?? null,
 	});
 	const planId = await getCachedPlanId(
 		userId,
@@ -69,6 +75,7 @@ export default async function ShellLayout({
 	const upgrade = getUpgradeCta({
 		planId: planId ?? resolved.planId,
 		trialEndsAt: resolved.trialEndsAt,
+		proExpiresAt: resolved.proExpiresAt,
 	});
 
 	return (

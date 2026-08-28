@@ -13,7 +13,6 @@ import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
 } from "@/lib/onboarding/progress";
-import { startUserTrial } from "@/lib/db/trials";
 import { PlanId, checkoutPath, isPaidPlan } from "@/lib/plans";
 
 export async function POST(req: Request) {
@@ -34,11 +33,7 @@ export async function POST(req: Request) {
 			? (body as { planId: string }).planId
 			: "";
 
-	if (
-		planId !== PlanId.TRIAL &&
-		planId !== PlanId.PRO &&
-		planId !== PlanId.LIFETIME
-	) {
+	if (planId !== PlanId.FREE && planId !== PlanId.TRIAL && planId !== PlanId.PRO) {
 		return NextResponse.json(
 			{ error: "A plan selection is required" },
 			{ status: 400 },
@@ -70,14 +65,15 @@ export async function POST(req: Request) {
 		notifyOnboardingCompleted(onboarded);
 	}
 
-	if (isPaidPlan(dbUser?.planId ?? PlanId.TRIAL)) {
+	if (isPaidPlan(dbUser?.planId ?? PlanId.FREE)) {
 		return NextResponse.json({ redirectUrl: "/new-chat" });
 	}
 
-	if (planId === PlanId.TRIAL) {
-		await startUserTrial(userId);
-		return NextResponse.json({ redirectUrl: "/new-chat" });
+	if (planId === PlanId.PRO) {
+		return NextResponse.json({
+			redirectUrl: checkoutPath(PlanId.PRO),
+		});
 	}
 
-	return NextResponse.json({ redirectUrl: checkoutPath(planId) });
+	return NextResponse.json({ redirectUrl: "/new-chat" });
 }

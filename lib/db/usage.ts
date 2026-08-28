@@ -1,10 +1,9 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { expireUserTrialIfNeeded } from "@/lib/db/trials";
+import { expirePaidAccessIfNeeded } from "@/lib/db/trials";
 import { usageDaily, users } from "@/lib/db/schema";
-import { getPlan, isPaidPlan, type PlanConfig } from "@/lib/plans";
-import { canStartTrial, isTrialActive } from "@/lib/trial";
+import { getPlan, type PlanConfig } from "@/lib/plans";
 
 const ROLLING_DAYS = 30;
 
@@ -19,6 +18,7 @@ export type UsageSummary = {
 	monthlyLimitUsd: number;
 	dailyLimitUsd: number;
 	trialEndsAt: Date | null;
+	proExpiresAt: Date | null;
 	canStartTrial: boolean;
 	isTrialActive: boolean;
 	monthlyResetAt: Date | null;
@@ -105,6 +105,7 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 				bonusCreditsUsd: users.bonusCreditsUsd,
 				planId: users.planId,
 				trialEndsAt: users.trialEndsAt,
+				proExpiresAt: users.proExpiresAt,
 			})
 			.from(users)
 			.where(eq(users.id, userId))
@@ -135,15 +136,14 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 		throw new Error(`User not found: ${userId}`);
 	}
 
-	const resolved = await expireUserTrialIfNeeded({
+	const resolved = await expirePaidAccessIfNeeded({
 		id: row.userId,
 		planId: row.planId,
 		trialEndsAt: row.trialEndsAt,
+		proExpiresAt: row.proExpiresAt,
 	});
 	const plan = getPlan(resolved.planId);
 	const bonusCreditsUsd = toNumber(row.bonusCreditsUsd);
-	const trialActive = isTrialActive(resolved.planId, resolved.trialEndsAt);
-	const entitled = isPaidPlan(resolved.planId) || trialActive;
 
 	return {
 		userId,
@@ -151,13 +151,12 @@ export async function getUsageSummary(userId: string): Promise<UsageSummary> {
 		bonusCreditsUsd,
 		todayUsd: toNumber(todayRow[0]?.costUsd),
 		rolling30dUsd: toNumber(rollingRow[0]?.total),
-		monthlyLimitUsd: entitled
-			? plan.monthlyLimitUsd + bonusCreditsUsd
-			: bonusCreditsUsd,
-		dailyLimitUsd: entitled ? plan.dailyLimitUsd : 0,
+		monthlyLimitUsd: plan.monthlyLimitUsd + bonusCreditsUsd,
+		dailyLimitUsd: plan.dailyLimitUsd,
 		trialEndsAt: resolved.trialEndsAt,
-		canStartTrial: canStartTrial(resolved.planId, resolved.trialEndsAt),
-		isTrialActive: trialActive,
+		proExpiresAt: resolved.proExpiresAt ?? null,
+		canStartTrial: false,
+		isTrialActive: false,
 		monthlyResetAt: monthlyResetFromOldest(rollingRow[0]?.oldestDate),
 	};
 }
@@ -183,19 +182,6 @@ export async function checkUsageLimit(
 	userId: string,
 ): Promise<UsageLimitResult> {
 	const summary = await getUsageSummary(userId);
-
-	if (
-		!summary.isTrialActive &&
-		!isPaidPlan(summary.plan.id) &&
-		!summary.canStartTrial
-	) {
-		return {
-			blocked: true,
-			scope: "monthly",
-			plan: summary.plan,
-			summary,
-		};
-	}
 
 	if (summary.todayUsd >= summary.dailyLimitUsd) {
 		return {

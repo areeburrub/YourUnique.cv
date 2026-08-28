@@ -31,7 +31,6 @@ import {
 	selectPromptPlaceholder,
 } from "@/components/chat/chat-empty-suggestions";
 import { ChatInterruptBanner } from "@/components/chat/chat-interrupt-banner";
-import { PeerlistUpvoteBanner } from "@/components/chat/peerlist-upvote-banner";
 import {
 	assistantHasVisibleActivity,
 	ChatThinking,
@@ -829,9 +828,6 @@ export function ChatView({
 								onUpgrade={() => setUsageDialogOpen(true)}
 							/>
 						) : null}
-						{isPanel || !isEmpty ? (
-							<PeerlistUpvoteBanner className="mb-2" />
-						) : null}
 						{showRetry ? (
 							<ChatInterruptBanner
 								onRetry={handleRetry}
@@ -1022,7 +1018,6 @@ export function ChatView({
 							</h1>
 						</div>
 						<div className="flex w-full shrink-0 flex-col gap-3 sm:gap-6">
-							<PeerlistUpvoteBanner />
 							<div className="order-2 sm:order-1">{composer}</div>
 							<ChatEmptySuggestions
 								className="order-1 sm:order-2"

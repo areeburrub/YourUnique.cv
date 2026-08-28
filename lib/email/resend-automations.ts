@@ -6,7 +6,6 @@ import type {
 } from "resend";
 
 import { EMAIL_FROM, EMAIL_REPLY_TO, QUIET_DRIP_ALIASES } from "@/lib/email/catalog";
-import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { checkoutPath } from "@/lib/plans";
 import { getSiteUrl } from "@/lib/site";
 
@@ -141,7 +140,7 @@ function quietDrip(): Graph {
 
 function trialDrip(): Graph {
 	const checkout = checkoutPath();
-	const untilTwoDaysLeft = `${Math.max(TRIAL_DAYS - 2, 1)} days`;
+	const untilTwoDaysLeft = "5 days";
 	return {
 		name: "YUCV Trial",
 		steps: [

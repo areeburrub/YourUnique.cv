@@ -3,6 +3,7 @@ const SNOOZE_UNTIL_KEY = "yourunique:peerlist-upvote-snooze-until";
 const GENERATED_THIS_SESSION_KEY = "yourunique:ph-resume-this-session";
 
 export const PEERLIST_SNOOZE_MS = 2 * 60 * 60 * 1000;
+export const PEERLIST_PROMPT_ENABLED = false;
 
 function canUseStorage() {
 	return typeof window !== "undefined";
@@ -88,6 +89,9 @@ export function peerlistSnoozeRemainingMs() {
 }
 
 export function shouldShowPeerlistUpvote(hasReadyResume: boolean) {
+	if (!PEERLIST_PROMPT_ENABLED) {
+		return false;
+	}
 	if (!hasReadyResume) {
 		return false;
 	}

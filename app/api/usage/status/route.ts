@@ -30,6 +30,7 @@ export async function GET() {
 		canStartTrial: summary.canStartTrial,
 		isTrialActive: summary.isTrialActive,
 		trialEndsAt: summary.trialEndsAt?.toISOString() ?? null,
+		proExpiresAt: summary.proExpiresAt?.toISOString() ?? null,
 		supportEmail: process.env.SUPPORT_EMAIL ?? null,
 	});
 }

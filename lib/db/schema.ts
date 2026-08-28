@@ -43,7 +43,7 @@ export const users = pgTable("users", {
 	firstName: text("first_name"),
 	lastName: text("last_name"),
 	imageUrl: text("image_url"),
-	planId: planIdEnum("plan_id").notNull().default(PlanId.TRIAL),
+	planId: planIdEnum("plan_id").notNull().default(PlanId.FREE),
 	isAdmin: boolean("is_admin").notNull().default(false),
 	bonusCreditsUsd: numeric("bonus_credits_usd", {
 		precision: 10,
@@ -54,6 +54,7 @@ export const users = pgTable("users", {
 	dodoCustomerId: text("dodo_customer_id"),
 	onboardedAt: timestamp("onboarded_at", { withTimezone: true }),
 	trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+	proExpiresAt: timestamp("pro_expires_at", { withTimezone: true }),
 	lastActivityAt: timestamp("last_activity_at", { withTimezone: true }),
 	emailProductEnabled: boolean("email_product_enabled").notNull().default(true),
 	emailRemindersEnabled: boolean("email_reminders_enabled")
