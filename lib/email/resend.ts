@@ -24,6 +24,7 @@ export type SendTemplateInput = {
 	alias: string;
 	to: string;
 	variables?: Record<string, string>;
+	scheduledAt?: string;
 };
 
 export async function sendResendTemplate(input: SendTemplateInput) {
@@ -52,6 +53,7 @@ export async function sendResendTemplate(input: SendTemplateInput) {
 		to: input.to,
 		replyTo: EMAIL_REPLY_TO,
 		subject,
+		scheduledAt: input.scheduledAt,
 		template: {
 			id: template.alias,
 			variables,

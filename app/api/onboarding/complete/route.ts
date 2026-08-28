@@ -7,6 +7,9 @@ import { getUserContext } from "@/lib/db/contexts";
 import { getUserById, markUserOnboarded } from "@/lib/db/users";
 import { enqueueLifecycleEmail } from "@/lib/email/enqueue";
 import {
+	notifyOnboardingCompleted,
+} from "@/lib/email/resend-lifecycle";
+import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
 } from "@/lib/onboarding/progress";
@@ -64,6 +67,7 @@ export async function POST(req: Request) {
 				userId,
 			}),
 		);
+		notifyOnboardingCompleted(onboarded);
 	}
 
 	if (isPaidPlan(dbUser?.planId ?? PlanId.TRIAL)) {

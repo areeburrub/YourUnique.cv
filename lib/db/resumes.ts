@@ -5,8 +5,10 @@ import { db } from "@/lib/db";
 import {
 	type CompileStatus,
 	resumes,
+	users,
 } from "@/lib/db/schema";
 import { touchUserActivity } from "@/lib/email/activity";
+import { notifyResumeCreated } from "@/lib/email/resend-lifecycle";
 import { DEFAULT_TEMPLATE_REF } from "@/lib/resume-templates/types";
 
 export type ResumeRow = typeof resumes.$inferSelect;
@@ -167,6 +169,16 @@ export async function createResume(input: {
 		.returning();
 
 	void touchUserActivity(input.userId);
+	void db.query.users
+		.findFirst({
+			where: eq(users.id, input.userId),
+			columns: { email: true, firstName: true },
+		})
+		.then((user) => {
+			if (user?.email) {
+				notifyResumeCreated(user);
+			}
+		});
 	return row;
 }
 

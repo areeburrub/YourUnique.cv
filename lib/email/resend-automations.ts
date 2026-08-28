@@ -1,0 +1,203 @@
+import type {
+	AutomationConnection,
+	AutomationStep,
+	CreateAutomationOptions,
+	EventSchemaMap,
+} from "resend";
+
+import { EMAIL_FROM, EMAIL_REPLY_TO, QUIET_DRIP_ALIASES } from "@/lib/email/catalog";
+import { TRIAL_DAYS } from "@/lib/plan-copy";
+import { checkoutPath } from "@/lib/plans";
+import { getSiteUrl } from "@/lib/site";
+
+export const ResendEvent = {
+	SignedUp: "yucv.user.signed_up",
+	OnboardingCompleted: "yucv.onboarding.completed",
+	Activity: "yucv.user.activity",
+	ResumeCreated: "yucv.resume.created",
+	TrialStarted: "yucv.trial.started",
+	PlanPaid: "yucv.plan.paid",
+	LeadCaptured: "yucv.lead.captured",
+} as const;
+
+export type ResendEventName = (typeof ResendEvent)[keyof typeof ResendEvent];
+
+const nameSchema = { name: "string" } as const satisfies EventSchemaMap;
+
+export const RESEND_EVENT_DEFS: {
+	name: ResendEventName;
+	schema: EventSchemaMap;
+}[] = [
+	{ name: ResendEvent.SignedUp, schema: nameSchema },
+	{ name: ResendEvent.OnboardingCompleted, schema: nameSchema },
+	{ name: ResendEvent.Activity, schema: nameSchema },
+	{ name: ResendEvent.ResumeCreated, schema: nameSchema },
+	{ name: ResendEvent.TrialStarted, schema: nameSchema },
+	{ name: ResendEvent.PlanPaid, schema: nameSchema },
+	{
+		name: ResendEvent.LeadCaptured,
+		schema: { name: "string", score: "string" },
+	},
+];
+
+function sitePath(path: string) {
+	return new URL(path, `${getSiteUrl()}/`).toString();
+}
+
+function sendEmail(
+	key: string,
+	alias: string,
+	ctaPath: string,
+	extra?: Record<string, string | { var: string }>,
+): AutomationStep {
+	return {
+		key,
+		type: "send_email",
+		config: {
+			from: EMAIL_FROM,
+			replyTo: EMAIL_REPLY_TO,
+			template: {
+				id: alias,
+				variables: {
+					NAME: { var: "event.name" },
+					CTA_URL: sitePath(ctaPath),
+					...extra,
+				},
+			},
+		},
+	};
+}
+
+function waitFor(
+	key: string,
+	eventName: string,
+	timeout: string,
+): AutomationStep {
+	return {
+		key,
+		type: "wait_for_event",
+		config: { eventName, timeout },
+	};
+}
+
+type Graph = Pick<CreateAutomationOptions, "name" | "steps" | "connections">;
+
+function dripAfterWait(input: {
+	name: string;
+	trigger: string;
+	waitEvent: string;
+	timeout: string;
+	alias: string;
+	ctaPath: string;
+	extra?: Record<string, string | { var: string }>;
+}): Graph {
+	return {
+		name: input.name,
+		steps: [
+			{
+				key: "start",
+				type: "trigger",
+				config: { eventName: input.trigger },
+			},
+			waitFor("wait", input.waitEvent, input.timeout),
+			sendEmail("send", input.alias, input.ctaPath, input.extra),
+		],
+		connections: [
+			{ from: "start", to: "wait", type: "default" },
+			{ from: "wait", to: "send", type: "timeout" },
+		],
+	};
+}
+
+function quietDrip(): Graph {
+	const steps: AutomationStep[] = [
+		{
+			key: "start",
+			type: "trigger",
+			config: { eventName: ResendEvent.Activity },
+		},
+	];
+	const connections: AutomationConnection[] = [];
+	let previous = "start";
+	const timeouts = ["2 days", ...Array.from({ length: 9 }, () => "1 day")];
+
+	timeouts.forEach((timeout, index) => {
+		const waitKey = `wait_${index + 1}`;
+		const sendKey = `q${index + 1}`;
+		const alias = QUIET_DRIP_ALIASES[index];
+		steps.push(waitFor(waitKey, ResendEvent.Activity, timeout));
+		steps.push(sendEmail(sendKey, alias, "/new-chat"));
+		connections.push({ from: previous, to: waitKey, type: "default" });
+		connections.push({ from: waitKey, to: sendKey, type: "timeout" });
+		previous = sendKey;
+	});
+
+	return {
+		name: "YUCV Quiet drip",
+		steps,
+		connections,
+	};
+}
+
+function trialDrip(): Graph {
+	const checkout = checkoutPath();
+	const untilTwoDaysLeft = `${Math.max(TRIAL_DAYS - 2, 1)} days`;
+	return {
+		name: "YUCV Trial",
+		steps: [
+			{
+				key: "start",
+				type: "trigger",
+				config: { eventName: ResendEvent.TrialStarted },
+			},
+			waitFor("wait_2d", ResendEvent.PlanPaid, untilTwoDaysLeft),
+			sendEmail("two_days", "yucv-trial-2-days", "/new-chat", {
+				DAYS_LEFT: "2",
+			}),
+			waitFor("wait_1d", ResendEvent.PlanPaid, "1 day"),
+			sendEmail("tomorrow", "yucv-trial-tomorrow", checkout),
+			waitFor("wait_end", ResendEvent.PlanPaid, "1 day"),
+			sendEmail("ended", "yucv-trial-ended", checkout),
+		],
+		connections: [
+			{ from: "start", to: "wait_2d", type: "default" },
+			{ from: "wait_2d", to: "two_days", type: "timeout" },
+			{ from: "two_days", to: "wait_1d", type: "default" },
+			{ from: "wait_1d", to: "tomorrow", type: "timeout" },
+			{ from: "tomorrow", to: "wait_end", type: "default" },
+			{ from: "wait_end", to: "ended", type: "timeout" },
+		],
+	};
+}
+
+export function resendAutomationGraphs(): Graph[] {
+	return [
+		dripAfterWait({
+			name: "YUCV Onboarding stuck",
+			trigger: ResendEvent.SignedUp,
+			waitEvent: ResendEvent.OnboardingCompleted,
+			timeout: "2 hours",
+			alias: "yucv-onboarding-stuck",
+			ctaPath: "/onboarding",
+		}),
+		dripAfterWait({
+			name: "YUCV First job",
+			trigger: ResendEvent.OnboardingCompleted,
+			waitEvent: ResendEvent.ResumeCreated,
+			timeout: "16 hours",
+			alias: "yucv-first-job",
+			ctaPath: "/new-chat",
+		}),
+		quietDrip(),
+		trialDrip(),
+		dripAfterWait({
+			name: "YUCV Lead follow-up",
+			trigger: ResendEvent.LeadCaptured,
+			waitEvent: ResendEvent.SignedUp,
+			timeout: "1 hour",
+			alias: "yucv-lead-score",
+			ctaPath: "/sign-up?from=email-lead",
+			extra: { SCORE: { var: "event.score" } },
+		}),
+	];
+}

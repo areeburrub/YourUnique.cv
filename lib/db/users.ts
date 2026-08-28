@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { PlanId } from "@/lib/plans";
 import { addTrialDays } from "@/lib/trial";
+import { notifyUserSignedUp } from "@/lib/email/resend-lifecycle";
 
 export type SyncUserInput = {
 	id: string;
@@ -15,6 +16,10 @@ export type SyncUserInput = {
 
 export async function upsertUser(input: SyncUserInput) {
 	const email = input.email.trim().toLowerCase();
+	const existing = await db.query.users.findFirst({
+		where: eq(users.id, input.id),
+		columns: { id: true },
+	});
 	const [user] = await db
 		.insert(users)
 		.values({
@@ -37,6 +42,10 @@ export async function upsertUser(input: SyncUserInput) {
 			},
 		})
 		.returning();
+
+	if (!existing && user) {
+		notifyUserSignedUp(user);
+	}
 
 	return user;
 }

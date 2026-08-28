@@ -4,7 +4,7 @@ import { z } from "zod";
 
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
-import { sendLifecycleEmail } from "@/trigger/email-automations";
+import { enqueueLifecycleEmail } from "@/lib/email/enqueue";
 import { compileResumePdf } from "@/trigger/lib/compile-resume-pdf";
 
 export const compileResume = schemaTask({
@@ -24,7 +24,7 @@ export const compileResume = schemaTask({
 				columns: { email: true },
 			});
 			if (user?.email) {
-				await sendLifecycleEmail.trigger(
+				await enqueueLifecycleEmail(
 					{
 						alias: "yucv-pdf-ready",
 						to: user.email,

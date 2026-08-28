@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { emailUnsubscribes, users } from "@/lib/db/schema";
+import { setResendPromotionalPreference } from "@/lib/email/resend-lifecycle";
 
 export async function updatePromotionalEmailPreference(
 	userId: string,
@@ -16,8 +17,12 @@ export async function updatePromotionalEmailPreference(
 		})
 		.where(eq(users.id, userId))
 		.returning({
+			email: users.email,
 			emailRemindersEnabled: users.emailRemindersEnabled,
 		});
+	if (row?.email) {
+		setResendPromotionalPreference(row.email, enabled);
+	}
 	return row ? { emailPromotionalEnabled: row.emailRemindersEnabled } : null;
 }
 
@@ -39,8 +44,8 @@ export async function applyEmailUnsubscribe(input: {
 
 	if (input.userId) {
 		await db.update(users).set(patch).where(eq(users.id, input.userId));
-		return;
+	} else {
+		await db.update(users).set(patch).where(eq(users.email, email));
 	}
-
-	await db.update(users).set(patch).where(eq(users.email, email));
+	setResendPromotionalPreference(email, false);
 }

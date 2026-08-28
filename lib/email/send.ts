@@ -25,6 +25,7 @@ export type DispatchEmailInput = {
 	variables?: Record<string, string>;
 	ctaPath?: string;
 	ignoreMarketingCap?: boolean;
+	scheduledAt?: string;
 };
 
 function preferenceAllowed(
@@ -123,6 +124,7 @@ export async function dispatchTemplateEmail(input: DispatchEmailInput) {
 			alias: input.alias,
 			to: email,
 			variables,
+			scheduledAt: input.scheduledAt,
 		});
 	} catch (error) {
 		await db

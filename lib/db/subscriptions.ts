@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { subscriptions, users } from "@/lib/db/schema";
 import { PlanId, PLANS, isLifetimePlan } from "@/lib/plans";
+import { notifyPlanPaid } from "@/lib/email/resend-lifecycle";
 
 type CustomerPayload = {
 	metadata?: Record<string, unknown>;
@@ -88,6 +89,8 @@ export async function activateSubscription(data: SubscriptionPayloadData) {
 			})
 			.where(eq(users.id, userId));
 	});
+
+	await emitPlanPaid(userId);
 }
 
 type PaymentPayloadData = {
@@ -146,6 +149,8 @@ export async function activateLifetimePurchase(data: PaymentPayloadData) {
 			updatedAt: new Date(),
 		})
 		.where(eq(users.id, userId));
+
+	await emitPlanPaid(userId);
 }
 
 export async function downgradeSubscription(data: SubscriptionPayloadData) {
@@ -224,6 +229,16 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 			})
 			.where(eq(users.id, userId));
 	});
+}
+
+async function emitPlanPaid(userId: string) {
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, userId),
+		columns: { email: true, firstName: true },
+	});
+	if (user?.email) {
+		notifyPlanPaid(user);
+	}
 }
 
 export async function getDodoCustomerId(userId: string) {
