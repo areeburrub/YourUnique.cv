@@ -5,7 +5,7 @@ import NextTopLoader from "nextjs-toploader";
 import { DeferredMetrics } from "@/components/deferred-metrics";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND } from "@/lib/brand";
-import { PRO_PRICE_USD } from "@/lib/plans";
+import { PRO_PRICE_USD, PRO_USAGE_MULTIPLIER } from "@/lib/plans";
 import {
 	ogImageAlt,
 	ogImagePath,
@@ -173,7 +173,7 @@ const jsonLd = {
 					price: String(PRO_PRICE_USD),
 					priceCurrency: "USD",
 					name: "Pro",
-					description: `$${PRO_PRICE_USD} per month. Higher usage limit`,
+					description: `$${PRO_PRICE_USD} per month. About ${PRO_USAGE_MULTIPLIER}x more usage than Free`,
 				},
 			],
 		},

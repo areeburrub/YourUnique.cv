@@ -360,6 +360,7 @@ type AppSidebarProps = {
 	user: SidebarUser;
 	showUpgrade?: boolean;
 	upgradeHref?: string;
+	planBadge?: string | null;
 	initialThreads: ChatThreadListItem[];
 	initialHasMore?: boolean;
 };
@@ -368,6 +369,7 @@ export function AppSidebar({
 	user,
 	showUpgrade = false,
 	upgradeHref = "/api/checkout",
+	planBadge = null,
 	initialThreads,
 	initialHasMore = false,
 }: AppSidebarProps) {
@@ -451,11 +453,16 @@ export function AppSidebar({
 					<Link
 						href="/"
 						onClick={() => setOpenMobile(false)}
-						className="flex min-w-0 flex-1 items-center overflow-hidden rounded-xl px-1 text-left group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none"
+						className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden rounded-xl px-1 text-left group-data-[collapsible=icon]:invisible group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:flex-none"
 					>
 						<span className="truncate font-display text-[16px] font-semibold tracking-[-0.4px] text-sidebar-foreground">
 							YourUnique.cv
 						</span>
+						{planBadge ? (
+							<span className="shrink-0 rounded-full bg-brand/12 px-1.5 text-[10px] font-semibold leading-4 tracking-[0.02em] text-brand">
+								{planBadge}
+							</span>
+						) : null}
 					</Link>
 					<Button
 						variant="ghost"

@@ -11,6 +11,7 @@ import { expirePaidAccessIfNeeded } from "@/lib/db/trials";
 import { users } from "@/lib/db/schema";
 import { listChatThreads } from "@/lib/mastra-chats";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
+import { isLifetimePlan, isProPlan } from "@/lib/plans";
 import { getUpgradeCta } from "@/lib/trial";
 
 const getCachedUser = cache(async () => currentUser());
@@ -72,11 +73,17 @@ export default async function ShellLayout({
 		email || null,
 		resolved.planId,
 	);
+	const resolvedPlanId = planId ?? resolved.planId;
 	const upgrade = getUpgradeCta({
-		planId: planId ?? resolved.planId,
+		planId: resolvedPlanId,
 		trialEndsAt: resolved.trialEndsAt,
 		proExpiresAt: resolved.proExpiresAt,
 	});
+	const planBadge = isProPlan(resolvedPlanId)
+		? "Pro"
+		: isLifetimePlan(resolvedPlanId)
+			? "Lifetime"
+			: null;
 
 	return (
 		<AppShell
@@ -90,6 +97,7 @@ export default async function ShellLayout({
 			showUpgrade={Boolean(upgrade)}
 			upgradeHref={upgrade?.href ?? "/api/checkout"}
 			upgradeLabel={upgrade?.label}
+			planBadge={planBadge}
 			hasReadyResume={hasReadyResume}
 		>
 			{children}

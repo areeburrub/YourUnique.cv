@@ -7,8 +7,8 @@ Resume agent at https://yourunique.cv. Start from a resume and optional LinkedIn
 Features: persona, chat memory, job-aware drafts, visible tool calls, profile updates, bring-your-own or library templates, ATS analysis, PDF export, version history.
 
 Plans:
-- Free: forever, no card (about 20+ tailored resumes / month)
-- Pro: $8/month (about 200+ / month). Cancel anytime.
+- Free: forever, no card. Limited monthly chat usage.
+- Pro: $8/month. About 10x more usage than Free. Cancel anytime.
 
 - Free Tools: https://yourunique.cv/free-tools
 - Templates: https://yourunique.cv/templates

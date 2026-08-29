@@ -240,7 +240,7 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
 		headline: "YourUnique.cv now have a FREE plan 🎉",
 		paragraphs: [
 			"Hi {{{NAME}}}. That's the news. We dropped the trial. YourUnique.cv is free, and it stays on.",
-			"If you were on trial, you're already there. About 20 tailored CVs a month, no card. Paste the next job and keep going. Pro is $8 a month if you start applying every week.",
+			"If you were on trial, you're already there. Free stays on, no card. Paste the next job and keep going. Pro is $8 a month if you start applying every week.",
 		],
 		ctaLabel: "Paste a job",
 		preference: "important",

@@ -15,9 +15,6 @@ export type PlanConfig = {
 	dodoProductId: string | null;
 };
 
-export const FREE_RESUMES_LABEL = "20+";
-export const PRO_RESUMES_LABEL = "200+";
-
 export const PRO_PRICE_USD = 8;
 export const PRO_LIST_PRICE_USD = 20;
 export const PRO_DISCOUNT_PERCENT = 60;
@@ -52,6 +49,10 @@ export const PLANS: Record<PlanId, PlanConfig> = {
 		dodoProductId: process.env.DODO_LIFETIME_PRODUCT_ID ?? null,
 	},
 };
+
+export const PRO_USAGE_MULTIPLIER = Math.round(
+	PLANS.PRO.monthlyLimitUsd / PLANS.FREE.monthlyLimitUsd,
+);
 
 export const PLAN_IDS = [
 	PlanId.FREE,

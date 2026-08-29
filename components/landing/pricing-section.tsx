@@ -3,7 +3,7 @@ import { CheckIcon } from "@phosphor-icons/react/ssr";
 import { SlideButton } from "@/components/landing/slide-button";
 import { authPageHref, SIGNUP_PLAN_PRO } from "@/lib/auth-redirect";
 import { PLAN_COPY } from "@/lib/plan-copy";
-import { PRO_PRICE_USD } from "@/lib/plans";
+import { PRO_PRICE_USD, PRO_USAGE_MULTIPLIER } from "@/lib/plans";
 
 export function PricingSection() {
 	return (
@@ -12,12 +12,12 @@ export function PricingSection() {
 				<div className="mb-12 md:mb-14">
 					<p className="eyebrow !text-brand">Pricing</p>
 					<h2 className="font-display mt-4 text-[40px] leading-[48px] font-semibold tracking-[-0.8px] text-foreground sm:text-[48px] sm:leading-[56px] sm:tracking-[-0.96px]">
-						Free to start. Pro if you need more.
+						Free to start. Pro if you&apos;re applying a lot.
 					</h2>
-					<p className="mt-4 max-w-[520px] text-base leading-7 text-muted-foreground">
-						Keep a few tailored CVs on Free. Pro is $
-						{PRO_PRICE_USD} a month for a higher limit.
-						Cancel anytime.
+					<p className="mt-4 max-w-[540px] text-base leading-7 text-muted-foreground">
+						Same tools on both. Limits are on chat, not a resume
+						count. Pro is ${PRO_PRICE_USD} a month for about{" "}
+						{PRO_USAGE_MULTIPLIER}x more room. Cancel anytime.
 					</p>
 				</div>
 
@@ -131,6 +131,10 @@ export function PricingSection() {
 						</div>
 					</article>
 				</div>
+				<p className="mt-6 max-w-[540px] text-sm leading-6 text-muted-foreground">
+					A short tailor uses less than a long back-and-forth, so we
+					don&apos;t quote a number of CVs.
+				</p>
 			</div>
 		</section>
 	);
