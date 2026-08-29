@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { streamText, type FilePart, type TextPart } from "ai";
+import { after } from "next/server";
 
 import {
 	OPENROUTER_CHAT_MODEL,
@@ -10,6 +11,7 @@ import { getUserContext, upsertUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { checkUsageLimit } from "@/lib/db/usage";
 import { getUserById } from "@/lib/db/users";
+import { notifyUsageLimitHit } from "@/lib/email/resend-lifecycle";
 import { getR2Object } from "@/lib/r2";
 import { fetchLinkedInProfile } from "@/lib/fetch-linkedin-profile";
 import { normalizeLinkedInProfileUrl } from "@/lib/linkedin-profile";
@@ -110,6 +112,7 @@ export async function POST(req: Request) {
 
 	const limit = await checkUsageLimit(userId);
 	if (limit.blocked) {
+		after(() => notifyUsageLimitHit(userId, limit.scope));
 		return Response.json(
 			{
 				error: "usage_limit",

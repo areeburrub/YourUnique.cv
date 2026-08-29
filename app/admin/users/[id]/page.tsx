@@ -20,7 +20,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { getAdminUserDetail } from "@/lib/db/admin";
-import { PLAN_IDS, PLANS } from "@/lib/plans";
+import { ADMIN_PLAN_IDS, PLANS } from "@/lib/plans";
 
 function formatUsd(value: string | number) {
 	const n = typeof value === "number" ? value : Number(value);
@@ -76,7 +76,7 @@ export default async function AdminUserDetailPage({
 							defaultValue={user.planId}
 							className="flex h-8 w-full rounded-lg border border-border bg-background px-2.5 text-sm"
 						>
-							{PLAN_IDS.map((id) => (
+							{ADMIN_PLAN_IDS.map((id) => (
 								<option key={id} value={id}>
 									{PLANS[id].name}
 								</option>

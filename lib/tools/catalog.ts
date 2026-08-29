@@ -1,4 +1,3 @@
-import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { SITE_NAME } from "@/lib/site";
 
 export const FREE_TOOL_PATH = "/free-tools";
@@ -80,7 +79,7 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			},
 			{
 				question: "Do I need an account?",
-				answer: `The checker is free and does not need an account. To rewrite the resume for this job, start a ${TRIAL_DAYS}-day trial on ${SITE_NAME}. No card.`,
+				answer: `The checker is free and does not need an account. To rewrite the resume for this job, start free on ${SITE_NAME}. No card.`,
 			},
 			{
 				question: "Will you invent skills I do not have?",
@@ -94,8 +93,8 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			},
 		],
 		ctaHeadline: "Want a CV for this job?",
-		ctaBody: "7-day trial. No card.",
-		ctaButton: "Start free trial",
+		ctaBody: "Free to start. No card.",
+		ctaButton: "Start free",
 	},
 	"job-description-keyword-extractor": {
 		slug: "job-description-keyword-extractor",
@@ -137,12 +136,12 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			},
 			{
 				question: "Can you insert these keywords for me?",
-				answer: `Yes, on ${SITE_NAME}. Start a ${TRIAL_DAYS}-day trial, upload your resume, and paste the same job in chat. The agent writes a tailored CV using the posting's words for work you already have.`,
+				answer: `Yes, on ${SITE_NAME}. Sign up free, upload your resume, and paste the same job in chat. The agent writes a tailored CV using the posting's words for work you already have.`,
 			},
 		],
 		ctaHeadline: "Want a CV for this job?",
-		ctaBody: "7-day trial. No card.",
-		ctaButton: "Start free trial",
+		ctaBody: "Free to start. No card.",
+		ctaButton: "Start free",
 	},
 	"resume-job-match": {
 		slug: "resume-job-match",
@@ -184,12 +183,12 @@ export const TOOLS: Record<ToolSlug, ToolDefinition> = {
 			},
 			{
 				question: "How do I close the gaps?",
-				answer: `Start a ${TRIAL_DAYS}-day trial on ${SITE_NAME}. The agent writes a CV for this posting from your profile. Gaps that are not in your history stay listed as gaps.`,
+				answer: `Start free on ${SITE_NAME}. The agent writes a CV for this posting from your profile. Gaps that are not in your history stay listed as gaps.`,
 			},
 		],
 		ctaHeadline: "Want a CV for this job?",
-		ctaBody: "7-day trial. No card.",
-		ctaButton: "Start free trial",
+		ctaBody: "Free to start. No card.",
+		ctaButton: "Start free",
 	},
 };
 

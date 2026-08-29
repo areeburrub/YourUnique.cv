@@ -12,14 +12,6 @@ const dodoCheckout = Checkout({
 	type: "static",
 });
 
-function checkoutPlanId(req: NextRequest) {
-	const plan = req.nextUrl.searchParams.get("plan")?.trim().toUpperCase();
-	if (plan === PlanId.LIFETIME) {
-		return PlanId.LIFETIME;
-	}
-	return PlanId.PRO;
-}
-
 export async function GET(req: NextRequest) {
 	const { userId } = await auth();
 	if (!userId) {
@@ -35,8 +27,7 @@ export async function GET(req: NextRequest) {
 		[firstName, lastName].filter(Boolean).join(" ");
 	const url = req.nextUrl.clone();
 
-	const planId = checkoutPlanId(req);
-	const productId = PLANS[planId].dodoProductId;
+	const productId = PLANS[PlanId.PRO].dodoProductId;
 	if (!productId) {
 		return NextResponse.json(
 			{ error: "Checkout is not configured" },
@@ -44,9 +35,8 @@ export async function GET(req: NextRequest) {
 		);
 	}
 	url.searchParams.set("productId", productId);
-
 	url.searchParams.set("metadata_userId", userId);
-	url.searchParams.set("metadata_planId", planId);
+	url.searchParams.set("metadata_planId", PlanId.PRO);
 	if (email && !url.searchParams.get("email")) {
 		url.searchParams.set("email", email);
 	}

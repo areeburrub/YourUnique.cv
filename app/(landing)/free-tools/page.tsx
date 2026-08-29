@@ -7,7 +7,6 @@ import { ToolImage } from "@/components/tools/tool-icon";
 import { ToolsChrome } from "@/components/tools/tools-chrome";
 import { FREE_TOOL_NAME, FREE_TOOL_PATH, TOOL_LIST } from "@/lib/tools/catalog";
 import { toolsIndexJsonLd } from "@/lib/tools/jsonld";
-import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { SITE_NAME } from "@/lib/site";
 
 const TRUST_POINTS = ["No account needed", "PDF stays private", "Results in seconds"];
@@ -16,7 +15,7 @@ export const dynamic = "force-static";
 
 export const metadata: Metadata = {
 	title: FREE_TOOL_NAME,
-	description: `Free Tools: ATS resume checker, job description keyword extractor, and resume vs job match from ${SITE_NAME}. Upload a PDF, no account to run. Rewrite the CV in a ${TRIAL_DAYS}-day trial.`,
+	description: `Free Tools: ATS resume checker, job description keyword extractor, and resume vs job match from ${SITE_NAME}. Upload a PDF, no account to run. Rewrite the CV on a free account.`,
 	keywords: [
 		"free tools",
 		"ATS resume checker",

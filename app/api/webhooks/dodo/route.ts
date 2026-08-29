@@ -1,7 +1,7 @@
 import { Webhooks } from "@dodopayments/nextjs";
 
 import {
-	activateLifetimePurchase,
+	activateOneTimePurchase,
 	activateSubscription,
 	downgradeSubscription,
 } from "@/lib/db/subscriptions";
@@ -9,7 +9,7 @@ import {
 export const POST = Webhooks({
 	webhookKey: process.env.DODO_WEBHOOK_SECRET!,
 	onPaymentSucceeded: async (payload) => {
-		await activateLifetimePurchase(payload.data);
+		await activateOneTimePurchase(payload.data);
 	},
 	onSubscriptionActive: async (payload) => {
 		await activateSubscription(payload.data);

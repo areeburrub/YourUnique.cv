@@ -1,5 +1,5 @@
 import { SlideButton } from "@/components/landing/slide-button";
-import { TRIAL_DAYS } from "@/lib/plan-copy";
+import { PRO_PRICE_USD } from "@/lib/plans";
 
 export function ClosingCta() {
 	return (
@@ -10,13 +10,12 @@ export function ClosingCta() {
 						Start with the resume you already have
 					</h2>
 					<p className="mt-5 max-w-[36ch] text-base leading-7 text-pretty text-muted-foreground">
-						Try it for {TRIAL_DAYS} days, no card. Paste the next
-						job in chat and leave with a CV for that role.
+						Free to start. Paste the next job in chat and leave with
+						a CV for that role. Pro is ${PRO_PRICE_USD} a month for a higher
+						limit.
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
-						<SlideButton href="/sign-up">
-							{`Start ${TRIAL_DAYS}-day trial`}
-						</SlideButton>
+						<SlideButton href="/sign-up">Start free</SlideButton>
 						<SlideButton href="/sign-in" variant="outline">
 							Log in
 						</SlideButton>

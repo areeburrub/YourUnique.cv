@@ -5,11 +5,7 @@ import NextTopLoader from "nextjs-toploader";
 import { DeferredMetrics } from "@/components/deferred-metrics";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BRAND } from "@/lib/brand";
-import {
-	LIFETIME_PRICE_USD,
-	PRO_PRICE_USD,
-	TRIAL_DAYS,
-} from "@/lib/plan-copy";
+import { PRO_PRICE_USD } from "@/lib/plans";
 import {
 	ogImageAlt,
 	ogImagePath,
@@ -169,22 +165,15 @@ const jsonLd = {
 					"@type": "Offer",
 					price: "0",
 					priceCurrency: "USD",
-					name: "Trial",
-					description: `${TRIAL_DAYS}-day free trial, no card required`,
+					name: "Free",
+					description: "Free forever. Tailor a few CVs each month, no card required",
 				},
 				{
 					"@type": "Offer",
 					price: String(PRO_PRICE_USD),
 					priceCurrency: "USD",
 					name: "Pro",
-					description: `$${PRO_PRICE_USD} per month`,
-				},
-				{
-					"@type": "Offer",
-					price: String(LIFETIME_PRICE_USD),
-					priceCurrency: "USD",
-					name: "Lifetime",
-					description: `$${LIFETIME_PRICE_USD} one-time, lifetime access`,
+					description: `$${PRO_PRICE_USD} per month. Higher usage limit`,
 				},
 			],
 		},

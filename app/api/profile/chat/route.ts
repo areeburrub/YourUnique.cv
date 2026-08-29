@@ -7,6 +7,7 @@ import { createUIMessageStreamResponse, type UIMessage } from "ai";
 import { lastUserMessageText, resolveChatAgentId } from "@/lib/chat-intent";
 import { createChatActivityTransform } from "@/lib/chat-activity-stream";
 import { checkUsageLimit } from "@/lib/db/usage";
+import { notifyUsageLimitHit } from "@/lib/email/resend-lifecycle";
 import { touchUserActivity } from "@/lib/email/activity";
 import { loadResumeBriefing } from "@/lib/resume-briefing";
 import { resumeRequestIdKey } from "@/lib/resume-turn";
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
 
 	const limit = await checkUsageLimit(userId);
 	if (limit.blocked) {
+		after(() => notifyUsageLimitHit(userId, limit.scope));
 		return Response.json(
 			{
 				error: "usage_limit",

@@ -4,12 +4,11 @@ Full notes: https://yourunique.cv/llms.txt
 
 Resume agent at https://yourunique.cv. Start from a resume and optional LinkedIn. In chat, share a job (text, PDF, or LinkedIn link), ask a question, or add a new fact. You get an optimized CV for that role, a PDF, and an ATS read (score, area table, and biggest gaps). Keep the look of your own template or pick one from the library. New facts go on your profile.
 
-Features on Pro and Lifetime: persona, chat memory, job-aware drafts, visible tool calls, profile updates, bring-your-own or library templates, ATS analysis, PDF export, version history.
+Features: persona, chat memory, job-aware drafts, visible tool calls, profile updates, bring-your-own or library templates, ATS analysis, PDF export, version history.
 
 Plans:
-- Trial: free for 7 days, no card (about 10+ tailored resumes)
-- Pro: $5/month (50% off $10), about 500+ tailored resumes a month
-- Lifetime: $150 once (40% off $250), lifetime access and updates
+- Free: forever, no card (about 20+ tailored resumes / month)
+- Pro: $8/month (about 200+ / month). Cancel anytime.
 
 - Free Tools: https://yourunique.cv/free-tools
 - Templates: https://yourunique.cv/templates

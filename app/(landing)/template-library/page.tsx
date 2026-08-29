@@ -127,7 +127,7 @@ export default function TemplateLibraryPage() {
 							</p>
 							<div className="mt-6">
 								<SlideButton href="/sign-up">
-									Start 7-day trial
+									Start free
 								</SlideButton>
 							</div>
 						</div>

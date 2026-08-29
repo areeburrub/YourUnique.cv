@@ -10,7 +10,7 @@ import {
 	DialogTitle,
 } from "@/components/ui/dialog";
 import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { isPaidPlan, isTrialPlan, START_TRIAL_PATH } from "@/lib/plans";
+import { checkoutPath, isPaidPlan, PlanId } from "@/lib/plans";
 import {
 	formatDailyResetAt,
 	nextUtcMidnight,
@@ -30,7 +30,6 @@ export function UsageLimitDialog({
 	status,
 }: UsageLimitDialogProps) {
 	const isPaid = isPaidPlan(status.plan.id);
-	const isTrial = isTrialPlan(status.plan.id);
 	const resetLabel = formatDailyResetAt(
 		status.resetAt ? new Date(status.resetAt) : nextUtcMidnight(),
 	);
@@ -43,9 +42,7 @@ export function UsageLimitDialog({
 				: "You've hit today's limit."
 			: isPaid
 				? "You've reached your usage limit for now."
-				: isTrial && status.isTrialActive === false
-					? "Your trial has ended."
-					: "You've used this trial's resumes."
+				: "You've used this month's free tailors."
 		: resetLabel
 			? `You've hit 90% of today's usage. It resets at ${resetLabel}.`
 			: "You've hit 90% of today's usage.";
@@ -56,19 +53,10 @@ export function UsageLimitDialog({
 			? status.scope === "daily"
 				? "Daily limit reached"
 				: "Usage limit reached"
-			: status.canStartTrial
-				? "Start your 7-day trial"
-				: "Get Pro";
+			: "Get Pro";
 
-	const upgradeHref = isPaid
-		? null
-		: status.canStartTrial
-			? START_TRIAL_PATH
-			: "/api/checkout";
-	const upgradeLabel = status.canStartTrial ? "Start 7-day trial" : "Get Pro";
-	const upgradeEvent = status.canStartTrial
-		? MixpanelEvent.TrialStarted
-		: MixpanelEvent.CheckoutStarted;
+	const upgradeHref = isPaid ? null : checkoutPath(PlanId.PRO);
+	const upgradeLabel = "Get Pro";
 
 	const mailtoHref = supportEmail
 		? `mailto:${supportEmail}?subject=${encodeURIComponent("Higher usage limits")}`
@@ -98,10 +86,8 @@ export function UsageLimitDialog({
 								) : null}{" "}
 								and I'll add some more.
 							</>
-						) : status.canStartTrial ? (
-							"Start your 7-day trial to keep tailoring."
 						) : (
-							"Get Pro to keep tailoring."
+							"Pro is $8 a month if you need more tailored CVs."
 						)}
 					</DialogDescription>
 				</DialogHeader>
@@ -112,7 +98,7 @@ export function UsageLimitDialog({
 							className={cn(buttonVariants())}
 							onClick={() => {
 								trackEvent(
-									upgradeEvent,
+									MixpanelEvent.CheckoutStarted,
 									{
 										source: "usage_limit",
 									},

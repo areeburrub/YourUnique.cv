@@ -4,10 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { HeaderUserMenu } from "@/components/landing/header-user-menu";
 import { ModeToggle } from "@/components/mode-toggle";
-import {
-	isLifetimeSignupIntent,
-	isProSignupIntent,
-} from "@/lib/auth-redirect";
+import { isProSignupIntent } from "@/lib/auth-redirect";
 import { getUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { getUserById } from "@/lib/db/users";
@@ -34,15 +31,8 @@ export default async function OnboardingPage({
 		getUserContext(userId),
 	]);
 
-	if (
-		!isPaidPlan(dbUser?.planId ?? PlanId.TRIAL) &&
-		(isProSignupIntent(plan) || isLifetimeSignupIntent(plan))
-	) {
-		redirect(
-			checkoutPath(
-				isLifetimeSignupIntent(plan) ? PlanId.LIFETIME : PlanId.PRO,
-			),
-		);
+	if (!isPaidPlan(dbUser?.planId ?? PlanId.FREE) && isProSignupIntent(plan)) {
+		redirect(checkoutPath(PlanId.PRO));
 	}
 
 	if (dbUser?.onboardedAt) {

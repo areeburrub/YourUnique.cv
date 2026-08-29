@@ -11,7 +11,6 @@ import {
 	PlusIcon,
 	SidebarSimpleIcon,
 	SlidersHorizontalIcon,
-	SparkleIcon,
 	TrashIcon,
 	UserIcon,
 } from "@phosphor-icons/react";
@@ -58,6 +57,10 @@ import {
 } from "@/components/ui/sidebar";
 import { LogoMark } from "@/components/brand/logo-mark";
 import { useCommandPalette } from "@/components/app/command-palette";
+import {
+	SidebarUserAccount,
+	type SidebarUser,
+} from "@/components/app/sidebar-user-menu";
 import { useSoftNav, useSoftPathname } from "@/components/app/soft-nav";
 import {
 	type ChatThreadListItem,
@@ -73,8 +76,6 @@ import {
 	renameThreadInCache,
 	useChatThreadsInfinite,
 } from "@/lib/chats-query";
-import { MixpanelEvent, trackEvent } from "@/lib/mixpanel";
-import { isStartTrialPath } from "@/lib/trial";
 import { cn } from "@/lib/utils";
 
 const navIconSlot =
@@ -360,19 +361,19 @@ function ThreadLink({
 }
 
 type AppSidebarProps = {
-	initialThreads: ChatThreadListItem[];
-	initialHasMore?: boolean;
+	user: SidebarUser;
 	showUpgrade?: boolean;
 	upgradeHref?: string;
-	upgradeLabel?: string;
+	initialThreads: ChatThreadListItem[];
+	initialHasMore?: boolean;
 };
 
 export function AppSidebar({
+	user,
+	showUpgrade = false,
+	upgradeHref = "/api/checkout",
 	initialThreads,
 	initialHasMore = false,
-	showUpgrade = false,
-	upgradeHref = "/settings",
-	upgradeLabel = "Get Pro",
 }: AppSidebarProps) {
 	const pathname = useSoftPathname();
 	const { openNewChat } = useSoftNav();
@@ -625,33 +626,13 @@ export function AppSidebar({
 				) : null}
 			</SidebarContent>
 
-			{showUpgrade ? (
-				<SidebarFooter className="overflow-hidden px-1.5 py-2">
-					<a
-						href={upgradeHref}
-						onClick={() => {
-							trackEvent(
-								isStartTrialPath(upgradeHref)
-									? MixpanelEvent.TrialStarted
-									: MixpanelEvent.CheckoutStarted,
-								{
-									source: "sidebar",
-								},
-								{ sendImmediately: true },
-							);
-							setOpenMobile(false);
-						}}
-						className="flex h-9 items-center overflow-hidden rounded-full bg-brand text-sm font-medium text-brand-foreground transition-opacity hover:opacity-90"
-					>
-						<span className={navIconSlot}>
-							<SparkleIcon size={16} weight="fill" />
-						</span>
-						<span className="truncate pr-2">
-							{upgradeLabel}
-						</span>
-					</a>
-				</SidebarFooter>
-			) : null}
+			<SidebarFooter className="border-t border-sidebar-border px-1.5 md:hidden">
+				<SidebarUserAccount
+					user={user}
+					showUpgrade={showUpgrade}
+					upgradeHref={upgradeHref}
+				/>
+			</SidebarFooter>
 
 			<SidebarRail />
 		</Sidebar>

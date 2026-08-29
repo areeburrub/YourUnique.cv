@@ -6,7 +6,6 @@ import type {
 } from "resend";
 
 import { EMAIL_FROM, EMAIL_REPLY_TO, QUIET_DRIP_ALIASES } from "@/lib/email/catalog";
-import { TRIAL_DAYS } from "@/lib/plan-copy";
 import { checkoutPath } from "@/lib/plans";
 import { getSiteUrl } from "@/lib/site";
 
@@ -18,6 +17,8 @@ export const ResendEvent = {
 	TrialStarted: "yucv.trial.started",
 	PlanPaid: "yucv.plan.paid",
 	LeadCaptured: "yucv.lead.captured",
+	DailyLimit: "yucv.usage.daily_limit",
+	MonthlyLimit: "yucv.usage.monthly_limit",
 } as const;
 
 export type ResendEventName = (typeof ResendEvent)[keyof typeof ResendEvent];
@@ -38,6 +39,8 @@ export const RESEND_EVENT_DEFS: {
 		name: ResendEvent.LeadCaptured,
 		schema: { name: "string", score: "string" },
 	},
+	{ name: ResendEvent.DailyLimit, schema: nameSchema },
+	{ name: ResendEvent.MonthlyLimit, schema: nameSchema },
 ];
 
 function sitePath(path: string) {
@@ -81,6 +84,26 @@ function waitFor(
 }
 
 type Graph = Pick<CreateAutomationOptions, "name" | "steps" | "connections">;
+
+function sendOnEvent(input: {
+	name: string;
+	trigger: string;
+	alias: string;
+	ctaPath: string;
+}): Graph {
+	return {
+		name: input.name,
+		steps: [
+			{
+				key: "start",
+				type: "trigger",
+				config: { eventName: input.trigger },
+			},
+			sendEmail("send", input.alias, input.ctaPath),
+		],
+		connections: [{ from: "start", to: "send", type: "default" }],
+	};
+}
 
 function dripAfterWait(input: {
 	name: string;
@@ -139,37 +162,6 @@ function quietDrip(): Graph {
 	};
 }
 
-function trialDrip(): Graph {
-	const checkout = checkoutPath();
-	const untilTwoDaysLeft = `${Math.max(TRIAL_DAYS - 2, 1)} days`;
-	return {
-		name: "YUCV Trial",
-		steps: [
-			{
-				key: "start",
-				type: "trigger",
-				config: { eventName: ResendEvent.TrialStarted },
-			},
-			waitFor("wait_2d", ResendEvent.PlanPaid, untilTwoDaysLeft),
-			sendEmail("two_days", "yucv-trial-2-days", "/new-chat", {
-				DAYS_LEFT: "2",
-			}),
-			waitFor("wait_1d", ResendEvent.PlanPaid, "1 day"),
-			sendEmail("tomorrow", "yucv-trial-tomorrow", checkout),
-			waitFor("wait_end", ResendEvent.PlanPaid, "1 day"),
-			sendEmail("ended", "yucv-trial-ended", checkout),
-		],
-		connections: [
-			{ from: "start", to: "wait_2d", type: "default" },
-			{ from: "wait_2d", to: "two_days", type: "timeout" },
-			{ from: "two_days", to: "wait_1d", type: "default" },
-			{ from: "wait_1d", to: "tomorrow", type: "timeout" },
-			{ from: "tomorrow", to: "wait_end", type: "default" },
-			{ from: "wait_end", to: "ended", type: "timeout" },
-		],
-	};
-}
-
 export function resendAutomationGraphs(): Graph[] {
 	return [
 		dripAfterWait({
@@ -189,7 +181,18 @@ export function resendAutomationGraphs(): Graph[] {
 			ctaPath: "/new-chat",
 		}),
 		quietDrip(),
-		trialDrip(),
+		sendOnEvent({
+			name: "YUCV Daily limit",
+			trigger: ResendEvent.DailyLimit,
+			alias: "yucv-limit-daily",
+			ctaPath: checkoutPath(),
+		}),
+		sendOnEvent({
+			name: "YUCV Monthly limit",
+			trigger: ResendEvent.MonthlyLimit,
+			alias: "yucv-limit-monthly",
+			ctaPath: checkoutPath(),
+		}),
 		dripAfterWait({
 			name: "YUCV Lead follow-up",
 			trigger: ResendEvent.LeadCaptured,

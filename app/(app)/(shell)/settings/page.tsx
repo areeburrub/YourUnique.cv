@@ -4,16 +4,31 @@ import { redirect } from "next/navigation";
 import { AccountSettings } from "@/app/(app)/(shell)/settings/_components/account-settings";
 import { NotificationSettings } from "@/app/(app)/(shell)/settings/_components/notification-settings";
 import { SettingsBackButton } from "@/app/(app)/(shell)/settings/_components/settings-back-button";
-import { UsageBar } from "@/app/(app)/(shell)/settings/_components/usage-bar";
+import { UsageBar } from "@/components/usage-bar";
+import { ProCheckoutButton } from "@/components/billing/pro-checkout-button";
 import { buttonVariants } from "@/components/ui/button";
-import { MixpanelCheckoutLink } from "@/components/mixpanel-checkout-link";
 import { getUserById } from "@/lib/db/users";
 import { getUsageSummary } from "@/lib/db/usage";
 import { syncPaidPlanFromDodo } from "@/lib/dodo-customer";
-import { checkoutPath, isLifetimePlan, isPaidPlan, isProPlan, isTrialPlan, PlanId } from "@/lib/plans";
-import { trialDaysRemaining } from "@/lib/trial";
+import {
+	isLifetimePlan,
+	isPaidPlan,
+	isProPlan,
+	isFreePlan,
+} from "@/lib/plans";
 import { nextUtcMidnight } from "@/lib/usage-status";
 import { cn } from "@/lib/utils";
+
+function formatProUntil(date: Date | null) {
+	if (!date) {
+		return null;
+	}
+	return date.toLocaleDateString(undefined, {
+		month: "short",
+		day: "numeric",
+		year: "numeric",
+	});
+}
 
 export default async function SettingsPage() {
 	const { userId } = await auth();
@@ -37,9 +52,8 @@ export default async function SettingsPage() {
 		: await getUsageSummary(userId);
 	const isPro = isProPlan(summary.plan.id);
 	const isLifetime = isLifetimePlan(summary.plan.id);
-	const isTrial = isTrialPlan(summary.plan.id);
-	const isPaid = isPaidPlan(summary.plan.id);
-	const daysLeft = trialDaysRemaining(summary.trialEndsAt);
+	const isFree = isFreePlan(summary.plan.id);
+	const proUntil = formatProUntil(summary.proExpiresAt);
 
 	return (
 		<div className="mx-auto w-full max-w-xl px-4 py-8 sm:px-6">
@@ -69,59 +83,30 @@ export default async function SettingsPage() {
 						<p className="font-display text-xl font-semibold tracking-[-0.3px]">
 							{summary.plan.name}
 						</p>
-						{isTrial && daysLeft > 0 ? (
+						{isPro && proUntil ? (
 							<p className="mt-1 text-sm text-muted-foreground">
-								{daysLeft} {daysLeft === 1 ? "day" : "days"} left
+								Pro until {proUntil}
 							</p>
 						) : null}
-					</div>
-					<div className="flex flex-wrap items-center gap-2">
-						{isPro ? (
-							<a
-								href="/api/customer-portal"
-								className={cn(
-									buttonVariants({ variant: "outline" }),
-								)}
-							>
-								Manage subscription
-							</a>
-						) : null}
-						{!isPaid ? (
-							<>
-								{summary.canStartTrial ? (
-									<a
-										href="/api/start-trial"
-										className={cn(buttonVariants())}
-									>
-										Start trial
-									</a>
-								) : (
-									<MixpanelCheckoutLink
-										href={checkoutPath(PlanId.PRO)}
-										source="settings"
-										className={cn(buttonVariants())}
-									>
-										Get Pro
-									</MixpanelCheckoutLink>
-								)}
-								<MixpanelCheckoutLink
-									href={checkoutPath(PlanId.LIFETIME)}
-									source="settings_lifetime"
-									className={cn(
-										buttonVariants({ variant: "outline" }),
-									)}
-								>
-									Buy lifetime
-								</MixpanelCheckoutLink>
-							</>
-						) : null}
 						{isLifetime ? (
-							<p className="text-sm text-muted-foreground">
+							<p className="mt-1 text-sm text-muted-foreground">
 								Lifetime access
 							</p>
 						) : null}
 					</div>
+					{isPro ? (
+						<a
+							href="/api/customer-portal"
+							className={cn(buttonVariants({ variant: "outline" }))}
+						>
+							Billing portal
+						</a>
+					) : null}
 				</div>
+
+				{isFree ? (
+					<ProCheckoutButton source="settings" />
+				) : null}
 
 				<div className="space-y-5">
 					<UsageBar
@@ -131,15 +116,11 @@ export default async function SettingsPage() {
 						resetAt={nextUtcMidnight().toISOString()}
 					/>
 					<UsageBar
-						label={isTrial ? "Trial usage" : "Monthly usage"}
+						label="Monthly usage"
 						used={summary.rolling30dUsd}
 						limit={summary.monthlyLimitUsd}
-						resetAt={
-							isTrial
-								? (summary.trialEndsAt?.toISOString() ?? null)
-								: (summary.monthlyResetAt?.toISOString() ?? null)
-						}
-						resetPrefix={isTrial ? "Ends" : "Resets"}
+						resetAt={summary.monthlyResetAt?.toISOString() ?? null}
+						resetPrefix="Resets"
 					/>
 				</div>
 			</section>

@@ -7,8 +7,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/admin";
 import { db } from "@/lib/db";
 import { creditGrants, usageDaily, users } from "@/lib/db/schema";
-import { getPlan, isPlanId, PlanId } from "@/lib/plans";
-import { addTrialDays } from "@/lib/trial";
+import { getPlan, isPlanId } from "@/lib/plans";
 
 function utcDateDaysAgo(days: number) {
 	const now = new Date();
@@ -137,7 +136,7 @@ export async function updateUserPlan(userId: string, planId: string) {
 		.set({
 			planId,
 			updatedAt: new Date(),
-			...(planId === PlanId.TRIAL ? { trialEndsAt: addTrialDays() } : {}),
+			proExpiresAt: null,
 		})
 		.where(eq(users.id, userId));
 	revalidatePath("/admin/users");

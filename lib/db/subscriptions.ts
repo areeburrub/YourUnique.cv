@@ -2,7 +2,11 @@ import { eq } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { subscriptions, users } from "@/lib/db/schema";
-import { PlanId, PLANS, isLifetimePlan } from "@/lib/plans";
+import {
+	PlanId,
+	PLANS,
+	isLifetimePlan,
+} from "@/lib/plans";
 import { notifyPlanPaid } from "@/lib/email/resend-lifecycle";
 
 type CustomerPayload = {
@@ -84,6 +88,7 @@ export async function activateSubscription(data: SubscriptionPayloadData) {
 			.update(users)
 			.set({
 				planId: nextPlanId,
+				proExpiresAt: null,
 				...(dodoCustomerId ? { dodoCustomerId } : {}),
 				updatedAt: new Date(),
 			})
@@ -101,7 +106,7 @@ type PaymentPayloadData = {
 		email?: string;
 		customer_id?: string;
 	};
-	product_cart?: { product_id?: string }[] | null;
+	product_cart?: { product_id?: string; quantity?: number }[] | null;
 };
 
 function planIdFromMetadata(metadata?: Record<string, unknown>) {
@@ -145,12 +150,17 @@ export async function activateLifetimePurchase(data: PaymentPayloadData) {
 		.update(users)
 		.set({
 			planId: PlanId.LIFETIME,
+			proExpiresAt: null,
 			...(dodoCustomerId ? { dodoCustomerId } : {}),
 			updatedAt: new Date(),
 		})
 		.where(eq(users.id, userId));
 
 	await emitPlanPaid(userId);
+}
+
+export async function activateOneTimePurchase(data: PaymentPayloadData) {
+	await activateLifetimePurchase(data);
 }
 
 export async function downgradeSubscription(data: SubscriptionPayloadData) {
@@ -163,7 +173,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 			where: eq(users.id, id),
 			columns: { planId: true },
 		});
-		return current?.planId ?? PlanId.TRIAL;
+		return current?.planId ?? PlanId.FREE;
 	}
 
 	if (!userId) {
@@ -185,12 +195,13 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		await db.transaction(async (tx) => {
 			await tx
 				.update(subscriptions)
-				.set({ status, planId: PlanId.TRIAL, updatedAt: new Date() })
+				.set({ status, planId: PlanId.FREE, updatedAt: new Date() })
 				.where(eq(subscriptions.id, data.subscription_id));
 			await tx
 				.update(users)
 				.set({
-					planId: keepLifetime ? PlanId.LIFETIME : PlanId.TRIAL,
+					planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
+					proExpiresAt: keepLifetime ? null : null,
 					...(dodoCustomerId ? { dodoCustomerId } : {}),
 					updatedAt: new Date(),
 				})
@@ -208,14 +219,14 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 				id: data.subscription_id,
 				userId,
 				status,
-				planId: PlanId.TRIAL,
+				planId: PlanId.FREE,
 			})
 			.onConflictDoUpdate({
 				target: subscriptions.id,
 				set: {
 					userId,
 					status,
-					planId: PlanId.TRIAL,
+					planId: PlanId.FREE,
 					updatedAt: new Date(),
 				},
 			});
@@ -223,7 +234,7 @@ export async function downgradeSubscription(data: SubscriptionPayloadData) {
 		await tx
 			.update(users)
 			.set({
-				planId: keepLifetime ? PlanId.LIFETIME : PlanId.TRIAL,
+				planId: keepLifetime ? PlanId.LIFETIME : PlanId.FREE,
 				...(dodoCustomerId ? { dodoCustomerId } : {}),
 				updatedAt: new Date(),
 			})
