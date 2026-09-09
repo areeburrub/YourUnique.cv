@@ -17,6 +17,7 @@ export function Hero() {
 						<p className="animate-fade-rise delay-3 mt-5 max-w-[400px] text-[16px] leading-7 text-muted-foreground sm:text-[17px]">
 							Bring your own resume. We keep your design, rewrite
 							it for the role, and give you a stronger ATS match.
+							Job Radar can also find the roles for you.
 						</p>
 						<div className="animate-fade-rise delay-3 mt-8">
 							<HeroResumeDropzone />

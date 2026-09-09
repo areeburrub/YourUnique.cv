@@ -433,6 +433,58 @@ function AtsGraphic() {
 	);
 }
 
+const RADAR_ROLES = [
+	{ title: "Frontend Engineer", company: "Linear", score: 88, fresh: true },
+	{ title: "Product Engineer", company: "Stripe", score: 81, fresh: false },
+	{ title: "Full-stack Engineer", company: "Vercel", score: 76, fresh: true },
+] as const;
+
+function RadarGraphic() {
+	return (
+		<InView className="rounded-2xl bg-pastel-blush p-4 sm:p-6">
+			<div
+				aria-hidden="true"
+				className="rounded-xl border border-border bg-card p-4 sm:p-5"
+			>
+				<div className="feature-fade feature-d1 flex items-center justify-between gap-3">
+					<div>
+						<p className="text-[13px] font-medium text-foreground">
+							Job Radar
+						</p>
+						<p className="text-[12px] text-muted-foreground">
+							Matches for your profile
+						</p>
+					</div>
+					<span className="rounded-full bg-brand/10 px-2.5 py-1 text-[11px] font-medium text-brand">
+						3 new
+					</span>
+				</div>
+				<ul className="mt-3 space-y-2">
+					{RADAR_ROLES.map((role, index) => (
+						<li
+							key={role.title}
+							className={`feature-fade feature-d${index + 2} flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2.5`}
+						>
+							<div className="min-w-0">
+								<p className="truncate text-[13px] font-medium text-foreground">
+									{role.title}
+								</p>
+								<p className="truncate text-[12px] text-muted-foreground">
+									{role.company}
+									{role.fresh ? " · today" : ""}
+								</p>
+							</div>
+							<span className="shrink-0 text-[13px] font-semibold tabular-nums text-brand">
+								{role.score}
+							</span>
+						</li>
+					))}
+				</ul>
+			</div>
+		</InView>
+	);
+}
+
 export function FeaturesSection() {
 	return (
 		<section id="how-it-works">
@@ -483,6 +535,25 @@ export function FeaturesSection() {
 						body="We write the optimized draft from your profile first. The ATS read then shows the score, the area table, and requirements you don't have yet. Those are the real gaps."
 						graphic={<AtsGraphic />}
 						flip
+					/>
+					<FeatureRow
+						eyebrow="05 · Job Radar"
+						title="Find roles before you hunt for links"
+						body={
+							<>
+								Job Radar matches your profile against a live
+								ATS corpus, scores the shortlist, and lets you{" "}
+								<Link
+									href="/job-radar"
+									className="font-medium text-brand underline-offset-4 hover:underline"
+								>
+									Generate CV
+								</Link>{" "}
+								on a match. Free gets one promo run. Pro gets
+								daily new roles.
+							</>
+						}
+						graphic={<RadarGraphic />}
 					/>
 				</div>
 			</div>

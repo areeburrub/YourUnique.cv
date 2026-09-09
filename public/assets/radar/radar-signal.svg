@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <circle cx="12" cy="12" r="10" stroke="#c23b2e" stroke-width="1.15" opacity="0.25"/>
+  <circle cx="12" cy="12" r="6.5" stroke="#c23b2e" stroke-width="1" opacity="0.35"/>
+  <path d="M12 12 L12 2 A10 10 0 0 1 19.6 9.2 Z" fill="#c23b2e" opacity="0.4">
+    <animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="2.4s" repeatCount="indefinite"/>
+  </path>
+  <circle cx="12" cy="12" r="1.7" fill="#c23b2e"/>
+  <circle cx="18.2" cy="6.6" r="1.35" fill="#c23b2e">
+    <animate attributeName="opacity" values="1;0.25;1" dur="1.4s" repeatCount="indefinite"/>
+  </circle>
+</svg>

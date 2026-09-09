@@ -5,6 +5,7 @@ import { SiteHeaderAuth } from "@/components/landing/site-header-auth";
 import { ModeToggle } from "@/components/mode-toggle";
 
 const navLinks = [
+	{ href: "/job-radar", label: "Job Radar" },
 	{ href: "/free-tools", label: "Free Tools" },
 	{ href: "/#how-it-works", label: "How it works" },
 	{ href: "/#pricing", label: "Pricing" },

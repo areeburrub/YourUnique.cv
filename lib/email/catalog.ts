@@ -271,6 +271,19 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
 		ctaLabel: "Get Pro",
 		preference: "important",
 	},
+	{
+		alias: "yucv-radar-ready",
+		name: "Job Radar ready",
+		subject: "{{{SCORE}}} roles matched your profile",
+		preheader: "Open Job Radar to review the roles we found for you.",
+		headline: "Your Job Radar list is ready",
+		paragraphs: [
+			"Hi {{{NAME}}}. We finished matching your profile. {{{SCORE}}} roles are waiting on Job Radar.",
+			"Open the board, pick a role, and generate a CV when you're ready.",
+		],
+		ctaLabel: "Open Job Radar",
+		preference: "important",
+	},
 ];
 
 export const EMAIL_TEMPLATE_BY_ALIAS = Object.fromEntries(

@@ -1,4 +1,5 @@
 import {
+	BroadcastIcon,
 	DeviceMobileIcon,
 	LinkSimpleIcon,
 	SwatchesIcon,
@@ -14,6 +15,11 @@ const features = [
 		title: "Paste any job link",
 		body: "LinkedIn, Workday, or a careers page. Get a resume for that role.",
 		icon: LinkSimpleIcon,
+	},
+	{
+		title: "Job Radar finds roles",
+		body: "We scan a live ATS corpus against your profile and surface matches worth applying to.",
+		icon: BroadcastIcon,
 	},
 	{
 		title: "Works from your phone",
@@ -33,7 +39,7 @@ export function UniqueFeatures() {
 					</h2>
 				</div>
 
-				<div className="mt-10 grid gap-4 sm:grid-cols-3">
+				<div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
 					{features.map((feature) => {
 						const Icon = feature.icon;
 						return (

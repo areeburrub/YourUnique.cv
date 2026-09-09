@@ -76,6 +76,7 @@ export type ChatContextSnippet = {
 type ChatViewProps = {
 	threadId?: string;
 	initialMessages?: UIMessage[];
+	autoPrompt?: string;
 	variant?: "page" | "panel";
 	chatSurface?: "main" | "profile";
 	contextSnippets?: ChatContextSnippet[];
@@ -241,6 +242,7 @@ function lastTurnLooksUnfinished(messages: UIMessage[]) {
 export function ChatView({
 	threadId: threadIdProp,
 	initialMessages = [],
+	autoPrompt,
 	variant = "page",
 	chatSurface = "main",
 	contextSnippets = [],
@@ -685,6 +687,22 @@ export function ChatView({
 		setUploadError(null);
 		submitMessage(nextText, toFileUIParts(uploaded));
 	};
+
+	const handleSubmitRef = useRef(handleSubmit);
+	handleSubmitRef.current = handleSubmit;
+	const autoPromptSentRef = useRef(false);
+
+	useEffect(() => {
+		const prompt = autoPrompt?.trim();
+		if (!prompt || autoPromptSentRef.current) {
+			return;
+		}
+		if (usageStatus.isLoading) {
+			return;
+		}
+		autoPromptSentRef.current = true;
+		void handleSubmitRef.current({ text: prompt, files: [] });
+	}, [autoPrompt, usageStatus.isLoading]);
 
 	const applySuggestion = useCallback((prompt: string) => {
 		if (usageStatus.data?.blocked) {

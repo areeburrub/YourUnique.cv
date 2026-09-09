@@ -16,6 +16,14 @@ import {
 
 import { PLAN_IDS, PlanId } from "@/lib/plans";
 import type { ResumeStyleMemory } from "@/lib/resume-style";
+import {
+	RADAR_TRACKER_STATUSES,
+	type RadarTrackerStatus,
+	isRadarTrackerStatus,
+} from "@/lib/radar-tracker";
+
+export { RADAR_TRACKER_STATUSES, isRadarTrackerStatus };
+export type { RadarTrackerStatus };
 
 export const planIdEnum = pgEnum("plan_id", PLAN_IDS);
 
@@ -377,6 +385,203 @@ export const articles = pgTable(
 	],
 );
 
+export const RADAR_MATCH_RUN_STATUSES = [
+	"queued",
+	"running",
+	"ready",
+	"failed",
+] as const;
+
+export type RadarMatchRunStatus = (typeof RADAR_MATCH_RUN_STATUSES)[number];
+
+export const radarMatchRunStatusEnum = pgEnum(
+	"radar_match_run_status",
+	RADAR_MATCH_RUN_STATUSES,
+);
+
+export const RADAR_MATCH_RUN_KINDS = ["onboarding", "daily"] as const;
+
+export type RadarMatchRunKind = (typeof RADAR_MATCH_RUN_KINDS)[number];
+
+export const radarMatchRunKindEnum = pgEnum(
+	"radar_match_run_kind",
+	RADAR_MATCH_RUN_KINDS,
+);
+
+export type RadarAtsArea = {
+	area: string;
+	score: number;
+};
+
+export type RadarAtsGap = {
+	term: string;
+	lift: number;
+	from: number;
+	to: number;
+	kind: string;
+};
+
+export type RadarAtsPayload = {
+	verdict?: string;
+	summary?: string;
+	exactRequired?: number;
+	totalRequired?: number;
+	skillsInSkills?: number;
+	requiredSkillTerms?: number;
+	areas?: RadarAtsArea[];
+	strengths?: string[];
+	gaps?: RadarAtsGap[];
+	filterScore?: number;
+	scorePotential?: number;
+	seniorityFit?: string;
+};
+
+export const radarJobs = pgTable(
+	"radar_jobs",
+	{
+		id: text("id").primaryKey(),
+		source: text("source").notNull(),
+		externalId: text("external_id").notNull(),
+		url: text("url").notNull(),
+		title: text("title").notNull(),
+		company: text("company").notNull(),
+		location: text("location").notNull().default(""),
+		workplace: text("workplace").notNull().default(""),
+		description: text("description").notNull().default(""),
+		postedAt: text("posted_at"),
+		atsPayload: jsonb("ats_payload").$type<RadarAtsPayload>(),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("radar_jobs_source_external_id_uidx").on(
+			table.source,
+			table.externalId,
+		),
+	],
+);
+
+export const radarMatchRuns = pgTable(
+	"radar_match_runs",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		status: radarMatchRunStatusEnum("status").notNull().default("queued"),
+		kind: radarMatchRunKindEnum("kind").notNull().default("onboarding"),
+		analyzeN: integer("analyze_n").notNull(),
+		scanned: integer("scanned").notNull().default(0),
+		analyzed: integer("analyzed").notNull().default(0),
+		error: text("error"),
+		summary: text("summary"),
+		startedAt: timestamp("started_at", { withTimezone: true }),
+		finishedAt: timestamp("finished_at", { withTimezone: true }),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		index("radar_match_runs_user_id_created_at_idx").on(
+			table.userId,
+			table.createdAt,
+		),
+		index("radar_match_runs_user_id_status_idx").on(table.userId, table.status),
+	],
+);
+
+export const radarUserJobs = pgTable(
+	"radar_user_jobs",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		jobId: text("job_id")
+			.notNull()
+			.references(() => radarJobs.id, { onDelete: "cascade" }),
+		runId: text("run_id")
+			.notNull()
+			.references(() => radarMatchRuns.id, { onDelete: "cascade" }),
+		rank: integer("rank").notNull(),
+		atsScore: numeric("ats_score", { precision: 6, scale: 2 }).notNull(),
+		verdict: text("verdict").notNull().default(""),
+		summary: text("summary").notNull().default(""),
+		areas: jsonb("areas").$type<RadarAtsArea[]>().notNull().default([]),
+		gaps: jsonb("gaps").$type<RadarAtsGap[]>().notNull().default([]),
+		strengths: jsonb("strengths").$type<string[]>().notNull().default([]),
+		batchDate: date("batch_date").notNull(),
+		hidden: boolean("hidden").notNull().default(false),
+		dismissedReason: text("dismissed_reason"),
+		trackerStatus: text("tracker_status").notNull().default("new"),
+		seniorityFit: text("seniority_fit").notNull().default("unclear"),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.defaultNow()
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("radar_user_jobs_user_id_job_id_uidx").on(
+			table.userId,
+			table.jobId,
+		),
+		index("radar_user_jobs_user_id_ats_score_idx").on(
+			table.userId,
+			table.atsScore,
+		),
+		index("radar_user_jobs_user_id_batch_date_idx").on(
+			table.userId,
+			table.batchDate,
+		),
+	],
+);
+
+export const RADAR_WORKPLACE_TYPES = ["remote", "hybrid", "onsite"] as const;
+
+export type RadarWorkplaceType = (typeof RADAR_WORKPLACE_TYPES)[number];
+
+/**
+ * User-controlled job search preferences captured before running Job Radar.
+ * `promptText` is the rendered doc (analogous to the career profile) that
+ * gets appended to the profile sent to the Go matcher's filter LLM call.
+ * `negativePreferences` accumulates short notes from jobs the user marked
+ * irrelevant, so future searches steer away from that pattern.
+ */
+export const radarPreferences = pgTable("radar_preferences", {
+	userId: text("user_id")
+		.primaryKey()
+		.references(() => users.id, { onDelete: "cascade" }),
+	currentLocation: text("current_location").notNull().default(""),
+	openToRelocation: boolean("open_to_relocation").notNull().default(false),
+	preferredLocations: jsonb("preferred_locations")
+		.$type<string[]>()
+		.notNull()
+		.default([]),
+	relocationRadiusKm: integer("relocation_radius_km"),
+	workplaceTypes: jsonb("workplace_types")
+		.$type<RadarWorkplaceType[]>()
+		.notNull()
+		.default([]),
+	extraPreferences: text("extra_preferences").notNull().default(""),
+	negativePreferences: jsonb("negative_preferences")
+		.$type<string[]>()
+		.notNull()
+		.default([]),
+	promptText: text("prompt_text").notNull().default(""),
+	updatedAt: timestamp("updated_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+	createdAt: timestamp("created_at", { withTimezone: true })
+		.defaultNow()
+		.notNull(),
+});
+
 export const usersRelations = relations(users, ({ many, one }) => ({
 	files: many(userFiles),
 	context: one(userContexts, {
@@ -390,6 +595,8 @@ export const usersRelations = relations(users, ({ many, one }) => ({
 	grantsGiven: many(creditGrants, { relationName: "granter" }),
 	subscriptions: many(subscriptions),
 	emailSends: many(emailSends),
+	radarMatchRuns: many(radarMatchRuns),
+	radarUserJobs: many(radarUserJobs),
 }));
 
 export const userFilesRelations = relations(userFiles, ({ one, many }) => ({
@@ -471,5 +678,35 @@ export const emailSendsRelations = relations(emailSends, ({ one }) => ({
 	user: one(users, {
 		fields: [emailSends.userId],
 		references: [users.id],
+	}),
+}));
+
+export const radarJobsRelations = relations(radarJobs, ({ many }) => ({
+	userJobs: many(radarUserJobs),
+}));
+
+export const radarMatchRunsRelations = relations(
+	radarMatchRuns,
+	({ one, many }) => ({
+		user: one(users, {
+			fields: [radarMatchRuns.userId],
+			references: [users.id],
+		}),
+		userJobs: many(radarUserJobs),
+	}),
+);
+
+export const radarUserJobsRelations = relations(radarUserJobs, ({ one }) => ({
+	user: one(users, {
+		fields: [radarUserJobs.userId],
+		references: [users.id],
+	}),
+	job: one(radarJobs, {
+		fields: [radarUserJobs.jobId],
+		references: [radarJobs.id],
+	}),
+	run: one(radarMatchRuns, {
+		fields: [radarUserJobs.runId],
+		references: [radarMatchRuns.id],
 	}),
 }));
