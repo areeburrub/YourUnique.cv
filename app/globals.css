@@ -218,6 +218,26 @@
 		animation: fade-rise 0.7s ease-out both;
 	}
 
+	@keyframes radar-search-scan {
+		from {
+			transform: translate3d(-50%, 0, 0);
+		}
+		to {
+			transform: translate3d(0, 0, 0);
+		}
+	}
+
+	.animate-radar-search-scan {
+		animation: radar-search-scan 2.8s linear infinite;
+		will-change: transform;
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		.animate-radar-search-scan {
+			animation: none;
+		}
+	}
+
 	.delay-1 {
 		animation-delay: 80ms;
 	}

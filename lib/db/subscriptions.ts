@@ -8,6 +8,7 @@ import {
 	isLifetimePlan,
 } from "@/lib/plans";
 import { notifyPlanPaid } from "@/lib/email/resend-lifecycle";
+import { ensureDailyRadarSearch } from "@/lib/radar-start";
 
 type CustomerPayload = {
 	metadata?: Record<string, unknown>;
@@ -250,6 +251,11 @@ async function emitPlanPaid(userId: string) {
 	if (user?.email) {
 		notifyPlanPaid(user);
 	}
+	void ensureDailyRadarSearch(userId)
+		.then((result) => (result.triggered ? result.kickoff() : undefined))
+		.catch((error) => {
+			console.error("Radar start after plan paid failed", error);
+		});
 }
 
 export async function getDodoCustomerId(userId: string) {

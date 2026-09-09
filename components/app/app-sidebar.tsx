@@ -14,6 +14,7 @@ import {
 	TrashIcon,
 	UserIcon,
 } from "@phosphor-icons/react";
+import { SatelliteDish } from "lucide-react";
 import { useRouter } from "nextjs-toploader/app";
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -123,6 +124,7 @@ const primaryNav = [
 	{ title: "Profile", href: "/profile", icon: UserIcon },
 	{ title: "Resumes", href: "/resumes", icon: FileTextIcon },
 	{ title: "Templates", href: "/templates", icon: LayoutIcon },
+	{ title: "Job Radar", href: "/job-radar", icon: SatelliteDish },
 ] as const;
 
 const GROUP_BY_KEY = "yourunique:recents-group-by";
@@ -379,12 +381,45 @@ export function AppSidebar({
 	const { state, setOpenMobile } = useSidebar();
 	const collapsed = state === "collapsed";
 	const [groupBy, setGroupBy] = useState<RecentsGroupBy>("none");
+	const [radarBadgeCount, setRadarBadgeCount] = useState<number | null>(null);
 	const loadMoreRef = useRef<HTMLDivElement>(null);
 
 	const handleOpenNewChat = () => {
 		setOpenMobile(false);
 		openNewChat();
 	};
+
+	useEffect(() => {
+		let cancelled = false;
+		void fetch("/api/radar/jobs", { cache: "no-store" })
+			.then(async (res) => {
+				if (!res.ok) {
+					return null;
+				}
+				return (await res.json()) as {
+					visible?: number;
+					total?: number;
+					isPaid?: boolean;
+				};
+			})
+			.then((body) => {
+				if (cancelled || !body) {
+					return;
+				}
+				const count = body.isPaid
+					? (body.total ?? 0)
+					: (body.visible ?? 0);
+				setRadarBadgeCount(count);
+			})
+			.catch(() => {
+				if (!cancelled) {
+					setRadarBadgeCount(null);
+				}
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [pathname]);
 
 	const {
 		data,
@@ -507,13 +542,21 @@ export function AppSidebar({
 											item.href,
 											"exact" in item ? item.exact : false,
 										)}
-										tooltip={item.title}
+										tooltip={
+											item.title === "Job Radar" &&
+											radarBadgeCount != null &&
+											radarBadgeCount > 0
+												? `${item.title} · ${radarBadgeCount}`
+												: item.title
+										}
 									>
 										<span className={navIconSlot}>
 											{item.title === "New chat" ? (
 												<span className="flex size-6 items-center justify-center rounded-full bg-brand text-brand-foreground">
 													<item.icon size={14} weight="bold" />
 												</span>
+											) : item.title === "Job Radar" ? (
+												<item.icon size={16} />
 											) : (
 												<item.icon size={16} weight="duotone" />
 											)}
@@ -521,6 +564,16 @@ export function AppSidebar({
 										<span className="min-w-0 truncate pr-2">
 											{item.title}
 										</span>
+										{item.title === "Job Radar" &&
+										radarBadgeCount != null &&
+										radarBadgeCount > 0 ? (
+											<div
+												className="mr-1.5 ml-auto flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-sidebar-foreground/10 px-1.5 text-[11px] font-medium tabular-nums text-sidebar-foreground/70 group-hover/menu-button:bg-sidebar-accent-foreground/12 group-hover/menu-button:text-sidebar-accent-foreground group-data-active/menu-button:bg-sidebar-accent-foreground/12 group-data-active/menu-button:text-sidebar-accent-foreground group-data-[collapsible=icon]:hidden"
+												aria-label={`${radarBadgeCount} jobs`}
+											>
+												{radarBadgeCount}
+											</div>
+										) : null}
 									</SidebarMenuButton>
 								</SidebarMenuItem>
 							))}

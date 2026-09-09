@@ -24,7 +24,11 @@ export const PLAN_COPY = {
 		period: "forever",
 		badge: "Always on",
 		blurb: "For the casual job seeker. Tailor a CV when a posting is actually worth sending.",
-		features: ["Limited monthly usage", ...SHARED_FEATURES],
+		features: [
+			"Limited monthly usage",
+			...SHARED_FEATURES,
+			"Job Radar: one promo search",
+		],
 		cta: "Continue free",
 	},
 	PRO: {
@@ -37,6 +41,7 @@ export const PLAN_COPY = {
 		features: [
 			`About ${PRO_USAGE_MULTIPLIER}x more usage than Free`,
 			...SHARED_FEATURES,
+			"Job Radar: daily new role matches",
 		],
 		cta: "Get Pro",
 	},

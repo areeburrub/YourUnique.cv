@@ -11,6 +11,7 @@ const PUBLIC_PREFIXES = [
 	"/terms",
 	"/privacy",
 	"/template-library",
+	"/job-radar-marketing",
 	"/unsubscribe",
 	"/llms.txt",
 	"/llm.txt",
@@ -20,6 +21,7 @@ const PUBLIC_PREFIXES = [
 	"/api/articles",
 	"/api/webhooks/dodo",
 	"/api/webhooks/clerk",
+	"/api/webhooks/radar",
 ];
 
 function isPublicPath(pathname: string) {
@@ -32,18 +34,27 @@ function isPublicPath(pathname: string) {
 }
 
 const runClerk = clerkMiddleware(async (auth, request) => {
-	if (request.nextUrl.pathname !== "/templates") {
-		return;
+	const path = request.nextUrl.pathname;
+
+	if (path === "/templates") {
+		const { userId } = await auth();
+		if (userId) {
+			return;
+		}
+		const url = request.nextUrl.clone();
+		url.pathname = "/template-library";
+		return NextResponse.rewrite(url);
 	}
 
-	const { userId } = await auth();
-	if (userId) {
-		return;
+	if (path === "/job-radar") {
+		const { userId } = await auth();
+		if (userId) {
+			return;
+		}
+		const url = request.nextUrl.clone();
+		url.pathname = "/job-radar-marketing";
+		return NextResponse.rewrite(url);
 	}
-
-	const url = request.nextUrl.clone();
-	url.pathname = "/template-library";
-	return NextResponse.rewrite(url);
 });
 
 export default function proxy(req: NextRequest, event: NextFetchEvent) {
