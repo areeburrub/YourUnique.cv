@@ -28,11 +28,12 @@ type AppShellProps = {
 	showUpgrade?: boolean;
 	upgradeHref?: string;
 	upgradeLabel?: string;
+	planBadge?: string | null;
 	hasReadyResume?: boolean;
 	children: React.ReactNode;
 };
 
-function MobileBrand() {
+function MobileBrand({ planBadge }: { planBadge?: string | null }) {
 	const { openNewChat } = useSoftNav();
 
 	return (
@@ -43,6 +44,11 @@ function MobileBrand() {
 		>
 			<LogoMark size={20} className="text-brand" />
 			<span className="truncate">YourUnique.cv</span>
+			{planBadge ? (
+				<span className="shrink-0 rounded-full bg-brand/12 px-1.5 text-[10px] font-semibold leading-4 tracking-[0.02em] text-brand">
+					{planBadge}
+				</span>
+			) : null}
 		</button>
 	);
 }
@@ -70,6 +76,7 @@ export function AppShell({
 	showUpgrade = false,
 	upgradeHref = "/settings",
 	upgradeLabel,
+	planBadge = null,
 	hasReadyResume = false,
 	children,
 }: AppShellProps) {
@@ -94,6 +101,7 @@ export function AppShell({
 									user={user}
 									showUpgrade={showUpgrade}
 									upgradeHref={upgradeHref}
+									planBadge={planBadge}
 									initialThreads={recentThreads}
 									initialHasMore={recentHasMore}
 								/>
@@ -103,7 +111,7 @@ export function AppShell({
 											<MobileUserSidebarTrigger user={user} />
 										</div>
 										<div className="flex min-w-0 flex-1 items-center justify-center overflow-hidden md:hidden">
-											<MobileBrand />
+											<MobileBrand planBadge={planBadge} />
 										</div>
 										<div className="ml-auto flex shrink-0 items-center gap-1">
 											<div className="md:hidden">

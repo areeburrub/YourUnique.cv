@@ -22,7 +22,11 @@ import {
 	uploadOnboardingResume,
 } from "@/lib/onboarding/client";
 import { PLAN_COPY } from "@/lib/plan-copy";
-import { PlanId, type PlanId as PlanIdType } from "@/lib/plans";
+import {
+	PlanId,
+	type PlanId as PlanIdType,
+	PRO_USAGE_MULTIPLIER,
+} from "@/lib/plans";
 import { isLinkedInProfileUrl } from "@/lib/linkedin-profile";
 import { ONBOARDING_UPLOAD_ACCEPT } from "@/lib/uploads";
 import { cn } from "@/lib/utils";
@@ -751,7 +755,8 @@ function PlanStep({
 					Choose a plan
 				</h1>
 				<p className="mt-3 text-base leading-6 text-muted-foreground">
-					Stay on Free, or subscribe to Pro for a higher limit.
+					Stay on Free, or get Pro for about {PRO_USAGE_MULTIPLIER}x
+					more room to tailor.
 				</p>
 			</div>
 

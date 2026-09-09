@@ -9,7 +9,7 @@ import type { ToolSlug } from "@/lib/tools/catalog";
 import { toolSignupHref } from "@/lib/tools/catalog";
 
 const PROMO_FEATURES = [
-	PLAN_COPY.FREE.features[0],
+	"Tailored CV for the job in front of you",
 	"AI Agent for Resume",
 	PLAN_COPY.FREE.features[2],
 ] as const;

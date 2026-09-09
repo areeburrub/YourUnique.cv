@@ -11,8 +11,8 @@ export function ClosingCta() {
 					</h2>
 					<p className="mt-5 max-w-[36ch] text-base leading-7 text-pretty text-muted-foreground">
 						Free to start. Paste the next job in chat and leave with
-						a CV for that role. Pro is ${PRO_PRICE_USD} a month for a higher
-						limit.
+						a CV for that role. Pro is ${PRO_PRICE_USD} a month if
+						you&apos;re applying a lot.
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
 						<SlideButton href="/sign-up">Start free</SlideButton>

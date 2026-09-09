@@ -35,10 +35,10 @@ These are included on Free and Pro:
 
 ## Plans
 
-Free forever, no card, about 20+ tailored resumes a month. Pro is $8 a month. Cancel anytime.
+Free forever, no card. Same tools as Pro. Limits are on chat usage, not a resume count. Pro is $8 a month for about 10x more room. Cancel anytime.
 
-- Free: $0 forever. Same features as Pro, about 20+ tailored resumes a month.
-- Pro: $8/month. Same features, about 200+ tailored resumes a month.
+- Free: $0 forever. Same features as Pro. Limited monthly usage.
+- Pro: $8/month. Same features. About 10x more usage than Free.
 
 Start free or subscribe to Pro at https://yourunique.cv/sign-up, or during onboarding.
 

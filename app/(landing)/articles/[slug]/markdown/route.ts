@@ -1,10 +1,22 @@
 import { notFound } from "next/navigation";
 
-import { getPublishedArticleBySlug } from "@/lib/db/articles";
+import {
+	getPublishedArticleBySlug,
+	listPublishedArticleSlugs,
+} from "@/lib/db/articles";
 import { getSiteUrl, SITE_NAME } from "@/lib/site";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
+
+export async function generateStaticParams() {
+	try {
+		const slugs = await listPublishedArticleSlugs();
+		return slugs.map((slug) => ({ slug }));
+	} catch {
+		return [];
+	}
+}
 
 export async function GET(
 	_request: Request,

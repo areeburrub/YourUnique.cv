@@ -32,10 +32,10 @@ Included on Free and Pro:
 
 Free forever, no card. Pro is $8 a month. Cancel anytime.
 
-| Plan | Price | Volume |
+| Plan | Price | Usage |
 | --- | --- | --- |
-| Free | $0 forever | 20+ tailored resumes a month |
-| Pro | $8/month | 200+ tailored resumes a month |
+| Free | $0 forever | Limited monthly chat usage |
+| Pro | $8/month | About 10x more usage than Free |
 
 Start at [yourunique.cv/sign-up](https://yourunique.cv/sign-up).
 
