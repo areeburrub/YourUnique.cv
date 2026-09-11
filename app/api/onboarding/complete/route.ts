@@ -13,6 +13,7 @@ import {
 	isOnboardingContextComplete,
 	resolveOnboardingStep,
 } from "@/lib/onboarding/progress";
+import { postAuthAppPath, safeAuthNext } from "@/lib/auth-redirect";
 import { PlanId, checkoutPath, isPaidPlan } from "@/lib/plans";
 
 export async function POST(req: Request) {
@@ -32,6 +33,11 @@ export async function POST(req: Request) {
 		typeof (body as { planId?: unknown })?.planId === "string"
 			? (body as { planId: string }).planId
 			: "";
+	const next =
+		typeof (body as { next?: unknown })?.next === "string"
+			? safeAuthNext((body as { next: string }).next)
+			: null;
+	const appPath = postAuthAppPath(next);
 
 	if (planId !== PlanId.FREE && planId !== PlanId.TRIAL && planId !== PlanId.PRO) {
 		return NextResponse.json(
@@ -66,7 +72,7 @@ export async function POST(req: Request) {
 	}
 
 	if (isPaidPlan(dbUser?.planId ?? PlanId.FREE)) {
-		return NextResponse.json({ redirectUrl: "/new-chat" });
+		return NextResponse.json({ redirectUrl: appPath });
 	}
 
 	if (planId === PlanId.PRO) {
@@ -75,5 +81,5 @@ export async function POST(req: Request) {
 		});
 	}
 
-	return NextResponse.json({ redirectUrl: "/new-chat" });
+	return NextResponse.json({ redirectUrl: appPath });
 }

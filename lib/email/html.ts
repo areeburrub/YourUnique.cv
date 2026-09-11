@@ -32,6 +32,7 @@ export function buildTemplateHtml(template: EmailTemplateDef) {
               <p style="margin:12px 0 0;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#6B635B;">YourUnique.cv</p>
               <h1 style="margin:28px 0 20px;font-family:Inter Tight, ${FONT};font-size:28px;line-height:34px;font-weight:600;letter-spacing:-0.8px;color:#1C1816;">${template.headline}</h1>
               ${paragraphs}
+              ${template.extraHtml ?? ""}
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:28px 0 8px;">
                 <tr>
                   <td style="border-radius:999px;background:#C23B2E;">

@@ -11,7 +11,7 @@ const navLinks = [
 	{ href: "/#pricing", label: "Pricing" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ authNext }: { authNext?: string } = {}) {
 	return (
 		<header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md">
 			<div className="rail flex h-16 items-center justify-between gap-3 px-5 sm:px-8 md:h-[4.5rem] md:px-10">
@@ -29,7 +29,7 @@ export function SiteHeader() {
 						))}
 					</nav>
 					<ModeToggle />
-					<SiteHeaderAuth />
+					<SiteHeaderAuth authNext={authNext} />
 				</div>
 			</div>
 		</header>

@@ -2,9 +2,14 @@ import { after } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
 import { getUserFileForUser } from "@/lib/db/files";
-import { getResumeForUser } from "@/lib/db/resumes";
+import { getResumeDocument, getResumeForUser } from "@/lib/db/resumes";
 import { touchUserActivity } from "@/lib/email/activity";
 import { getR2Object } from "@/lib/r2";
+import {
+	personNameFromResumeDocument,
+	resumeContentDisposition,
+	resumeExportFilename,
+} from "@/lib/resume-filename";
 
 export const runtime = "nodejs";
 
@@ -49,15 +54,16 @@ export async function GET(req: Request, { params }: ResumeDownloadRouteProps) {
 	const bytes = await body.transformToByteArray();
 	const asDownload = new URL(req.url).searchParams.get("download") === "1";
 	after(() => touchUserActivity(userId));
-	const safeName = file.filename.replaceAll('"', "");
+	const filename = resumeExportFilename({
+		personName: personNameFromResumeDocument(getResumeDocument(resume)),
+		at: resume.compiledAt ?? resume.createdAt,
+	});
 
 	return new Response(Buffer.from(bytes), {
 		headers: {
 			"Content-Type": "application/pdf",
 			"Content-Length": String(file.size),
-			"Content-Disposition": asDownload
-				? `attachment; filename="${safeName}"`
-				: `inline; filename="${safeName}"`,
+			"Content-Disposition": resumeContentDisposition(filename, asDownload),
 			"Cache-Control": "private, max-age=60",
 		},
 	});

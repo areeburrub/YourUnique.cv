@@ -27,6 +27,10 @@ import {
 	resolveUserSelectedTemplate,
 } from "@/lib/resume-templates/registry";
 import { applyResumePatches } from "@/lib/resume-templates/patch";
+import {
+	personNameFromResumeDocument,
+	resumeExportFilename,
+} from "@/lib/resume-filename";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
 import type { fetchJobPosting } from "@/trigger/fetch-job-posting";
 import type { fetchLinkedInJob } from "@/trigger/fetch-linkedin-job";
@@ -154,11 +158,22 @@ export function resumeLinkPayload(row: {
 	familyId?: string;
 	name: string;
 	compileStatus: string;
+	compiledAt?: Date | null;
+	createdAt?: Date;
+	sourceJson?: unknown;
 }) {
+	const document =
+		row.sourceJson && typeof row.sourceJson === "object"
+			? (row.sourceJson as Record<string, unknown>)
+			: {};
 	return {
 		id: row.id,
 		familyId: row.familyId ?? row.id,
 		name: row.name,
+		downloadFilename: resumeExportFilename({
+			personName: personNameFromResumeDocument(document),
+			at: row.compiledAt ?? row.createdAt,
+		}),
 		previewUrl: resumePreviewUrl(row.id),
 		downloadUrl: resumeDownloadUrl(row.id),
 		resumesPath: "/resumes",
@@ -359,6 +374,7 @@ export function makeCreateResumeTool(documentSchema: z.ZodType) {
 		updatedAt: z.string(),
 		previewUrl: z.string(),
 		downloadUrl: z.string(),
+		downloadFilename: z.string(),
 		resumesPath: z.string(),
 		instruction: z.string(),
 	}),
@@ -457,6 +473,7 @@ export function makePatchResumeTool(documentSchema: z.ZodType) {
 		compileStatus: z.string(),
 		previewUrl: z.string(),
 		downloadUrl: z.string(),
+		downloadFilename: z.string(),
 		resumesPath: z.string(),
 		instruction: z.string(),
 	}),
@@ -553,6 +570,7 @@ export const compileResumeTool = createTool({
 		runId: z.string(),
 		previewUrl: z.string(),
 		downloadUrl: z.string(),
+		downloadFilename: z.string(),
 		resumesPath: z.string(),
 		instruction: z.string(),
 	}),
@@ -586,6 +604,7 @@ export const getResumeDownloadTool = createTool({
 	outputSchema: z.object({
 		previewUrl: z.string(),
 		downloadUrl: z.string(),
+		downloadFilename: z.string(),
 		resumesPath: z.string(),
 		compileStatus: z.string(),
 		name: z.string(),

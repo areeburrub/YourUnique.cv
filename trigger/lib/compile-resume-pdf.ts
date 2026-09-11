@@ -17,6 +17,10 @@ import { userFiles } from "@/lib/db/schema";
 import { putR2Object } from "@/lib/r2";
 import { resolveTemplate } from "@/lib/resume-templates/registry";
 import { normalizeTemplateRef } from "@/lib/resume-templates/refs";
+import {
+	personNameFromResumeDocument,
+	resumeExportFilename,
+} from "@/lib/resume-filename";
 import { compileHtmlToPdfAndPng } from "@/trigger/lib/playwright-html";
 
 function resumePdfKey(userId: string, resumeId: string) {
@@ -25,15 +29,6 @@ function resumePdfKey(userId: string, resumeId: string) {
 
 function resumePreviewKey(userId: string, resumeId: string) {
 	return `users/${userId}/resumes/${resumeId}-preview.png`;
-}
-
-function safeFilename(name: string, extension: "pdf" | "png") {
-	const cleaned = name
-		.replace(/[^\w\s.-]+/g, "")
-		.trim()
-		.replace(/\s+/g, "-")
-		.slice(0, 80);
-	return `${cleaned || "resume"}.${extension}`;
 }
 
 async function upsertResumeBinaryFile(input: {
@@ -115,12 +110,20 @@ export async function compileResumePdf(input: {
 		const html = template.render(document);
 		const { pdf: pdfBuffer, png: pngBuffer } =
 			await compileHtmlToPdfAndPng(html);
+		const compiledAt = new Date();
+		const personName = personNameFromResumeDocument(
+			document as Record<string, unknown>,
+		);
 
 		const pdfFileId = await upsertResumeBinaryFile({
 			userId: input.userId,
 			existingFileId: resume.pdfFileId,
 			key: resumePdfKey(input.userId, input.resumeId),
-			filename: safeFilename(resume.name, "pdf"),
+			filename: resumeExportFilename({
+				personName,
+				at: compiledAt,
+				extension: "pdf",
+			}),
 			contentType: "application/pdf",
 			body: pdfBuffer,
 		});
@@ -128,7 +131,11 @@ export async function compileResumePdf(input: {
 			userId: input.userId,
 			existingFileId: resume.previewFileId,
 			key: resumePreviewKey(input.userId, input.resumeId),
-			filename: safeFilename(resume.name, "png"),
+			filename: resumeExportFilename({
+				personName,
+				at: compiledAt,
+				extension: "png",
+			}),
 			contentType: "image/png",
 			body: pngBuffer,
 		});
@@ -138,7 +145,7 @@ export async function compileResumePdf(input: {
 			previewFileId,
 			compileStatus: "ready",
 			compileError: null,
-			compiledAt: new Date(),
+			compiledAt,
 		});
 
 		return updated;

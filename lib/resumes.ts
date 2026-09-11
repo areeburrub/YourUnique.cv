@@ -1,4 +1,8 @@
 import type { ResumeRow } from "@/lib/db/resumes";
+import {
+	personNameFromResumeDocument,
+	resumeExportFilename,
+} from "@/lib/resume-filename";
 import { fileAppUrl } from "@/lib/uploads";
 
 export type ResumeListItem = {
@@ -7,6 +11,7 @@ export type ResumeListItem = {
 	version: number;
 	versionCount: number;
 	name: string;
+	downloadFilename: string;
 	companyName: string | null;
 	roleTitle: string | null;
 	jobLink: string | null;
@@ -35,6 +40,12 @@ export function toResumeListItem(
 		version: row.version,
 		versionCount,
 		name: row.name,
+		downloadFilename: resumeExportFilename({
+			personName: personNameFromResumeDocument(
+				(row.sourceJson ?? {}) as Record<string, unknown>,
+			),
+			at: row.compiledAt ?? row.createdAt,
+		}),
 		companyName: row.companyName,
 		roleTitle: row.roleTitle,
 		jobLink: row.jobLink,

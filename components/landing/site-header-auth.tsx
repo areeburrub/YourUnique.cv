@@ -30,7 +30,7 @@ function subscribe() {
 	return () => {};
 }
 
-export function SiteHeaderAuth() {
+export function SiteHeaderAuth({ authNext }: { authNext?: string }) {
 	const hasSession = useSyncExternalStore(
 		subscribe,
 		hasClerkSession,
@@ -38,8 +38,13 @@ export function SiteHeaderAuth() {
 	);
 
 	if (!hasSession) {
-		return <SignedOutHeaderActions />;
+		return <SignedOutHeaderActions next={authNext} />;
 	}
 
-	return <SignedInHeaderActions menu={<SiteHeaderUserMenu />} />;
+	return (
+		<SignedInHeaderActions
+			menu={<SiteHeaderUserMenu />}
+			next={authNext}
+		/>
+	);
 }

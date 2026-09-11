@@ -70,6 +70,7 @@ function CompileSparkle({ remainingMs }: { remainingMs: number }) {
 
 type ResumePdfCardProps = {
 	name: string;
+	downloadFilename?: string;
 	previewUrl: string;
 	downloadUrl: string;
 	compileStatus?: ResumeListItem["compileStatus"];
@@ -87,6 +88,7 @@ async function fetchResumeStatus(resumeId: string) {
 
 export function ResumePdfCard({
 	name,
+	downloadFilename,
 	previewUrl,
 	downloadUrl,
 	compileStatus,
@@ -104,6 +106,7 @@ export function ResumePdfCard({
 					version: 1,
 					versionCount: 1,
 					name,
+					downloadFilename: downloadFilename ?? "",
 					compileStatus,
 					hasPdf: compileStatus === "ready",
 					previewUrl: null,
@@ -137,9 +140,10 @@ export function ResumePdfCard({
 		}
 		wasPending.current = pending;
 	}, [failed, pending, resumeId]);
-	const fileName = (data?.name || name).toLowerCase().endsWith(".pdf")
-		? data?.name || name
-		: `${data?.name || name}.pdf`;
+	const fileName =
+		data?.downloadFilename ||
+		downloadFilename ||
+		(name.toLowerCase().endsWith(".pdf") ? name : `${name}.pdf`);
 	const href = pending || failed ? undefined : previewUrl;
 	const downloadHref = pending || failed
 		? undefined

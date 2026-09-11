@@ -118,6 +118,7 @@ function isProfileUpdateTool(name: string) {
 	return (
 		name === "patch_profile" ||
 		name === "update_profile" ||
+		name === "update_radar_preferences" ||
 		name === "profileEditAgent" ||
 		name === "agent-profileEditAgent" ||
 		name.endsWith("profileEditAgent")
@@ -135,7 +136,9 @@ function profileFromToolOutput(
 		| { ok?: boolean; profile?: string }
 		| undefined;
 	if (
-		(name === "patch_profile" || name === "update_profile") &&
+		(name === "patch_profile" ||
+			name === "update_profile" ||
+			name === "update_radar_preferences") &&
 		!record?.ok
 	) {
 		return undefined;

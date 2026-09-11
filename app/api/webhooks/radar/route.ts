@@ -6,9 +6,14 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
 	applyRadarCallback,
+	listRadarJobsForUser,
 	type RadarCallbackJob,
 } from "@/lib/db/radar";
 import { users } from "@/lib/db/schema";
+import {
+	buildRadarJobsHtml,
+	jobsForRadarReadyEmail,
+} from "@/lib/email/radar-jobs";
 import { dispatchTemplateEmail } from "@/lib/email/send";
 import { radarWebhookSecret } from "@/lib/radar-client";
 
@@ -75,16 +80,28 @@ export async function POST(req: Request) {
 	if (body.status === "ready") {
 		const user = await db.query.users.findFirst({
 			where: eq(users.id, body.user_id),
-			columns: { email: true, firstName: true },
+			columns: { email: true, firstName: true, planId: true },
 		});
 		if (user?.email) {
+			const listed = await listRadarJobsForUser(
+				body.user_id,
+				user.planId ?? "FREE",
+			);
+			const emailJobs = jobsForRadarReadyEmail(listed.jobs);
 			await dispatchTemplateEmail({
 				alias: "yucv-radar-ready",
 				to: user.email,
 				userId: body.user_id,
 				dripCycle: body.run_id,
 				variables: {
-					SCORE: String(result.stored || body.analyzed || 0),
+					JOB_COUNT: String(
+						listed.visible ||
+							listed.jobs.length ||
+							result.stored ||
+							body.analyzed ||
+							0,
+					),
+					JOBS_HTML: buildRadarJobsHtml(emailJobs),
 				},
 				ctaPath: "/job-radar",
 			});

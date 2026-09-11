@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { BrandLogo } from "@/components/landing/brand-logo";
+import { authPageHref } from "@/lib/auth-redirect";
 import { SITE_EMAIL } from "@/lib/site";
 
 const columns = [
@@ -43,7 +44,7 @@ const columns = [
 	},
 ];
 
-export function SiteFooter() {
+export function SiteFooter({ authNext }: { authNext?: string } = {}) {
 	return (
 		<footer>
 			<div className="rail px-5 py-16 sm:px-8 md:px-10">
@@ -65,15 +66,20 @@ export function SiteFooter() {
 									{column.links.map((link) => {
 										const className =
 											"text-base text-muted-foreground transition-colors duration-200 hover:text-foreground";
+										const href =
+											link.href === "/sign-in" ||
+											link.href === "/sign-up"
+												? authPageHref(link.href, null, authNext)
+												: link.href;
 
 										return (
 											<li key={link.href}>
 												{link.href.startsWith("#") ? (
-													<a href={link.href} className={className}>
+													<a href={href} className={className}>
 														{link.label}
 													</a>
 												) : (
-													<Link href={link.href} className={className}>
+													<Link href={href} className={className}>
 														{link.label}
 													</Link>
 												)}

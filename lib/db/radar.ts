@@ -470,6 +470,7 @@ export async function getRadarJobForUser(userId: string, jobId: string, planId: 
 			description: radarJobs.description,
 			postedAt: radarJobs.postedAt,
 			seniorityFit: radarUserJobs.seniorityFit,
+			trackerStatus: radarUserJobs.trackerStatus,
 		})
 		.from(radarUserJobs)
 		.innerJoin(radarJobs, eq(radarUserJobs.jobId, radarJobs.id))
@@ -506,6 +507,7 @@ export async function getRadarJobForUser(userId: string, jobId: string, planId: 
 		description: row.description,
 		postedAt: row.postedAt,
 		seniorityFit: parseRadarSeniorityFit(row.seniorityFit),
+		trackerStatus: parseTrackerStatus(row.trackerStatus),
 	};
 }
 
@@ -597,6 +599,138 @@ export async function setRadarJobTrackerStatus(
 		.where(eq(radarUserJobs.id, row.id));
 
 	return { id: row.jobId, trackerStatus: status };
+}
+
+export type RadarChatJob = {
+	id: string;
+	title: string;
+	company: string;
+	location: string;
+	workplace: string;
+	url: string;
+	atsScore: number;
+	verdict: string;
+	summary: string;
+	trackerStatus: RadarTrackerStatus;
+	seniorityFit: string;
+	postedAt: string | null;
+};
+
+export type RadarPoolFilter = {
+	query?: string;
+	trackerStatus?: RadarTrackerStatus | "shortlisted";
+	workplace?: string;
+	location?: string;
+	company?: string;
+	minScore?: number;
+	seniorityFit?: string;
+	limit?: number;
+};
+
+function haystack(job: RadarListJob) {
+	return [
+		job.title,
+		job.company,
+		job.location,
+		job.workplace,
+		job.summary,
+		job.verdict,
+	]
+		.filter(Boolean)
+		.join(" ")
+		.toLowerCase();
+}
+
+export function toRadarChatJob(job: RadarListJob): RadarChatJob {
+	return {
+		id: job.id,
+		title: job.title ?? "Matching role",
+		company: job.company ?? "",
+		location: job.location ?? "",
+		workplace: job.workplace ?? "",
+		url: job.url ?? "",
+		atsScore: job.atsScore,
+		verdict: job.verdict,
+		summary: job.summary,
+		trackerStatus: job.trackerStatus,
+		seniorityFit: job.seniorityFit,
+		postedAt: job.postedAt,
+	};
+}
+
+export function filterRadarListJobs(
+	jobs: RadarListJob[],
+	filter: RadarPoolFilter = {},
+): RadarChatJob[] {
+	const query = filter.query?.trim().toLowerCase() ?? "";
+	const workplace = filter.workplace?.trim().toLowerCase() ?? "";
+	const location = filter.location?.trim().toLowerCase() ?? "";
+	const company = filter.company?.trim().toLowerCase() ?? "";
+	const seniority = filter.seniorityFit?.trim().toLowerCase() ?? "";
+	const status =
+		filter.trackerStatus === "shortlisted" ? "saved" : filter.trackerStatus;
+	const minScore = filter.minScore;
+	const limit = Math.min(Math.max(filter.limit ?? 8, 1), 15);
+
+	const matched = jobs.filter((job) => {
+		if (job.blurred) {
+			return false;
+		}
+		if (status && job.trackerStatus !== status) {
+			return false;
+		}
+		if (typeof minScore === "number" && job.atsScore < minScore) {
+			return false;
+		}
+		if (workplace && !(job.workplace ?? "").toLowerCase().includes(workplace)) {
+			return false;
+		}
+		if (location && !(job.location ?? "").toLowerCase().includes(location)) {
+			return false;
+		}
+		if (company && !(job.company ?? "").toLowerCase().includes(company)) {
+			return false;
+		}
+		if (seniority && job.seniorityFit !== seniority) {
+			return false;
+		}
+		if (query && !haystack(job).includes(query)) {
+			return false;
+		}
+		return true;
+	});
+
+	return matched.slice(0, limit).map(toRadarChatJob);
+}
+
+export async function queryRadarPoolForUser(
+	userId: string,
+	planId: string,
+	filter: RadarPoolFilter = {},
+) {
+	const listed = await listRadarJobsForUser(userId, planId);
+	const jobs = filterRadarListJobs(listed.jobs, filter);
+	return {
+		jobs,
+		total: listed.total,
+		matched: jobs.length,
+		hasPool: listed.total > 0,
+	};
+}
+
+export async function setRadarJobsTrackerStatus(
+	userId: string,
+	jobIds: string[],
+	status: RadarTrackerStatus,
+) {
+	const updated: Array<{ id: string; trackerStatus: RadarTrackerStatus }> = [];
+	for (const jobId of jobIds) {
+		const row = await setRadarJobTrackerStatus(userId, jobId, status);
+		if (row) {
+			updated.push(row);
+		}
+	}
+	return updated;
 }
 
 export async function listPaidUsersForDailyRadar() {

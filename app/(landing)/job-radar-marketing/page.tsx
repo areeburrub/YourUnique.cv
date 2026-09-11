@@ -6,7 +6,7 @@ import { ClosingCta } from "@/components/landing/closing-cta";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { SlideButton } from "@/components/landing/slide-button";
-import { authPageHref } from "@/lib/auth-redirect";
+import { AUTH_NEXT_JOB_RADAR, authPageHref } from "@/lib/auth-redirect";
 import { SITE_NAME } from "@/lib/site";
 
 export const dynamic = "force-static";
@@ -56,7 +56,7 @@ const plans = [
 export default function JobRadarMarketingPage() {
 	return (
 		<div className="flex flex-1 flex-col bg-background">
-			<SiteHeader />
+			<SiteHeader authNext={AUTH_NEXT_JOB_RADAR} />
 			<main>
 				<section>
 					<div className="rail px-5 pt-12 pb-10 sm:px-8 md:px-10 md:pt-16 md:pb-14">
@@ -73,22 +73,27 @@ export default function JobRadarMarketingPage() {
 							tailored CV.
 						</p>
 						<div className="mt-8 flex flex-wrap gap-3">
-							<SlideButton href={authPageHref("/sign-up")}>
+							<SlideButton
+								href={authPageHref("/sign-up", null, AUTH_NEXT_JOB_RADAR)}
+							>
 								Start free
 							</SlideButton>
-							<SlideButton href="/sign-in" variant="outline">
+							<SlideButton
+								href={authPageHref("/sign-in", null, AUTH_NEXT_JOB_RADAR)}
+								variant="outline"
+							>
 								Log in to open Radar
 							</SlideButton>
 						</div>
 						<p className="mt-4 text-sm text-muted-foreground">
 							Have an account?{" "}
 							<Link
-								href="/sign-in"
+								href={authPageHref("/sign-in", null, AUTH_NEXT_JOB_RADAR)}
 								className="font-medium text-brand underline-offset-4 hover:underline"
 							>
 								Log in
 							</Link>{" "}
-							and open Job Radar from the sidebar.
+							and we&apos;ll take you to Job Radar.
 						</p>
 					</div>
 				</section>
@@ -142,9 +147,9 @@ export default function JobRadarMarketingPage() {
 					</div>
 				</section>
 
-				<ClosingCta />
+				<ClosingCta authNext={AUTH_NEXT_JOB_RADAR} />
 			</main>
-			<SiteFooter />
+			<SiteFooter authNext={AUTH_NEXT_JOB_RADAR} />
 		</div>
 	);
 }

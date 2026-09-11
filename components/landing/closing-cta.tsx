@@ -1,7 +1,8 @@
 import { SlideButton } from "@/components/landing/slide-button";
+import { authPageHref } from "@/lib/auth-redirect";
 import { PRO_PRICE_USD } from "@/lib/plans";
 
-export function ClosingCta() {
+export function ClosingCta({ authNext }: { authNext?: string } = {}) {
 	return (
 		<section>
 			<div className="rail px-5 pb-20 sm:px-8 md:px-10 md:pb-28">
@@ -15,8 +16,13 @@ export function ClosingCta() {
 						you&apos;re applying a lot.
 					</p>
 					<div className="mt-8 flex flex-wrap justify-center gap-3">
-						<SlideButton href="/sign-up">Start free</SlideButton>
-						<SlideButton href="/sign-in" variant="outline">
+						<SlideButton href={authPageHref("/sign-up", null, authNext)}>
+							Start free
+						</SlideButton>
+						<SlideButton
+							href={authPageHref("/sign-in", null, authNext)}
+							variant="outline"
+						>
 							Log in
 						</SlideButton>
 					</div>

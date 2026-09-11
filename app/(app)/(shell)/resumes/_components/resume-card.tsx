@@ -138,7 +138,7 @@ export function ResumeCard({
 								</a>
 								<a
 									href={resumeDownloadPath(resume.id, { download: true })}
-									download
+									download={resume.downloadFilename}
 									onClick={(event) => event.stopPropagation()}
 									className={cn(
 										buttonVariants({ size: "lg", variant: "secondary" }),

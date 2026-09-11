@@ -3,6 +3,7 @@
 import {
 	BriefcaseIcon,
 	MagnifyingGlassIcon,
+	BroadcastIcon,
 	UserPlusIcon,
 } from "@phosphor-icons/react";
 import type { ComponentType } from "react";
@@ -41,6 +42,12 @@ Job description:
 		prompt: `Add this to my profile:
 
 [a skill, project, role, education, or anything else]`,
+	},
+	{
+		id: "radar",
+		label: "What's on Job Radar",
+		icon: BroadcastIcon,
+		prompt: `Show me the best roles currently on my Job Radar. Prefer remote or hybrid if those are in the pool.`,
 	},
 	{
 		id: "review",

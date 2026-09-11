@@ -11,6 +11,9 @@ import {
 import type { ReactNode } from "react";
 
 import { MessageContent, MessageResponse } from "@/components/ai-elements/message";
+import { RadarJobsCard } from "@/components/chat/radar-jobs-card";
+import { RadarOpenCard } from "@/components/chat/radar-open-card";
+import { RadarProCard } from "@/components/chat/radar-pro-card";
 import { ResumePdfCard } from "@/components/chat/resume-pdf-card";
 import {
 	agentDataPartsFromMessage,
@@ -21,6 +24,7 @@ import {
 	runningToolStatusLabel,
 	ToolActivity,
 } from "@/components/chat/tool-activity";
+import { radarUiFromToolOutput, type RadarChatUi } from "@/lib/chat-radar";
 import { fileTypeLabel } from "@/lib/file-type";
 import {
 	isResumePdfCardTool,
@@ -248,6 +252,11 @@ function resumeCardFromOutput(output: unknown) {
 
 	return {
 		name: resumeName,
+		downloadFilename:
+			typeof record.downloadFilename === "string" &&
+			record.downloadFilename.trim()
+				? record.downloadFilename
+				: undefined,
 		previewUrl,
 		downloadUrl,
 		compileStatus,
@@ -273,6 +282,7 @@ function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 	if (part.state !== "output-available" || !part.output || typeof part.output !== "object") {
 	return [] as Array<{
 		name: string;
+		downloadFilename?: string;
 		previewUrl: string;
 		downloadUrl: string;
 		compileStatus?: ResumeListItem["compileStatus"];
@@ -307,6 +317,117 @@ function resumeCardsFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
 	return cards;
 }
 
+function radarUiFromToolPart(part: ToolUIPart | DynamicToolUIPart) {
+	if (part.state !== "output-available") {
+		return null;
+	}
+	return radarUiFromToolOutput(getToolName(part), part.output);
+}
+
+function radarUisFromAgentToolOutput(part: ToolUIPart | DynamicToolUIPart) {
+	if (part.state !== "output-available" || !part.output || typeof part.output !== "object") {
+		return [] as RadarChatUi[];
+	}
+	const output = part.output as {
+		subAgentToolResults?: Array<{
+			toolName?: string;
+			result?: unknown;
+			isError?: boolean;
+		}>;
+	};
+	if (!Array.isArray(output.subAgentToolResults)) {
+		return [];
+	}
+	const uis: RadarChatUi[] = [];
+	for (const result of output.subAgentToolResults) {
+		if (result.isError || !result.toolName) {
+			continue;
+		}
+		const ui = radarUiFromToolOutput(result.toolName, result.result);
+		if (ui) {
+			uis.push(ui);
+		}
+	}
+	return uis;
+}
+
+function radarUisFromAgentData(data: unknown) {
+	const activity = data as {
+		steps?: Array<{
+			toolResults?: Array<{
+				toolName?: string;
+				result?: unknown;
+				isError?: boolean;
+				payload?: {
+					toolName?: string;
+					result?: unknown;
+					isError?: boolean;
+				};
+			}>;
+		}>;
+		toolResults?: Array<{
+			toolName?: string;
+			result?: unknown;
+			isError?: boolean;
+			payload?: {
+				toolName?: string;
+				result?: unknown;
+				isError?: boolean;
+			};
+		}>;
+	};
+	const uis: RadarChatUi[] = [];
+	const collect = (
+		slice: {
+			toolResults?: Array<{
+				toolName?: string;
+				result?: unknown;
+				isError?: boolean;
+				payload?: {
+					toolName?: string;
+					result?: unknown;
+					isError?: boolean;
+				};
+			}>;
+		},
+	) => {
+		for (const result of slice.toolResults ?? []) {
+			const name = result.toolName || result.payload?.toolName;
+			const isError = result.isError ?? result.payload?.isError;
+			const value = result.result ?? result.payload?.result;
+			if (!name || isError) {
+				continue;
+			}
+			const ui = radarUiFromToolOutput(name, value);
+			if (ui) {
+				uis.push(ui);
+			}
+		}
+	};
+	for (const completed of activity.steps ?? []) {
+		collect(completed);
+	}
+	collect(activity);
+	return uis;
+}
+
+function pickRadarUi(uis: RadarChatUi[]): RadarChatUi | null {
+	let jobs: RadarChatUi | null = null;
+	let open: RadarChatUi | null = null;
+	for (const ui of uis) {
+		if (ui.kind === "pro") {
+			return ui;
+		}
+		if (ui.kind === "jobs") {
+			jobs = ui;
+		}
+		if (ui.kind === "open") {
+			open = ui;
+		}
+	}
+	return jobs ?? open;
+}
+
 export function renderAssistantParts(
 	message: UIMessage,
 	options?: { streamActive?: boolean },
@@ -327,6 +448,7 @@ export function renderAssistantParts(
 
 	const cards: Array<{
 		name: string;
+		downloadFilename?: string;
 		previewUrl: string;
 		downloadUrl: string;
 		compileStatus?: ResumeListItem["compileStatus"];
@@ -336,6 +458,7 @@ export function renderAssistantParts(
 	const collectCard = (
 		card: {
 			name: string;
+			downloadFilename?: string;
 			previewUrl: string;
 			downloadUrl: string;
 			compileStatus?: ResumeListItem["compileStatus"];
@@ -379,9 +502,40 @@ export function renderAssistantParts(
 			<ResumePdfCard
 				key={`${message.id}-resume-${latest.familyId}`}
 				name={latest.name}
+				downloadFilename={latest.downloadFilename}
 				previewUrl={latest.previewUrl}
 				downloadUrl={latest.downloadUrl}
 				compileStatus={latest.compileStatus}
+			/>,
+		);
+	}
+
+	const radarUis: RadarChatUi[] = [];
+	for (const part of message.parts) {
+		if (!isChatToolPart(part)) {
+			continue;
+		}
+		const fromPart = radarUiFromToolPart(part);
+		if (fromPart) {
+			radarUis.push(fromPart);
+		}
+		radarUis.push(...radarUisFromAgentToolOutput(part));
+	}
+	for (const part of agentDataPartsFromMessage(message)) {
+		radarUis.push(...radarUisFromAgentData(part.data));
+	}
+	const radarUi = pickRadarUi(radarUis);
+	if (radarUi?.kind === "pro") {
+		nodes.push(<RadarProCard key={`${message.id}-radar-pro`} />);
+	} else if (radarUi?.kind === "jobs") {
+		nodes.push(
+			<RadarJobsCard key={`${message.id}-radar-jobs`} jobs={radarUi.jobs} />,
+		);
+	} else if (radarUi?.kind === "open") {
+		nodes.push(
+			<RadarOpenCard
+				key={`${message.id}-radar-open`}
+				reason={radarUi.reason}
 			/>,
 		);
 	}

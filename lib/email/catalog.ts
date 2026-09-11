@@ -16,6 +16,8 @@ export type EmailTemplateDef = {
 	paragraphs: string[];
 	ctaLabel: string;
 	preference: EmailPreference;
+	/** Raw HTML inserted after paragraphs (Handlebars allowed). */
+	extraHtml?: string;
 };
 
 export const TEMPLATE_VARIABLES = [
@@ -35,6 +37,8 @@ export const TEMPLATE_VARIABLES = [
 	{ key: "DAYS_LEFT", type: "string" as const, fallbackValue: "a few" },
 	{ key: "SCORE", type: "string" as const, fallbackValue: "your" },
 	{ key: "RESUME_COUNT", type: "string" as const, fallbackValue: "a few" },
+	{ key: "JOB_COUNT", type: "string" as const, fallbackValue: "a few" },
+	{ key: "JOBS_HTML", type: "string" as const, fallbackValue: "" },
 ] as const;
 
 export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
@@ -273,14 +277,15 @@ export const EMAIL_TEMPLATES: EmailTemplateDef[] = [
 	},
 	{
 		alias: "yucv-radar-ready",
-		name: "Job Radar ready",
-		subject: "{{{SCORE}}} roles matched your profile",
-		preheader: "Open Job Radar to review the roles we found for you.",
-		headline: "Your Job Radar list is ready",
+		name: "Jobs ready",
+		subject: "{{{JOB_COUNT}}} jobs are ready on Job Radar",
+		preheader: "Open Job Radar and pick a role to tailor a CV.",
+		headline: "{{{JOB_COUNT}}} jobs are ready",
 		paragraphs: [
-			"Hi {{{NAME}}}. We finished matching your profile. {{{SCORE}}} roles are waiting on Job Radar.",
-			"Open the board, pick a role, and generate a CV when you're ready.",
+			"Hi {{{NAME}}}. We finished matching your profile. {{{JOB_COUNT}}} roles are waiting on Job Radar.",
+			"Here are the top matches from your list. Open Job Radar to generate a CV when you want to apply.",
 		],
+		extraHtml: "{{{JOBS_HTML}}}",
 		ctaLabel: "Open Job Radar",
 		preference: "important",
 	},

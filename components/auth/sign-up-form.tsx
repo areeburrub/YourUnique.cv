@@ -19,9 +19,15 @@ import { FormError } from "./form-error";
 import { GoogleOAuthButton } from "./google-oauth-button";
 import { PasswordField } from "./password-field";
 
-export function SignUpForm({ plan }: { plan?: string }) {
+export function SignUpForm({
+	plan,
+	next,
+}: {
+	plan?: string;
+	next?: string;
+}) {
 	const { isLoaded, signUp, setActive } = useSignUp();
-	const afterAuth = afterAuthPath(plan);
+	const afterAuth = afterAuthPath(plan, next);
 	const [firstName, setFirstName] = useState("");
 	const [lastName, setLastName] = useState("");
 	const [emailAddress, setEmailAddress] = useState("");
@@ -367,7 +373,7 @@ export function SignUpForm({ plan }: { plan?: string }) {
 				</form>
 				<p className="pt-1 text-center text-sm text-muted-foreground">
 					Already have an account?{" "}
-					<Link href={authPageHref("/sign-in", plan)} className="font-medium text-brand hover:underline">
+					<Link href={authPageHref("/sign-in", plan, next)} className="font-medium text-brand hover:underline">
 						Sign in
 					</Link>
 				</p>

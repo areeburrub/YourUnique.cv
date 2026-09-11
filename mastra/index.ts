@@ -3,6 +3,7 @@ import { PostgresStore } from "@mastra/pg";
 
 import { appAgent } from "./agents/app-agent";
 import { profileEditAgent } from "./agents/profile-edit-agent";
+import { radarAgent } from "./agents/radar-agent";
 import { resumeAgent } from "./agents/resume-agent";
 import { templateCustomizerAgent } from "./agents/template-customizer-agent";
 
@@ -18,6 +19,7 @@ export const mastra = new Mastra({
 		resumeAgent,
 		profileEditAgent,
 		templateCustomizerAgent,
+		radarAgent,
 	},
 	storage,
 });

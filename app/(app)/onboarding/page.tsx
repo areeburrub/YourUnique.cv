@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { BrandLogo } from "@/components/landing/brand-logo";
 import { HeaderUserMenu } from "@/components/landing/header-user-menu";
 import { ModeToggle } from "@/components/mode-toggle";
-import { isProSignupIntent } from "@/lib/auth-redirect";
+import { isProSignupIntent, postAuthAppPath, safeAuthNext } from "@/lib/auth-redirect";
 import { getUserContext } from "@/lib/db/contexts";
 import { getUserFileForUser } from "@/lib/db/files";
 import { getUserById } from "@/lib/db/users";
@@ -16,7 +16,7 @@ import { OnboardingWizard } from "./_components/onboarding-wizard";
 export default async function OnboardingPage({
 	searchParams,
 }: {
-	searchParams: Promise<{ plan?: string }>;
+	searchParams: Promise<{ plan?: string; next?: string }>;
 }) {
 	const { userId } = await auth();
 	await auth.protect();
@@ -25,7 +25,8 @@ export default async function OnboardingPage({
 		redirect("/sign-in");
 	}
 
-	const { plan } = await searchParams;
+	const { plan, next } = await searchParams;
+	const afterPath = safeAuthNext(next);
 	const [dbUser, context] = await Promise.all([
 		getUserById(userId),
 		getUserContext(userId),
@@ -36,7 +37,7 @@ export default async function OnboardingPage({
 	}
 
 	if (dbUser?.onboardedAt) {
-		redirect("/new-chat");
+		redirect(postAuthAppPath(afterPath));
 	}
 
 	const resumeFileId = context?.sourceFileIds?.[0] ?? "";
@@ -68,6 +69,7 @@ export default async function OnboardingPage({
 				initialLinkedinUrl={context?.linkedinUrl ?? ""}
 				initialIntroduction={context?.introduction ?? ""}
 				initialProfileReady={Boolean(effectiveContext?.profile?.trim())}
+				next={afterPath}
 			/>
 		</div>
 	);

@@ -138,6 +138,33 @@ export async function saveRadarPreferences(
 	return promptText;
 }
 
+export async function patchRadarPreferences(
+	userId: string,
+	patch: Partial<RadarPreferencesInput> & { avoidNotes?: string[] },
+) {
+	const existing = await getRadarPreferences(userId);
+	const input: RadarPreferencesInput = {
+		currentLocation:
+			patch.currentLocation ?? existing?.currentLocation ?? "",
+		openToRelocation:
+			patch.openToRelocation ?? existing?.openToRelocation ?? false,
+		preferredLocations:
+			patch.preferredLocations ?? existing?.preferredLocations ?? [],
+		relocationRadiusKm:
+			patch.relocationRadiusKm === undefined
+				? (existing?.relocationRadiusKm ?? null)
+				: patch.relocationRadiusKm,
+		workplaceTypes: patch.workplaceTypes ?? existing?.workplaceTypes ?? [],
+		extraPreferences:
+			patch.extraPreferences ?? existing?.extraPreferences ?? "",
+	};
+	await saveRadarPreferences(userId, input);
+	if (patch.avoidNotes && patch.avoidNotes.length > 0) {
+		await applyDismissedJobFeedback(userId, { avoidNotes: patch.avoidNotes });
+	}
+	return getRadarPreferences(userId);
+}
+
 function mergeAvoidNotes(existing: string[], incoming: string[]) {
 	const seen = new Set(existing.map((note) => note.toLowerCase()));
 	const merged = [...existing];

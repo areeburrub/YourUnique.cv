@@ -106,6 +106,7 @@ type OnboardingWizardProps = {
 	initialLinkedinUrl: string;
 	initialIntroduction: string;
 	initialProfileReady: boolean;
+	next?: string | null;
 };
 
 export function OnboardingWizard({
@@ -116,6 +117,7 @@ export function OnboardingWizard({
 	initialLinkedinUrl,
 	initialIntroduction,
 	initialProfileReady,
+	next,
 }: OnboardingWizardProps) {
 	const [step, setStep] = useState<WizardStep>(initialStep);
 	const [fileId, setFileId] = useState(initialResumeFileId);
@@ -452,7 +454,7 @@ export function OnboardingWizard({
 			const response = await fetch("/api/onboarding/complete", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ planId }),
+				body: JSON.stringify({ planId, next: next ?? undefined }),
 			});
 			const data = (await response.json()) as {
 				redirectUrl?: string;

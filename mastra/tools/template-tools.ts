@@ -101,6 +101,7 @@ export const patchTemplateHtmlTool = createTool({
 		resumesPath: z.string(),
 		previewUrl: z.string().optional(),
 		downloadUrl: z.string().optional(),
+		downloadFilename: z.string().optional(),
 		name: z.string().optional(),
 		compileStatus: z.string().optional(),
 		instruction: z.string(),
