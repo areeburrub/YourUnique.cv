@@ -32,7 +32,8 @@ export const radarDailyPro = schedules.task({
 	id: "radar-daily-pro",
 	cron: {
 		pattern: "0 8 * * *",
-		timezone: "Asia/Kolkata",
+		// Trigger's schedule allowlist uses the older IANA name; same offset as IST.
+		timezone: "Asia/Calcutta",
 	},
 	run: async () => {
 		const users = await listPaidUsersForDailyRadar();
