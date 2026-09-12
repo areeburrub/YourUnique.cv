@@ -49,6 +49,7 @@ Start free or subscribe to Pro at https://yourunique.cv/sign-up, or during onboa
 - [ATS resume checker](https://yourunique.cv/free-tools/ats-resume-checker)
 - [Job description keyword extractor](https://yourunique.cv/free-tools/job-description-keyword-extractor)
 - [Resume vs job match](https://yourunique.cv/free-tools/resume-job-match)
+- [Changelog](https://yourunique.cv/changelog): product versions, newest first
 - [Articles](https://yourunique.cv/articles): featured writing on resumes, ATS, and job search
 - [Templates](https://yourunique.cv/templates): built-in resume layouts
 - [Sign up](https://yourunique.cv/sign-up)

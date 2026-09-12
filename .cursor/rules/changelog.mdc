@@ -1,0 +1,17 @@
+---
+description: Keep the public changelog current when shipping user-facing product changes
+alwaysApply: true
+---
+
+# Public changelog
+
+`lib/changelog.ts` is the source of truth for https://yourunique.cv/changelog.
+
+When you ship a **user-facing** feature, fix, or behavior change:
+
+1. Add a new release at the **top** of `CHANGELOG`, or append items to today's unreleased version if one already exists for this date.
+2. Bump semver: **minor** for features, **patch** for fixes. `date` is the IST calendar day (`YYYY-MM-DD`).
+3. Write short bullets in plain language. Label each item `new`, `improved`, or `fixed`.
+4. Do **not** put Changelog in the site header. The footer Company column already links to `/changelog`.
+
+Skip refactors, internal tooling, and copy tweaks nobody would notice on the product.

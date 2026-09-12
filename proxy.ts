@@ -10,6 +10,7 @@ const PUBLIC_PREFIXES = [
 	"/free-tools",
 	"/terms",
 	"/privacy",
+	"/changelog",
 	"/template-library",
 	"/job-radar-marketing",
 	"/unsubscribe",

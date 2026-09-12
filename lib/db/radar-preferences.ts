@@ -47,9 +47,18 @@ export function buildPreferencesPrompt(
 		lines.push(
 			"- Open to relocating for the right role. Do not exclude onsite/hybrid roles purely by distance from the current location — rank them by how reasonable the move looks (major hub, similar cost of living/region, visa feasibility) rather than requiring a named target city.",
 		);
+		lines.push(
+			"- Remote still has to hire in the candidate's current country unless the posting is explicitly worldwide. US-only / UK-only remote is not a match just because they might relocate for an office role.",
+		);
 	} else {
 		lines.push(
-			"- NOT open to relocation. Only match onsite/hybrid roles in or very near the current location above; remote roles are fine regardless of where the employer is registered as long as the posting allows remote from the candidate's country.",
+			"- NOT open to relocation. Onsite and hybrid must be in or very near the current location above.",
+		);
+		lines.push(
+			"- Remote is allowed ONLY when the posting hires in the candidate's country or is explicitly worldwide / remote-from-that-country. US-only, UK-only, EU-only, Canada-only, or \"must live in another country\" remote is NOT a match — even if the skills fit perfectly.",
+		);
+		lines.push(
+			"- Prioritize roles in the current city and country over remote. A skills match is not enough if they would not hire this person from where they live.",
 		);
 	}
 
@@ -92,7 +101,17 @@ export async function getRadarPreferences(
 		workplaceTypes: row.workplaceTypes,
 		extraPreferences: row.extraPreferences,
 		negativePreferences: row.negativePreferences,
-		promptText: row.promptText,
+		promptText: buildPreferencesPrompt(
+			{
+				currentLocation: row.currentLocation,
+				openToRelocation: row.openToRelocation,
+				preferredLocations: row.preferredLocations,
+				relocationRadiusKm: row.relocationRadiusKm,
+				workplaceTypes: row.workplaceTypes,
+				extraPreferences: row.extraPreferences,
+			},
+			row.negativePreferences,
+		),
 	};
 }
 

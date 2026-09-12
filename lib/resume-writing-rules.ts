@@ -16,11 +16,18 @@ export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named targ
 
 The saved resume must already be the optimized version: every JD term that is in the profile is already on the page in the posting's words. ATS Analysis is not a punch list of leftover phrasing. If an in-profile term is still Missing or only Synonym, patch_resume first, then score. Never list in-profile work as a user gap.
 
-Score the SAVED (already-optimized) resume document against THIS JD (or the named target role). Not a vendor ATS number. Not the profile. Not implied skill.
+Score the SAVED (already-optimized) resume document against THIS JD (or the named target role). The number is "would they hire this person for this role", not keyword overlap alone. Not a vendor ATS number. Not implied skill.
+
+Hire gate (do this FIRST). Read Job search / Based in on the profile vs JD location, workplace, work-auth, visa, citizenship, timezone, "must be located in":
+- yes: they can do this job from where they live.
+- no: they will not hire this person from where they live (US-only, UK-only, EU-only, citizen/no-sponsor, must-live-elsewhere) and they are not relocating. N ≤ 35, N_potential ≤ 35. First sentence says they are not hiring in the candidate's location.
+- maybe: remote with no geo signal. N ≤ 78.
+Always include a Location / work authorization area row.
 
 Build 12–16 terms internally (at least 8 if the JD is short): required first, then preferred. Prefer hard skills, tools, stacks, certs, years, domain. Keep the full term list for scoring. The user sees only not-in-profile gaps.
 
 Area rows are dynamic: derive them from THIS posting, not a fixed template. Cover these baseline categories whenever the JD touches them, each as its own row (do not fold them into one generic row):
+- Location / work authorization (always)
 - Core technologies / tech stack (languages, frameworks, platforms named in the JD)
 - Years of experience / seniority level
 - Domain or industry experience (e.g. fintech, healthcare, B2B SaaS)
@@ -41,17 +48,18 @@ Classify each Missing or Synonym term:
 
 Skills coverage (diagnostic, does not change N): required JD tools that appear in the Skills section specifically, not only buried in an old bullet. ATS parsers weight the Skills section. skills_coverage = required tools named in Skills / required tools in the JD.
 
-Formula:
+Keyword formula (after the hire gate):
 - requiredMatch = (exact + 0.5 × synonym) / total required
 - preferredMatch = (exact + 0.5 × synonym) / total preferred
-- N = round(requiredMatch × 100) if no preferred terms, else round((requiredMatch × 0.7 + preferredMatch × 0.3) × 100)
+- Nkw = round(requiredMatch × 100) if no preferred terms, else round((requiredMatch × 0.7 + preferredMatch × 0.3) × 100)
+- N is Nkw after hire and seniority caps. Extra skills do not raise a no-hire score.
 
-Compute N first. Then write the summary from that number. The first sentence must name the band. Never call a low score a strong or solid match.
+Compute N first. Then write the summary from that number. The first sentence must name the band AND whether they would hire this person from where they live. Never call a low score a strong or solid match.
 
-- 90–100: "strong match" — almost every must-have is on the resume
-- 75–89: "good match with a few gaps" — core stack is there; remaining gaps are not in the profile
-- 60–74: "partial match" — several must-haves are missing from the profile
-- below 60: "weak match" or "incomplete match" — major must-haves are not in the profile
+- 90–100: "strong match" — they would hire this person AND almost every must-have is on the resume
+- 75–89: "good match with a few gaps" — hireable; remaining gaps are not in the profile
+- 60–74: "partial match" — hireable but several must-haves are missing from the profile
+- below 60: "weak match" or "incomplete match" — not hiring here, or major must-haves are not in the profile
 
 Banned below 75: solid, strong, excellent, great fit, well aligned.
 Banned below 60: also good match, solid, especially, strongest alignment as the lead.
@@ -61,7 +69,7 @@ Score lift — only for not-in-profile terms. Recompute, do not guess:
 2. Flip only that one term to Exact. Re-run the formula to get N'.
 3. Lift = N' − N. Show it as +{lift} potential ({N} → {N'}).
 4. Required gaps usually move N more than preferred. If two lifts tie, list the required one first.
-5. Projected score: flip every not-in-profile Missing term to Exact, re-run once, call that N_potential. Do not sum the rounded +X bullets.
+5. Projected score: flip every not-in-profile Missing term to Exact, re-run once, then re-apply hire/seniority caps, call that N_potential. If hire_fit is no, N_potential stays ≤35.
 6. Never show lift for an in-profile term. Never tell them where to paste a phrase we already know. Never say "make X more explicit" for work already in the profile.
 
 Banned user-facing lines:
@@ -75,7 +83,7 @@ Use this markdown.
 
 ## ATS Analysis — {Role} at {Company}
 
-1–2 sentences. Sentence 1 states the band in plain words and must agree with N. Sentence 2 names the biggest remaining gap — or says this draft already uses everything that matches this posting.
+1–2 sentences. Sentence 1 states the band in plain words, must agree with N, and says whether they would hire this person from where they live. Sentence 2 names the biggest remaining gap — or says this draft already uses everything that matches this posting.
 
 **Current ATS Score: {N}/100**
 This score already uses everything in your profile that matches this posting.

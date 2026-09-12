@@ -37,6 +37,7 @@ const columns = [
 		title: "Company",
 		links: [
 			{ href: `mailto:${SITE_EMAIL}`, label: "Contact" },
+			{ href: "/changelog", label: "Changelog" },
 			{ href: "/articles", label: "Articles" },
 			{ href: "/terms", label: "Terms" },
 			{ href: "/privacy", label: "Privacy Policy" },
