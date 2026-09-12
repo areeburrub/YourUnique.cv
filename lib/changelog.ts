@@ -14,6 +14,17 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
 	{
+		version: "0.4.0",
+		date: "2026-09-13",
+		title: "Scroll the job list",
+		items: [
+			{
+				kind: "new",
+				text: "Job Radar loads 10 roles at a time as you scroll.",
+			},
+		],
+	},
+	{
 		version: "0.3.1",
 		date: "2026-09-12",
 		title: "Matches that would actually hire you",
@@ -21,6 +32,10 @@ export const CHANGELOG: ChangelogRelease[] = [
 			{
 				kind: "improved",
 				text: "Job Radar prefers roles in your city. Remote jobs only stay on the board if the posting looks like it hires where you live — a skills match is not enough.",
+			},
+			{
+				kind: "improved",
+				text: "Job Radar match details expand on the card. The first role starts open, and opening another closes the rest.",
 			},
 		],
 	},
