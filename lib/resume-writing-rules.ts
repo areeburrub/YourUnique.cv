@@ -14,6 +14,8 @@ export const RESUME_TAILORING_RULES = `When a job description or target role is 
 
 export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named target role is in this conversation, EVERY user-facing reply MUST include the ATS Analysis below. Always. Same turn as create_resume / patch_resume, and on later edits, reviews, fit questions, or follow-ups about that job. Do not replace the report with prose. Do not skip because the score is high, the edit was small, or they only asked a yes/no. Skip only when there is no JD and no target role.
 
+Replay vs rescore: if working memory already has \`ats\` for this resume + this JD/role, and this turn did not change the saved document or the JD, reprint that snapshot — same N, matches, gaps, and area rows. Do not rebuild the term list. Do not recalculate. After create_resume, a content patch_resume, or a new JD, score once with the formula below, then save the full \`ats\` object to working memory.
+
 The saved resume must already be the optimized version: every JD term that is in the profile is already on the page in the posting's words. ATS Analysis is not a punch list of leftover phrasing. If an in-profile term is still Missing or only Synonym, patch_resume first, then score. Never list in-profile work as a user gap.
 
 Score the SAVED (already-optimized) resume document against THIS JD (or the named target role). The number is "would they hire this person for this role", not keyword overlap alone. Not a vendor ATS number. Not implied skill.
