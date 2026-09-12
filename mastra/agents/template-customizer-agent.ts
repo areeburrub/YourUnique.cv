@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 
 import { OPENROUTER_CHAT_MODEL, openrouter } from "@/lib/ai/openrouter";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { THREAD_SNAPSHOT_RULES } from "@/mastra/memory/thread-snapshot";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 import {
 	getSelectedTemplateKindTool,
@@ -39,7 +40,10 @@ You are the decision-maker for template structure. When the user asks for someth
 - Keep print correctness: \`@page\` must stay A4 with at least 12mm margin on every side. Never set it to 0.
 - Make the smallest edit that satisfies the request. A color tweak is one or two small CSS patches, not a rewrite of the stylesheet.
 - If a purely visual request is ambiguous (e.g. "make it pop" with no specifics), make one reasonable, scoped guess rather than asking a clarifying question first. But if the user asks for a new section, just add it — that is not ambiguous, it is a clear structural request.
-- If you are not confident a patch will land uniquely, use get_selected_template_kind or get_template_source again rather than guessing blindly.`,
+- If you are not confident a patch will land uniquely, use get_selected_template_kind or get_template_source again rather than guessing blindly.
+
+${THREAD_SNAPSHOT_RULES}
+Do not overwrite \`ats\`.`,
 	model: openrouter(OPENROUTER_CHAT_MODEL),
 	tools: {
 		get_selected_template_kind: getSelectedTemplateKindTool,

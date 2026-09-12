@@ -9,6 +9,7 @@ import {
 	type RadarMatchRunKind,
 	type RadarTrackerStatus,
 	isRadarTrackerStatus,
+	RADAR_TRACKER_STATUSES,
 	radarJobs,
 	radarMatchRuns,
 	radarUserJobs,
@@ -23,6 +24,7 @@ export const FREE_ANALYZE_N = 10;
 export const PRO_ANALYZE_N = 40;
 export const FREE_LIST_LIMIT = 10;
 export const PRO_LIST_LIMIT = 50;
+export const RADAR_LIST_PAGE_SIZE = 10;
 export const FREE_BLUR_INDEXES = new Set([0, 1, 2, 5, 7]);
 
 export function analyzeNForPlan(planId: string) {
@@ -375,12 +377,27 @@ export type RadarListJob = {
 	areas: RadarAtsArea[];
 };
 
-export async function listRadarJobsForUser(userId: string, planId: string) {
+export async function listRadarJobsForUser(
+	userId: string,
+	planId: string,
+	options?: { status?: RadarTrackerStatus; offset?: number; limit?: number },
+) {
 	const paid = isPaidPlan(planId);
-	const limit = listLimitForPlan(planId);
+	const planLimit = listLimitForPlan(planId);
+	const offset = Math.max(0, options?.offset ?? 0);
+	const pageSize = Math.min(
+		planLimit,
+		Math.max(1, options?.limit ?? planLimit),
+	);
+	const take = Math.min(pageSize, Math.max(0, planLimit - offset));
 	const today = new Date().toISOString().slice(0, 10);
+	const status = options?.status;
+	const visibleToUser = and(
+		eq(radarUserJobs.userId, userId),
+		eq(radarUserJobs.hidden, false),
+	);
 
-	const rows = await db
+	const jobsQuery = db
 		.select({
 			linkId: radarUserJobs.id,
 			jobId: radarUserJobs.jobId,
@@ -404,17 +421,44 @@ export async function listRadarJobsForUser(userId: string, planId: string) {
 		.from(radarUserJobs)
 		.innerJoin(radarJobs, eq(radarUserJobs.jobId, radarJobs.id))
 		.where(
-			and(eq(radarUserJobs.userId, userId), eq(radarUserJobs.hidden, false)),
+			and(
+				visibleToUser,
+				status ? eq(radarUserJobs.trackerStatus, status) : undefined,
+			),
 		)
-		.orderBy(desc(radarUserJobs.atsScore), radarUserJobs.rank);
+		.orderBy(desc(radarUserJobs.atsScore), radarUserJobs.rank)
+		.limit(take)
+		.offset(offset);
 
-	const total = rows.length;
-	const slice = rows.slice(0, limit);
-	const jobs: RadarListJob[] = slice.map((row, index) => {
-		const blurred = !paid && FREE_BLUR_INDEXES.has(index);
+	const [countRows, rows] = await Promise.all([
+		db
+			.select({
+				status: radarUserJobs.trackerStatus,
+				n: sql<number>`cast(count(*) as int)`,
+			})
+			.from(radarUserJobs)
+			.where(visibleToUser)
+			.groupBy(radarUserJobs.trackerStatus),
+		take > 0 ? jobsQuery : Promise.resolve([]),
+	]);
+
+	const statusCounts = Object.fromEntries(
+		RADAR_TRACKER_STATUSES.map((key) => [key, 0]),
+	) as Record<RadarTrackerStatus, number>;
+	let total = 0;
+	for (const row of countRows) {
+		const key = parseTrackerStatus(row.status);
+		const n = Number(row.n) || 0;
+		statusCounts[key] += n;
+		total += n;
+	}
+
+	const jobs: RadarListJob[] = rows.map((row, index) => {
+		const listIndex = offset + index;
+		const blurred = !paid && FREE_BLUR_INDEXES.has(listIndex);
 		return {
 			id: blurred ? row.linkId : row.jobId,
-			rank: index + 1,
+			rank: listIndex + 1,
 			atsScore: Number(row.atsScore),
 			verdict: row.verdict,
 			summary: blurred ? "" : row.summary,
@@ -434,19 +478,38 @@ export async function listRadarJobsForUser(userId: string, planId: string) {
 		};
 	});
 
+	const matchedCount = status ? statusCounts[status] : total;
+	const listedTotal = Math.min(planLimit, matchedCount);
+	const listedN = Math.min(planLimit, total);
+	const visible = paid
+		? listedN
+		: Array.from({ length: listedN }, (_, i) => i).filter(
+				(index) => !FREE_BLUR_INDEXES.has(index),
+			).length;
+
 	const newToday = paid
 		? jobs.filter((j) => j.batchDate === today)
 		: [];
+	const nextOffset = offset + jobs.length;
+	const hasMore = nextOffset < listedTotal;
+	const run =
+		offset === 0
+			? ((await getActiveRadarRun(userId)) ?? (await getLatestRadarRun(userId)))
+			: null;
 
 	return {
 		jobs,
 		total,
-		visible: jobs.filter((j) => !j.blurred).length,
+		visible,
+		statusCounts,
 		moreCount: Math.max(0, total - FREE_LIST_LIMIT),
 		canRefresh: paid,
 		isPaid: paid,
 		newToday,
-		run: (await getActiveRadarRun(userId)) ?? (await getLatestRadarRun(userId)),
+		nextOffset,
+		listedTotal,
+		hasMore,
+		run,
 	};
 }
 

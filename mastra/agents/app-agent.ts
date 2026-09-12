@@ -6,6 +6,7 @@ import { radarAgent } from "@/mastra/agents/radar-agent";
 import { resumeAgent } from "@/mastra/agents/resume-agent";
 import { templateCustomizerAgent } from "@/mastra/agents/template-customizer-agent";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { THREAD_SNAPSHOT_RULES } from "@/mastra/memory/thread-snapshot";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 
 /**
@@ -37,6 +38,9 @@ Route by intent and relay only the specialist's user-facing reply. Call each spe
 - Use template-customizer-agent when the user wants to change how the template looks or is structured — colors, fonts, spacing, margins, header layout, section order, dividers/rules, "make it more modern/compact/colorful", moving or resizing something visually, or adding/removing a whole section (even one the template has no field for yet, e.g. "add a Certificates section"). This is a design/structure request, not a content request.
 - If the user wants a new kind of content added to their resume that the template has no section for (e.g. a certificate, an award, a publication), do both in the same turn: call template-customizer-agent first to add the section/field, then call resume-agent to fill in the actual entry using the field it just created. Don't stop after the template change and wait for the user to ask again — finish the job.
 - Past roles as biography ("I was a PM at Acme") are profile, not resume intent. A target they want next ("applying for Senior PM", "this role at Stripe", pasted JD) is resume intent.
+
+${THREAD_SNAPSHOT_RULES}
+Do not overwrite \`ats\` — resume-agent owns that snapshot. If they ask about the score or fit and \`ats\` is already filled, still route to resume-agent so it reprints that snapshot.
 ${
 	onProfile
 		? "You are on the profile workspace. Default to profile-edit-agent unless the user shared a job/JD/target role, asked about Job Radar matches, or clearly wants resume drafting."

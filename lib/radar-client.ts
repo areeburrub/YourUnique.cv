@@ -91,3 +91,30 @@ export async function triggerRadarIngest() {
 		throw new Error(text || `radar ingest ${res.status}`);
 	}
 }
+
+export async function triggerRadarGalleryRefresh() {
+	const headers: Record<string, string> = {
+		Accept: "application/json",
+	};
+	const token = radarToken();
+	if (token) {
+		headers["X-Radar-Token"] = token;
+	}
+	const res = await fetch(`${radarBaseUrl()}/api/boards/gallery`, {
+		method: "POST",
+		headers,
+	});
+	if (!res.ok && res.status !== 409) {
+		const text = await res.text();
+		throw new Error(text || `radar gallery ${res.status}`);
+	}
+	if (!res.ok) {
+		return { ok: false as const, conflict: true };
+	}
+	return (await res.json()) as {
+		ok: boolean;
+		companies?: number;
+		boards?: number;
+		skipped?: number;
+	};
+}

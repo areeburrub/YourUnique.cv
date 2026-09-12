@@ -17,6 +17,10 @@ import {
 } from "@/lib/resume-writing-rules";
 import { profileEditAgent } from "@/mastra/agents/profile-edit-agent";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import {
+	ATS_SNAPSHOT_RULES,
+	THREAD_SNAPSHOT_RULES,
+} from "@/mastra/memory/thread-snapshot";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { getProfileTool } from "@/mastra/tools/profile-tools";
 import {
@@ -67,6 +71,10 @@ When a JD is in play, ship the fully optimized resume from the saved profile in 
 ${briefingBlock}
 
 Use this profile, template, and style memory. Style memory beats the default writing rules when they conflict. Do not call get_profile or get_resume_template_notes unless you just saved new facts via profile-edit-agent, or you are editing an existing resume that may use a different template (then pass resumeId to get_resume_template_notes).
+
+${THREAD_SNAPSHOT_RULES}
+
+${ATS_SNAPSHOT_RULES}
 
 When the user states a durable writing preference (bullet shape, emphasis, density, tone), save it with update_resume_style before or while you draft. Do not save one-off edits to a single resume.
 
@@ -171,6 +179,6 @@ If they name a target role without a full JD (e.g. "full stack"), start from the
 	memory: chatMemory,
 	outputProcessors: [usageTracker],
 	defaultOptions: {
-		maxSteps: 16,
+		maxSteps: 18,
 	},
 });

@@ -1,10 +1,16 @@
 import { Memory } from "@mastra/memory";
 
 import { OPENROUTER_MEMORY_MODEL } from "@/lib/ai/openrouter";
+import { threadSnapshotSchema } from "@/mastra/memory/thread-snapshot";
 
 export const chatMemory = new Memory({
 	options: {
 		lastMessages: 20,
+		workingMemory: {
+			enabled: true,
+			scope: "thread",
+			schema: threadSnapshotSchema,
+		},
 		generateTitle: {
 			model: OPENROUTER_MEMORY_MODEL,
 			instructions: `You write a short sidebar title (3–7 words) from the conversation transcript only.

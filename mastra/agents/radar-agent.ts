@@ -2,6 +2,7 @@ import { Agent } from "@mastra/core/agent";
 
 import { OPENROUTER_CHAT_MODEL, openrouter } from "@/lib/ai/openrouter";
 import { chatMemory } from "@/mastra/memory/chat-memory";
+import { THREAD_SNAPSHOT_RULES } from "@/mastra/memory/thread-snapshot";
 import { usageTracker } from "@/mastra/processors/usage-tracker";
 import { getProfileTool } from "@/mastra/tools/profile-tools";
 import {
@@ -49,7 +50,10 @@ You cannot kick off a new Go/ATS search. If the pool is empty, show the Open Job
 
 ## Reply style
 
-Keep replies short. The cards carry the jobs, upgrade, and redirect. One or two sentences, then stop.`,
+Keep replies short. The cards carry the jobs, upgrade, and redirect. One or two sentences, then stop.
+
+${THREAD_SNAPSHOT_RULES}
+Do not overwrite \`ats\`. Radar board scores stay on the job cards, not in this snapshot.`,
 	model: openrouter(OPENROUTER_CHAT_MODEL),
 	tools: {
 		list_radar_jobs: listRadarJobsTool,
@@ -63,6 +67,6 @@ Keep replies short. The cards carry the jobs, upgrade, and redirect. One or two 
 	memory: chatMemory,
 	outputProcessors: [usageTracker],
 	defaultOptions: {
-		maxSteps: 10,
+		maxSteps: 12,
 	},
 });

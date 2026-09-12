@@ -118,9 +118,11 @@ The selected template owns layout. Fill the create_resume document; do not inven
 - One A4 page unless the template notes say otherwise
 - More bullets on the current role, fewer on older ones
 
-### 6. ATS score — calculate, do not guess
+### 6. ATS score — calculate once, then freeze
 
-Score the **saved resume document** against **this JD**. Not a vendor ATS number. Not the profile. Not implied skill.
+If working memory already has `ats` for this resume + this JD/role, and this turn did not change the saved document or the JD: reprint that snapshot. Same score, matches, gaps, and area rows. Do not rebuild the term list. Do not recalculate.
+
+After `create_resume`, a content `patch_resume`, or a new JD: score the **saved resume document** against **this JD** once, then save the full `ats` object to working memory. Not a vendor ATS number. Not the profile. Not implied skill. Keep a 4–8 sentence `conversation.summary` of the whole thread (exact numbers). Do not dump the profile or resume JSON into working memory.
 
 **Build the term lists** from this posting only (12–16 terms if the JD is long; at least 8 if it is short):
 - Required first (must-haves + terms repeated 3+ times)
@@ -173,7 +175,7 @@ Classify each Missing or Synonym term: **in profile** means patch it onto the re
 
 ### 7. Always include ATS Analysis in the same reply
 
-Whenever a JD or named target role is in the conversation, every user-facing reply must be an ATS Analysis. Same turn as `create_resume` / `patch_resume`, and on later edits, reviews, or fit questions. If in-profile terms were missed, patch them first, then report. Do not replace the report with prose. Skip only when there is no JD and no target role.
+Whenever a JD or named target role is in the conversation, every user-facing reply must be an ATS Analysis. Same turn as `create_resume` / `patch_resume`, and on later edits, reviews, or fit questions. If in-profile terms were missed, patch them first, then report. Do not replace the report with prose. Skip only when there is no JD and no target role. If working memory `ats` is already filled and nothing changed, reprint it — do not score again.
 
 ```markdown
 ## ATS Analysis — {Role} at {Company}
