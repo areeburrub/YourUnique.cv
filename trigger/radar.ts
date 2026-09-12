@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { listPaidUsersForDailyRadar } from "@/lib/db/radar";
 import { ensureDailyRadarSearch, startPaidRadarMatch } from "@/lib/radar-start";
-import { triggerRadarIngest } from "@/lib/radar-client";
+import { triggerRadarGalleryRefresh, triggerRadarIngest } from "@/lib/radar-client";
 
 export const radarMatchUser = schemaTask({
 	id: "radar-match-user",
@@ -46,6 +46,17 @@ export const radarDailyPro = schedules.task({
 			}
 		}
 		return { users: users.length, triggered };
+	},
+});
+
+export const radarGallery = schedules.task({
+	id: "radar-gallery",
+	cron: {
+		pattern: "0 4 * * *",
+		timezone: "UTC",
+	},
+	run: async () => {
+		return triggerRadarGalleryRefresh();
 	},
 });
 
