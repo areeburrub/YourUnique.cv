@@ -5,6 +5,9 @@ export type ChatAgentId = "app-agent" | "resume-agent" | "profile-edit-agent";
 const RESUME_ASK_RE =
 	/\bresume\b|\bcv\b|curriculum vitae|(?:tailor|draft|write|create|generate|make|build|compile|update|edit|strengthen|review).{0,48}(?:resume|\bcv\b|pdf)/i;
 
+const COVER_LETTER_ASK_RE =
+	/\bcover(?:ing)?\s*letters?\b|\bapplication letters?\b|\bmotivation letters?\b|\bcover\s*notes?\b|(?:write|draft|create|generate|make)\b.{0,40}\b(?:cover(?:ing)?\s*letter|application letter|motivation letter)\b/i;
+
 const JOB_SHARE_RE =
 	/linkedin\.com\/jobs|myworkdayjobs\.com|myworkday\.com|greenhouse\.io|lever\.co|ashbyhq\.com|smartrecruiters\.com|icims\.com|workable\.com|jobvite\.com|(?:https?:\/\/[^\s]+\/(?:jobs?|careers?|positions?|openings?)\/)|\bjob description\b|\bjob posting\b|\bjob spec\b|\bjob opening\b|\bthe jd\b|\bthis jd\b|\bhere(?:'|’)s the (?:job|role|jd)\b|\bpaste[sd]? (?:the )?(?:job|jd|role)\b/i;
 
@@ -64,6 +67,7 @@ export function looksLikeJobDescription(text: string) {
 export function isResumeIntent(text: string) {
 	return (
 		RESUME_ASK_RE.test(text) ||
+		COVER_LETTER_ASK_RE.test(text) ||
 		JOB_SHARE_RE.test(text) ||
 		APPLY_ROLE_RE.test(text) ||
 		looksLikeJobDescription(text)

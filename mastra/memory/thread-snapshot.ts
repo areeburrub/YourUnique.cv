@@ -82,4 +82,5 @@ Working memory \`ats\` is the source of truth for this thread's ATS Analysis.
 - New JD or different resumeId: overwrite \`ats\` and \`resume\` entirely. Do not keep the old score.
 - Never put ATS numbers only in \`conversation.summary\`. The summary may mention them; \`ats\` owns them.
 - User says "what's my score?" / fit follow-up: render \`ats\`. Do not score again.
+- Cover-letter-only turns: do not reprint or overwrite \`ats\`. Write the letter. Omit the ATS Analysis markdown.
 - Never send \`ats: null\` or \`resume: null\`. That deletes the snapshot. Omit those keys instead.`;

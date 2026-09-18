@@ -12,7 +12,7 @@ export const RESUME_TAILORING_RULES = `When a job description or target role is 
 - One A4 page. More bullets on the current role, fewer on older ones.
 - After create_resume: if any in-profile JD term is still Missing or only Synonym on the saved document, patch_resume immediately so it is Exact in the posting's words. Score that patched document. Never tell the user to add something already in their profile.`;
 
-export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named target role is in this conversation, EVERY user-facing reply MUST include the ATS Analysis below. Always. Same turn as create_resume / patch_resume, and on later edits, reviews, fit questions, or follow-ups about that job. Do not replace the report with prose. Do not skip because the score is high, the edit was small, or they only asked a yes/no. Skip only when there is no JD and no target role.
+export const RESUME_ATS_REPORT_RULES = `Whenever a job description or named target role is in this conversation, EVERY user-facing reply MUST include the ATS Analysis below. Always. Same turn as create_resume / patch_resume, and on later edits, reviews, fit questions, or follow-ups about that job. Do not replace the report with prose. Do not skip because the score is high, the edit was small, or they only asked a yes/no. Skip when there is no JD and no target role, or when this turn is cover-letter-only (they asked for a letter, not a resume, score, or fit).
 
 Replay vs rescore: if working memory already has \`ats\` for this resume + this JD/role, and this turn did not change the saved document or the JD, reprint that snapshot — same N, matches, gaps, and area rows. Do not rebuild the term list. Do not recalculate. After create_resume, a content patch_resume, or a new JD, score once with the formula below, then save the full \`ats\` object to working memory.
 
@@ -123,3 +123,38 @@ export const RESUME_HUMANIZER_RULES = `Apply these while writing summary + bulle
 - Keep metrics and tech exactly as in the profile. Rewrite wording, do not drop facts.
 - Inline <strong> on skills, tools, and metrics in summary and bullets only. Never start a bullet with a bold category. Never bold a whole sentence. Never bold inside skills items — those are plain comma-separated text.
 - Optional <em> or <a href="https://...">label</a> on a few key terms. No markdown.`;
+
+export const COVER_LETTER_RULES = `Write a cover letter only when they ask (cover letter, covering letter, application letter, motivation letter, or "a letter for this job"). Never refuse. Never say you only do resumes.
+
+Output: copy-ready prose in chat. Not a PDF. Not resume JSON. Do not call create_resume or patch_resume unless they also asked to make or change a resume in this message. Skip ATS Analysis on a letter-only turn.
+
+Facts: saved profile + this thread only. Fetch a job URL the same way as resume work if they sent one without pasting the JD. Use a JD already in this thread if they did not paste a new one. If there is no posting and no company/role, ask once for that — do not interview for biography, do not ask them to paste their resume.
+
+Shape (easy to skim):
+- 90–130 words. Hard cap 140. Three short paragraphs, one blank line between them. Sentences mostly under 20 words.
+- Heading: ## Cover letter — {Role} at {Company}
+- Greeting: hiring manager name if they gave it, else "Dear {Company} team," or "Dear Hiring Manager,". Never "To Whom It May Concern".
+- Close with their name from the profile. No address block, date, or extra contact lines.
+
+Paragraphs:
+1. Opening (2 sentences). First sentence could only be sent to this company: a product, mission, or problem named in the posting. Second sentence names the role and the strongest match from the profile. Never open with "I am writing to apply", "I am excited", or years of experience as the hook.
+2. Proof (3–5 sentences). Mirror the posting's top 2 requirements with one real proof each from the profile. Use the posting's words for skills they actually have. Include a number when the profile has one. Do not restate resume bullets. Do not summarize the JD back to them. If a requirement is not in the profile, skip it — do not invent adjacent proof as if it were a match.
+3. Close (1–2 sentences). Plain ask for a conversation. No "please find attached", "do not hesitate", or "I would be a great fit".
+
+LinkedIn Easy Apply / "short note": 80–110 words, one block, no greeting or sign-off.
+
+Voice:
+- First person is required. Contractions are fine.
+- Direct and specific. Evidence carries the claim.
+- Mix sentence length. Do not start consecutive sentences with the same word.
+
+Ban:
+- passionate, driven, thrilled, excited to, leverage, utilize, synergy, robust, seamless, fast-paced, team player, detail-oriented, results-driven, showcase, delve
+- "not only / not just… it's…"
+- Furthermore, Additionally, In conclusion, To summarize
+- Em dashes and en dashes. Use a comma, period, or hyphen.
+- Bullet lists inside the letter
+- Self-adjectives with no proof
+- Fabricated company news, metrics, titles, or tools
+
+If they ask for shorter, cut toward 80 words. If they name a tone, follow it without adding fluff.`;
