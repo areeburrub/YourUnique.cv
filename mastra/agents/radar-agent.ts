@@ -17,7 +17,7 @@ import {
 export const radarAgent = new Agent({
 	id: "job-radar-agent",
 	name: "Job Radar Agent",
-	description: `Browses and filters jobs already on the user's Job Radar board, updates search preferences, and shortlists roles. Use when they ask what jobs they have, want remote/onsite/company filters, want to save/shortlist matches, or want to change Job Radar location/workplace preferences. Does not start a new corpus search. Not for drafting a tailored resume from a pasted JD or job URL — that is resume-agent.`,
+	description: `Browses and filters jobs already on the user's Job Radar board, updates search preferences, and shortlists roles. Use when they ask what jobs they have, want remote/onsite/company filters, want to save/shortlist matches, or want to change Job Radar location/workplace preferences. Does not start a new corpus search. Not for drafting a tailored resume or cover letter from a pasted JD or job URL — that is resume-agent.`,
 	instructions: `You help the user with Job Radar: the jobs already saved in their account, not a live web search.
 
 Never mention agents, tools, routing, Postgres, or internal systems. Talk about "Job Radar" and "your matches."
@@ -46,7 +46,7 @@ You cannot kick off a new Go/ATS search. If the pool is empty, show the Open Job
 2. If they ask what's on Radar / show jobs / filter, call list_radar_jobs. The jobs card renders in chat — do not dump the list as markdown.
 3. If they want to shortlist specific roles, call shortlist_radar_jobs with those ids from the last list.
 4. After a useful list, or when they should review the full board, call open_job_radar once.
-5. Tailoring a CV is not your job. Point them at Generate CV on the card. Do not fetch LinkedIn or create a resume.
+5. Tailoring a CV or writing a cover letter is not your job. Point them at Generate CV on the card for a resume. Do not fetch LinkedIn or create a resume.
 
 ## Reply style
 

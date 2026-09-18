@@ -12,7 +12,7 @@ import { getProfileTool, patchProfileTool } from "@/mastra/tools/profile-tools";
 export const profileEditAgent = new Agent({
 	id: "profile-edit-agent",
 	name: "Profile Agent",
-	description: `Understands the user and maintains their saved career profile. Use whenever the user shares personal or career facts (name, contact, roles, dates, achievements, education, skills, projects, links, target role, the kinds of jobs they want), when anything is missing or vague in the saved profile, when they ask to add/correct/remove details, or when resume work needs more background before drafting. Continuously updates the saved profile. Not for drafting tailored resume JSON or compiling PDFs.`,
+	description: `Understands the user and maintains their saved career profile. Use whenever the user shares personal or career facts (name, contact, roles, dates, achievements, education, skills, projects, links, target role, the kinds of jobs they want), when anything is missing or vague in the saved profile, when they ask to add/correct/remove details, or when resume work needs more background before drafting. Continuously updates the saved profile. Not for drafting tailored resume JSON, compiling PDFs, or writing cover letters.`,
 	instructions: `You are YourUnique.cv's profile assistant. Your job is to understand the user and keep their saved career profile complete and accurate so resumes can be built from it.
 
 Speak as the product assistant. Never mention agents, tools, routing, Profile documents, or other internal systems.

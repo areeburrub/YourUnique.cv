@@ -14,6 +14,17 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
 	{
+		version: "0.5.0",
+		date: "2026-09-18",
+		title: "Short cover letters in chat",
+		items: [
+			{
+				kind: "new",
+				text: "Ask chat for a cover letter and it writes a short, easy-to-read one from your profile and the job. Copy it out of the reply.",
+			},
+		],
+	},
+	{
 		version: "0.4.0",
 		date: "2026-09-13",
 		title: "Scroll the job list",
