@@ -7,6 +7,11 @@ import { SiteFooter } from "@/components/landing/site-footer";
 import { SiteHeader } from "@/components/landing/site-header";
 import { SlideButton } from "@/components/landing/slide-button";
 import { AUTH_NEXT_JOB_RADAR, authPageHref } from "@/lib/auth-redirect";
+import {
+	jobRadarOgImageAlt,
+	jobRadarOgImagePath,
+	ogImageSize,
+} from "@/lib/og-image";
 import { SITE_NAME } from "@/lib/site";
 
 export const dynamic = "force-static";
@@ -24,6 +29,21 @@ export const metadata: Metadata = {
 		description:
 			"Daily job matches from a live ATS corpus, ranked like a screen. Open Job Radar after you build your profile.",
 		url: "/job-radar",
+		images: [
+			{
+				url: jobRadarOgImagePath,
+				width: ogImageSize.width,
+				height: ogImageSize.height,
+				alt: jobRadarOgImageAlt,
+			},
+		],
+	},
+	twitter: {
+		card: "summary_large_image",
+		title: `Job Radar | ${SITE_NAME}`,
+		description:
+			"Daily job matches from a live ATS corpus, ranked like a screen. Open Job Radar after you build your profile.",
+		images: [jobRadarOgImagePath],
 	},
 };
 

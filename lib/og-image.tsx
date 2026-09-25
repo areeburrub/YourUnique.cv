@@ -21,6 +21,47 @@ export const ogImageContentType = "image/png";
 export const ogImagePath = "/og.png";
 export const ogImageHighResPath = "/og-2x.png";
 
+export const jobRadarOgHeadline = "Find roles before you hunt for links.";
+export const jobRadarOgSubcopy =
+	"Live ATS jobs matched to your profile, scored like a screen.";
+export const jobRadarOgImageAlt = `${SITE_NAME} Job Radar. ${jobRadarOgHeadline}`;
+export const jobRadarOgImagePath = "/og-job-radar.png";
+
+const RADAR_OG_JOBS = [
+	{
+		title: "Frontend Engineer",
+		meta: "Linear · San Francisco · today",
+		score: 88,
+		summary: "TypeScript and product ownership match this posting.",
+		cta: true,
+		locked: false,
+	},
+	{
+		title: "Product Engineer",
+		meta: "Stripe · Remote",
+		score: 81,
+		summary: null,
+		cta: false,
+		locked: false,
+	},
+	{
+		title: "Full-stack Engineer",
+		meta: "Vercel · New York · today",
+		score: 76,
+		summary: null,
+		cta: false,
+		locked: false,
+	},
+	{
+		title: "Staff Platform Engineer",
+		meta: "Company name · Location",
+		score: 72,
+		summary: null,
+		cta: false,
+		locked: true,
+	},
+] as const;
+
 const ATS_ROWS = [
 	{ area: "TypeScript / React", match: "9/10" },
 	{ area: "GraphQL", match: "8/10" },
@@ -370,6 +411,309 @@ export function createOgImage(scale = 1) {
 							</div>
 						</div>
 					</div>
+				</div>
+			</div>
+		),
+		{
+			width: n(ogImageSize.width),
+			height: n(ogImageSize.height),
+		},
+	);
+}
+
+export function createJobRadarOgImage(scale = 1) {
+	const n = (value: number) => Math.round(value * scale);
+
+	return new ImageResponse(
+		(
+			<div
+				style={{
+					width: "100%",
+					height: "100%",
+					display: "flex",
+					alignItems: "stretch",
+					backgroundColor: BRAND.cream,
+					padding: n(40),
+				}}
+			>
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						width: n(380),
+						flexShrink: 0,
+					}}
+				>
+					<div style={{ display: "flex", alignItems: "center" }}>
+						<svg
+							width={n(40)}
+							height={n(40)}
+							viewBox="0 0 29 29"
+							fill="none"
+						>
+							<path d={LOGO_MARK_PATH} fill={BRAND.terracotta} />
+						</svg>
+						<div
+							style={{
+								marginLeft: n(10),
+								fontSize: n(24),
+								fontWeight: 600,
+								letterSpacing: "-0.04em",
+								color: BRAND.ink,
+							}}
+						>
+							{SITE_NAME}
+						</div>
+					</div>
+					<div
+						style={{
+							marginTop: n(22),
+							fontSize: n(18),
+							fontWeight: 600,
+							letterSpacing: "-0.03em",
+							color: BRAND.terracotta,
+						}}
+					>
+						Job Radar
+					</div>
+					<div
+						style={{
+							marginTop: n(10),
+							fontSize: n(36),
+							fontWeight: 600,
+							lineHeight: 1.15,
+							letterSpacing: "-0.035em",
+							color: BRAND.ink,
+						}}
+					>
+						{jobRadarOgHeadline}
+					</div>
+					<div
+						style={{
+							marginTop: n(14),
+							fontSize: n(18),
+							lineHeight: 1.4,
+							color: "#6B635B",
+						}}
+					>
+						{jobRadarOgSubcopy}
+					</div>
+					<div
+						style={{
+							display: "flex",
+							alignItems: "center",
+							justifyContent: "center",
+							marginTop: n(20),
+							width: n(168),
+							height: n(46),
+							borderRadius: 999,
+							backgroundColor: BRAND.terracotta,
+							color: BRAND.paper,
+							fontSize: n(18),
+							fontWeight: 600,
+						}}
+					>
+						Start free
+					</div>
+				</div>
+
+				<div
+					style={{
+						display: "flex",
+						flexDirection: "column",
+						width: n(712),
+						height: n(550),
+						marginLeft: n(28),
+						backgroundColor: BRAND.paper,
+						border: "1px solid #E4D9CE",
+						borderRadius: n(16),
+						padding: n(22),
+					}}
+				>
+					<div
+						style={{
+							display: "flex",
+							width: "100%",
+							alignItems: "center",
+							justifyContent: "space-between",
+						}}
+					>
+						<div style={{ display: "flex", flexDirection: "column" }}>
+							<div
+								style={{
+									fontSize: n(18),
+									fontWeight: 600,
+									color: BRAND.ink,
+								}}
+							>
+								Matches for your profile
+							</div>
+							<div
+								style={{
+									marginTop: n(2),
+									fontSize: n(13),
+									color: "#6B635B",
+								}}
+							>
+								Live Greenhouse, Lever, Ashby boards
+							</div>
+						</div>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "center",
+								justifyContent: "center",
+								flexShrink: 0,
+								marginLeft: n(16),
+								borderRadius: 999,
+								backgroundColor: "#F3DDD6",
+								color: BRAND.terracotta,
+								fontSize: n(13),
+								fontWeight: 600,
+								padding: `${n(6)}px ${n(12)}px`,
+							}}
+						>
+							3 new
+						</div>
+					</div>
+
+					<div
+						style={{
+							marginTop: n(16),
+							fontSize: n(13),
+							fontWeight: 600,
+							color: BRAND.ink,
+						}}
+					>
+						New today
+					</div>
+
+					{RADAR_OG_JOBS.map((job) => {
+						const strong = job.score >= 75;
+						return (
+							<div
+								key={job.title}
+								style={{
+									display: "flex",
+									flexDirection: "column",
+									marginTop: n(10),
+									border: "1px solid #E4D9CE",
+									borderRadius: n(12),
+									padding: n(12),
+									backgroundColor: job.locked ? "#F7F3EE" : BRAND.paper,
+								}}
+							>
+								<div
+									style={{
+										display: "flex",
+										width: "100%",
+										alignItems: "flex-start",
+										justifyContent: "space-between",
+									}}
+								>
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+											flex: 1,
+										}}
+									>
+										<div
+											style={{
+												fontSize: n(16),
+												fontWeight: 600,
+												color: BRAND.ink,
+											}}
+										>
+											{job.title}
+										</div>
+										<div
+											style={{
+												marginTop: n(3),
+												fontSize: n(13),
+												color: "#6B635B",
+											}}
+										>
+											{job.meta}
+										</div>
+									</div>
+									<div
+										style={{
+											display: "flex",
+											flexDirection: "column",
+											alignItems: "flex-end",
+											flexShrink: 0,
+											marginLeft: n(12),
+										}}
+									>
+										<div
+											style={{
+												display: "flex",
+												alignItems: "center",
+												borderRadius: 999,
+												backgroundColor: strong ? "#ECFDF5" : "#EDE6DC",
+												color: strong ? "#047857" : "#6B635B",
+												fontSize: n(13),
+												fontWeight: 600,
+												padding: `${n(4)}px ${n(10)}px`,
+											}}
+										>
+											{job.score}% match
+										</div>
+										{job.locked ? (
+											<div
+												style={{
+													display: "flex",
+													alignItems: "center",
+													justifyContent: "center",
+													marginTop: n(8),
+													borderRadius: 999,
+													backgroundColor: "#EDE6DC",
+													color: "#6B635B",
+													fontSize: n(12),
+													fontWeight: 600,
+													padding: `${n(4)}px ${n(10)}px`,
+												}}
+											>
+												Pro
+											</div>
+										) : null}
+									</div>
+								</div>
+								{job.summary ? (
+									<div
+										style={{
+											marginTop: n(8),
+											fontSize: n(14),
+											lineHeight: 1.35,
+											color: BRAND.ink,
+										}}
+									>
+										{job.summary}
+									</div>
+								) : null}
+								{job.cta ? (
+									<div
+										style={{
+											display: "flex",
+											alignItems: "center",
+											justifyContent: "center",
+											marginTop: n(12),
+											width: n(148),
+											height: n(36),
+											borderRadius: 999,
+											backgroundColor: BRAND.terracotta,
+											color: BRAND.paper,
+											fontSize: n(14),
+											fontWeight: 600,
+										}}
+									>
+										Generate CV
+									</div>
+								) : null}
+							</div>
+						);
+					})}
 				</div>
 			</div>
 		),

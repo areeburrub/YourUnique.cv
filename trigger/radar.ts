@@ -3,7 +3,13 @@ import { z } from "zod";
 
 import { listPaidUsersForDailyRadar } from "@/lib/db/radar";
 import { ensureDailyRadarSearch, startPaidRadarMatch } from "@/lib/radar-start";
-import { triggerRadarGalleryRefresh, triggerRadarIngest } from "@/lib/radar-client";
+import {
+	triggerRadarBSMRefresh,
+	triggerRadarGalleryRefresh,
+	triggerRadarIngest,
+	triggerRadarJobpinRefresh,
+	triggerRadarStartupMapRefresh,
+} from "@/lib/radar-client";
 
 export const radarMatchUser = schemaTask({
 	id: "radar-match-user",
@@ -57,6 +63,39 @@ export const radarGallery = schedules.task({
 	},
 	run: async () => {
 		return triggerRadarGalleryRefresh();
+	},
+});
+
+export const radarBsm = schedules.task({
+	id: "radar-bsm",
+	cron: {
+		pattern: "15 4 * * *",
+		timezone: "UTC",
+	},
+	run: async () => {
+		return triggerRadarBSMRefresh();
+	},
+});
+
+export const radarJobpin = schedules.task({
+	id: "radar-jobpin",
+	cron: {
+		pattern: "20 4 * * *",
+		timezone: "UTC",
+	},
+	run: async () => {
+		return triggerRadarJobpinRefresh();
+	},
+});
+
+export const radarStartupMap = schedules.task({
+	id: "radar-startupmap",
+	cron: {
+		pattern: "25 4 * * *",
+		timezone: "UTC",
+	},
+	run: async () => {
+		return triggerRadarStartupMapRefresh();
 	},
 });
 

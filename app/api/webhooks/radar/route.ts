@@ -78,35 +78,52 @@ export async function POST(req: Request) {
 	});
 
 	if (body.status === "ready") {
-		const user = await db.query.users.findFirst({
-			where: eq(users.id, body.user_id),
-			columns: { email: true, firstName: true, planId: true },
-		});
-		if (user?.email) {
-			const listed = await listRadarJobsForUser(
-				body.user_id,
-				user.planId ?? "FREE",
-			);
-			const emailJobs = jobsForRadarReadyEmail(listed.jobs);
-			await dispatchTemplateEmail({
-				alias: "yucv-radar-ready",
-				to: user.email,
+		try {
+			await sendRadarReadyEmail({
 				userId: body.user_id,
-				dripCycle: body.run_id,
-				variables: {
-					JOB_COUNT: String(
-						listed.visible ||
-							listed.jobs.length ||
-							result.stored ||
-							body.analyzed ||
-							0,
-					),
-					JOBS_HTML: buildRadarJobsHtml(emailJobs),
-				},
-				ctaPath: "/job-radar",
+				runId: body.run_id,
+				stored: result.stored,
+				analyzed: body.analyzed,
 			});
+		} catch (error) {
+			console.error("radar ready email failed", error);
 		}
 	}
 
 	return NextResponse.json({ ok: true, stored: result.stored });
+}
+
+async function sendRadarReadyEmail(input: {
+	userId: string;
+	runId: string;
+	stored: number;
+	analyzed?: number;
+}) {
+	const user = await db.query.users.findFirst({
+		where: eq(users.id, input.userId),
+		columns: { email: true, firstName: true, planId: true },
+	});
+	if (!user?.email) {
+		return;
+	}
+
+	const listed = await listRadarJobsForUser(input.userId, user.planId ?? "FREE");
+	const jobsHtml = buildRadarJobsHtml(jobsForRadarReadyEmail(listed.jobs));
+	await dispatchTemplateEmail({
+		alias: "yucv-radar-ready",
+		to: user.email,
+		userId: input.userId,
+		dripCycle: input.runId,
+		variables: {
+			JOB_COUNT: String(
+				listed.visible ||
+					listed.jobs.length ||
+					input.stored ||
+					input.analyzed ||
+					0,
+			),
+			JOBS_HTML: jobsHtml,
+		},
+		ctaPath: "/job-radar",
+	});
 }

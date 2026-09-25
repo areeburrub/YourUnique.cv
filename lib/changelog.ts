@@ -14,6 +14,21 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
 	{
+		version: "0.5.1",
+		date: "2026-09-25",
+		title: "Job Radar share image and a ready email that sends",
+		items: [
+			{
+				kind: "improved",
+				text: "Sharing the Job Radar page shows a Job Radar preview, with sample matches and scores.",
+			},
+			{
+				kind: "fixed",
+				text: "The jobs-ready email still goes out when the match list is long.",
+			},
+		],
+	},
+	{
 		version: "0.5.0",
 		date: "2026-09-18",
 		title: "Short cover letters in chat",

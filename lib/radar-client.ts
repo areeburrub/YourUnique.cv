@@ -115,6 +115,81 @@ export async function triggerRadarGalleryRefresh() {
 		ok: boolean;
 		companies?: number;
 		boards?: number;
+		added?: number;
+		total?: number;
 		skipped?: number;
 	};
+}
+
+export async function triggerRadarBSMRefresh() {
+	const headers: Record<string, string> = {
+		Accept: "application/json",
+	};
+	const token = radarToken();
+	if (token) {
+		headers["X-Radar-Token"] = token;
+	}
+	const res = await fetch(`${radarBaseUrl()}/api/boards/bsm`, {
+		method: "POST",
+		headers,
+	});
+	if (!res.ok && res.status !== 409) {
+		const text = await res.text();
+		throw new Error(text || `radar bsm ${res.status}`);
+	}
+	if (!res.ok) {
+		return { ok: false as const, conflict: true };
+	}
+	return (await res.json()) as {
+		ok: boolean;
+		companies?: number;
+		boards?: number;
+		added?: number;
+		total?: number;
+		skipped?: number;
+		failed?: number;
+	};
+}
+
+async function postRadarBoards(path: string, label: string) {
+	const headers: Record<string, string> = {
+		Accept: "application/json",
+	};
+	const token = radarToken();
+	if (token) {
+		headers["X-Radar-Token"] = token;
+	}
+	const res = await fetch(`${radarBaseUrl()}${path}`, {
+		method: "POST",
+		headers,
+	});
+	if (!res.ok && res.status !== 409) {
+		const text = await res.text();
+		throw new Error(text || `radar ${label} ${res.status}`);
+	}
+	if (!res.ok) {
+		return { ok: false as const, conflict: true };
+	}
+	return (await res.json()) as {
+		ok: boolean;
+		companies?: number;
+		jobs?: number;
+		boards?: number;
+		added?: number;
+		total?: number;
+		skipped?: number;
+		failed?: number;
+	};
+}
+
+export async function triggerRadarJobpinRefresh() {
+	return postRadarBoards("/api/boards/jobpin", "jobpin");
+}
+
+export async function triggerRadarRolesRefresh() {
+	return postRadarBoards("/api/boards/roles", "roles");
+}
+
+export async function triggerRadarStartupMapRefresh() {
+	return postRadarBoards("/api/boards/startupmap", "startupmap");
 }
