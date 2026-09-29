@@ -1,15 +1,26 @@
 import { FREE_LIST_LIMIT, type RadarListJob } from "@/lib/db/radar";
+import { RADAR_EMAIL_SKIP_STATUSES } from "@/lib/radar-tracker";
 
 /** Resend template variables cap at 2,000 characters per value. */
 export const RESEND_TEMPLATE_VALUE_MAX = 2000;
 
+const emailedSkipStatuses = new Set<string>(RADAR_EMAIL_SKIP_STATUSES);
+
 export function jobsForRadarReadyEmail(jobs: RadarListJob[]) {
-	return jobs.filter((job) => !job.blurred).slice(0, FREE_LIST_LIMIT);
+	return jobs
+		.filter(
+			(job) =>
+				!job.blurred &&
+				!job.emailedAt &&
+				!emailedSkipStatuses.has(job.trackerStatus),
+		)
+		.slice(0, FREE_LIST_LIMIT);
 }
 
 export function buildRadarJobsHtml(jobs: RadarListJob[]) {
 	const header = `<p style="margin:8px 0 12px;font-size:13px;letter-spacing:0.08em;text-transform:uppercase;color:#6B635B;">Top matches</p>`;
 	const lines: string[] = [];
+	const included: RadarListJob[] = [];
 
 	for (const job of jobs) {
 		const line = radarJobEmailLine(job);
@@ -18,13 +29,14 @@ export function buildRadarJobsHtml(jobs: RadarListJob[]) {
 			break;
 		}
 		lines.push(line);
+		included.push(job);
 	}
 
 	if (lines.length === 0) {
-		return "";
+		return { html: "", jobs: included };
 	}
 
-	return header + lines.join("");
+	return { html: header + lines.join(""), jobs: included };
 }
 
 function radarJobEmailLine(job: RadarListJob) {

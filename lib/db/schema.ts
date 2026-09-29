@@ -522,6 +522,7 @@ export const radarUserJobs = pgTable(
 		dismissedReason: text("dismissed_reason"),
 		trackerStatus: text("tracker_status").notNull().default("new"),
 		seniorityFit: text("seniority_fit").notNull().default("unclear"),
+		emailedAt: timestamp("emailed_at", { withTimezone: true }),
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.defaultNow()
 			.notNull(),

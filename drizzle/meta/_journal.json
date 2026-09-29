@@ -246,6 +246,13 @@
       "when": 1788920000000,
       "tag": "0034_radar_seniority_fit",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1788930000000,
+      "tag": "0035_radar_job_emailed_at",
+      "breakpoints": true
     }
   ]
 }
