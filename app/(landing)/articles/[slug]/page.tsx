@@ -8,7 +8,6 @@ import {
 	extractArticleHeadings,
 	getCachedPublishedArticle,
 } from "@/lib/articles";
-import { listPublishedArticleSlugs } from "@/lib/db/articles";
 import { SITE_NAME } from "@/lib/site";
 
 export const revalidate = 3600;
@@ -18,13 +17,10 @@ type ArticleRouteProps = {
 	params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-	try {
-		const slugs = await listPublishedArticleSlugs();
-		return slugs.map((slug) => ({ slug }));
-	} catch {
-		return [];
-	}
+export function generateStaticParams() {
+	// Prerendering every published article opens enough database connections
+	// to time out the production build. Each page is generated on first request.
+	return [];
 }
 
 export async function generateMetadata({
