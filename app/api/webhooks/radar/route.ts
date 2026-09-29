@@ -6,7 +6,8 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import {
 	applyRadarCallback,
-	listRadarJobsForUser,
+	listRadarJobsPendingEmail,
+	markRadarJobsEmailed,
 	type RadarCallbackJob,
 } from "@/lib/db/radar";
 import { users } from "@/lib/db/schema";
@@ -82,8 +83,6 @@ export async function POST(req: Request) {
 			await sendRadarReadyEmail({
 				userId: body.user_id,
 				runId: body.run_id,
-				stored: result.stored,
-				analyzed: body.analyzed,
 			});
 		} catch (error) {
 			console.error("radar ready email failed", error);
@@ -96,8 +95,6 @@ export async function POST(req: Request) {
 async function sendRadarReadyEmail(input: {
 	userId: string;
 	runId: string;
-	stored: number;
-	analyzed?: number;
 }) {
 	const user = await db.query.users.findFirst({
 		where: eq(users.id, input.userId),
@@ -107,23 +104,29 @@ async function sendRadarReadyEmail(input: {
 		return;
 	}
 
-	const listed = await listRadarJobsForUser(input.userId, user.planId ?? "FREE");
-	const jobsHtml = buildRadarJobsHtml(jobsForRadarReadyEmail(listed.jobs));
-	await dispatchTemplateEmail({
+	const pending = await listRadarJobsPendingEmail(
+		input.userId,
+		user.planId ?? "FREE",
+	);
+	const { html, jobs } = buildRadarJobsHtml(jobsForRadarReadyEmail(pending));
+	if (jobs.length === 0) {
+		return;
+	}
+	const sent = await dispatchTemplateEmail({
 		alias: "yucv-radar-ready",
 		to: user.email,
 		userId: input.userId,
 		dripCycle: input.runId,
 		variables: {
-			JOB_COUNT: String(
-				listed.visible ||
-					listed.jobs.length ||
-					input.stored ||
-					input.analyzed ||
-					0,
-			),
-			JOBS_HTML: jobsHtml,
+			JOB_COUNT: String(jobs.length),
+			JOBS_HTML: html,
 		},
 		ctaPath: "/job-radar",
 	});
+	if (sent.ok) {
+		await markRadarJobsEmailed(
+			input.userId,
+			jobs.map((job) => job.id),
+		);
+	}
 }

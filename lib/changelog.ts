@@ -14,6 +14,17 @@ export type ChangelogRelease = {
 
 export const CHANGELOG: ChangelogRelease[] = [
 	{
+		version: "0.5.2",
+		date: "2026-09-29",
+		title: "Job Radar email only includes new roles",
+		items: [
+			{
+				kind: "fixed",
+				text: "The daily Job Radar email skips roles you already applied to and roles that were in an earlier email.",
+			},
+		],
+	},
+	{
 		version: "0.5.1",
 		date: "2026-09-25",
 		title: "Job Radar share image and a ready email that sends",

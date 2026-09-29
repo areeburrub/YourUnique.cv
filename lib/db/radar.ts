@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, isNull, ne, notInArray, or, sql } from "drizzle-orm";
 import { nanoid } from "nanoid";
 
 import { db } from "@/lib/db";
@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/schema";
 import { isPaidPlan } from "@/lib/plans";
 import { parseRadarSeniorityFit } from "@/lib/radar-seniority";
+import { RADAR_EMAIL_SKIP_STATUSES } from "@/lib/radar-tracker";
 
 /** Free list is 10 cards (5 blurred) — only ATS-score that shortlist. */
 export const FREE_ANALYZE_N = 10;
@@ -375,6 +376,8 @@ export type RadarListJob = {
 	strengths: string[];
 	gaps: RadarAtsGap[];
 	areas: RadarAtsArea[];
+	/** Set when this role was included in a Job Radar email. */
+	emailedAt?: Date | null;
 };
 
 export async function listRadarJobsForUser(
@@ -511,6 +514,89 @@ export async function listRadarJobsForUser(
 		hasMore,
 		run,
 	};
+}
+
+/**
+ * Roles still eligible for the Job Radar email: not hidden, not already
+ * emailed, and not applied (or further along). Ordered like the board.
+ */
+export async function listRadarJobsPendingEmail(userId: string, planId: string) {
+	const paid = isPaidPlan(planId);
+	const rows = await db
+		.select({
+			linkId: radarUserJobs.id,
+			jobId: radarUserJobs.jobId,
+			rank: radarUserJobs.rank,
+			atsScore: radarUserJobs.atsScore,
+			verdict: radarUserJobs.verdict,
+			summary: radarUserJobs.summary,
+			areas: radarUserJobs.areas,
+			gaps: radarUserJobs.gaps,
+			strengths: radarUserJobs.strengths,
+			batchDate: radarUserJobs.batchDate,
+			title: radarJobs.title,
+			company: radarJobs.company,
+			location: radarJobs.location,
+			workplace: radarJobs.workplace,
+			url: radarJobs.url,
+			postedAt: radarJobs.postedAt,
+			trackerStatus: radarUserJobs.trackerStatus,
+			seniorityFit: radarUserJobs.seniorityFit,
+			emailedAt: radarUserJobs.emailedAt,
+		})
+		.from(radarUserJobs)
+		.innerJoin(radarJobs, eq(radarUserJobs.jobId, radarJobs.id))
+		.where(
+			and(
+				eq(radarUserJobs.userId, userId),
+				eq(radarUserJobs.hidden, false),
+				isNull(radarUserJobs.emailedAt),
+				notInArray(radarUserJobs.trackerStatus, [...RADAR_EMAIL_SKIP_STATUSES]),
+			),
+		)
+		.orderBy(desc(radarUserJobs.atsScore), radarUserJobs.rank)
+		.limit(listLimitForPlan(planId));
+
+	return rows.map((row, index): RadarListJob => {
+		const blurred = !paid && FREE_BLUR_INDEXES.has(index);
+		return {
+			id: blurred ? row.linkId : row.jobId,
+			rank: index + 1,
+			atsScore: Number(row.atsScore),
+			verdict: row.verdict,
+			summary: blurred ? "" : row.summary,
+			blurred,
+			title: row.title,
+			company: blurred ? null : row.company,
+			location: blurred ? null : row.location,
+			workplace: blurred ? null : row.workplace,
+			url: blurred ? null : row.url,
+			postedAt: blurred ? null : row.postedAt,
+			batchDate: row.batchDate,
+			trackerStatus: parseTrackerStatus(row.trackerStatus),
+			seniorityFit: parseRadarSeniorityFit(row.seniorityFit),
+			strengths: blurred ? [] : row.strengths,
+			gaps: blurred ? [] : row.gaps,
+			areas: blurred ? [] : row.areas,
+			emailedAt: row.emailedAt,
+		};
+	});
+}
+
+export async function markRadarJobsEmailed(userId: string, jobIds: string[]) {
+	if (jobIds.length === 0) {
+		return;
+	}
+	await db
+		.update(radarUserJobs)
+		.set({ emailedAt: new Date() })
+		.where(
+			and(
+				eq(radarUserJobs.userId, userId),
+				inArray(radarUserJobs.jobId, jobIds),
+				isNull(radarUserJobs.emailedAt),
+			),
+		);
 }
 
 export async function getRadarJobForUser(userId: string, jobId: string, planId: string) {
